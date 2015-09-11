@@ -4,40 +4,40 @@
 
 #include <stdint.h>
 
-#include "base.h"
-
-#define INTERRUPT_CONTROLLER_BASE   ( PERIPHERAL_BASE + 0xB200 )
-
 /* 
-    Bits in the Enable_Basic_IRQs register to enable various interrupts.
+    Important bits
 */
-#define BASIC_ARM_TIMER_IRQ         (1 << 0)
-#define BASIC_ARM_MAILBOX_IRQ       (1 << 1)
-#define BASIC_ARM_DOORBELL_0_IRQ    (1 << 2)
-#define BASIC_ARM_DOORBELL_1_IRQ    (1 << 3)
-#define BASIC_GPU_0_HALTED_IRQ      (1 << 4)
-#define BASIC_GPU_1_HALTED_IRQ      (1 << 5)
-#define BASIC_ACCESS_ERROR_1_IRQ    (1 << 6)
-#define BASIC_ACCESS_ERROR_0_IRQ    (1 << 7)
-
+#define ARM_TIMER_IRQ         (1 << 0)
+#define ARM_MAILBOX_IRQ       (1 << 1)
+#define ARM_DOORBELL_0_IRQ    (1 << 2)
+#define ARM_DOORBELL_1_IRQ    (1 << 3)
+#define GPU_0_HALTED_IRQ      (1 << 4)
+#define GPU_1_HALTED_IRQ      (1 << 5)
+#define ACCESS_ERROR_1_IRQ    (1 << 6)
+#define ACCESS_ERROR_0_IRQ    (1 << 7)
 
 /*
     The interrupt controller memory mapped register set
 */
-typedef struct {
-    volatile uint32_t IRQ_basic_pending;
+typedef struct irq_controller{
+    // see where IRQ came from
+    volatile uint32_t IRQ_basic_pending;   
+    // more irq sources. Everything concerns the GPU 
     volatile uint32_t IRQ_pending_1;
     volatile uint32_t IRQ_pending_2;
+    // controls which source can generate a FIQ. Only one can be selected
     volatile uint32_t FIQ_control;
+    // enable interrupt generation
     volatile uint32_t Enable_IRQs_1;
     volatile uint32_t Enable_IRQs_2;
     volatile uint32_t Enable_Basic_IRQs;
+    // disable interrupts
     volatile uint32_t Disable_IRQs_1;
     volatile uint32_t Disable_IRQs_2;
     volatile uint32_t Disable_Basic_IRQs;
 } irq_controller_t;
 
 
-extern irq_controller_t* GetIrqController( void );
+irq_controller_t* GetIrqController( void );
 
 #endif

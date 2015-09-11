@@ -14,7 +14,7 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags )
     GetGpio()->LED_GPFSEL |= LED_GPFBIT;
 
     //  enable the timer interrupt IRQ
-    GetIrqController()->Enable_Basic_IRQs = BASIC_ARM_TIMER_IRQ;
+    GetIrqController()->Enable_Basic_IRQs = ARM_TIMER_IRQ;
 
     /* Setup the system timer interrupt */
     /* Timer frequency = Clk/256 * 0x400 */

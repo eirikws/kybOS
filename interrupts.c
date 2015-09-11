@@ -7,7 +7,11 @@
 #include "gpio.h"
 #include "interrupts.h"
 
-    //  Put the interupt controller peripheral at it's base address
+#define INTERRUPT_CONTROLLER_BASE   ( PERIPHERAL_BASE + 0xB200 )
+
+/*
+    Put the interupt controller peripheral at it's base address
+*/
 static irq_controller_t* IRQController =
         (irq_controller_t*)INTERRUPT_CONTROLLER_BASE;
 
