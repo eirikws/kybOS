@@ -2,12 +2,6 @@
 #ifndef GPIO_H
 #define GPIO_H
 
-#include "base.h"
-
-
-#define GPIO_BASE       ( PERIPHERAL_BASE + 0x200000UL )
-
-
 #define LED_GPFSEL      GPFSEL4
 #define LED_GPFBIT      21
 #define LED_GPSET       GPSET1
@@ -94,7 +88,7 @@ typedef struct {
 } gpio_t;
 
 
-extern gpio_t* GetGpio(void);
-extern void GpioInit(void);
+gpio_t* GetGpio(void);
+void GpioInit(void);
 
 #endif
