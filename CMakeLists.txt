@@ -22,9 +22,9 @@ add_executable( kybOS
     gpio.c
     gpio.h
     interrupts.c
-    interrupts.h
-    systimer.c
-    systimer.h )
+    interrupts.h 
+    uart.c
+    uart.h )
 
 add_custom_command(
     TARGET kybOS POST_BUILD

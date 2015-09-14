@@ -4,12 +4,13 @@
 
 #include "gpio.h"
 #include "armtimer.h"
-#include "systimer.h"
 #include "interrupts.h"
+#include "uart.h"
 
-/** Main function - we'll never return from here */
-void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags )
-{
+/* Main function - we'll never return from here */
+void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
+    uart_init();
+    uart_puts("Hello, World\n");
     //  enable LED pin as an output 
     GetGpio()->LED_GPFSEL |= LED_GPFBIT;
 
@@ -19,7 +20,7 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags )
     /* Setup the system timer interrupt */
     /* Timer frequency = Clk/256 * 0x400 */
     GetArmTimer()->Load = 0x400;
-
+    
     /* Setup the ARM Timer */
     GetArmTimer()->Control =
             ARMTIMER_CTRL_23BIT |
@@ -29,10 +30,12 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags )
 
     /* Enable interrupts! */
     _enable_interrupts();
-
+    uart_puts("Init done, led should be blinking!\n");
     /* Never exit as there is no OS to exit to! */
-    while(1)
-    {
-        // NOTHING FOREVER ND EVER!!
+    char c;    
+    while(1){   
+        c = uart_getc();
+        uart_puts("Returning: \n");
+        uart_putc(c);
     }
 }

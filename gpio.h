@@ -2,14 +2,13 @@
 #ifndef GPIO_H
 #define GPIO_H
 
+#include "base.h"
+
 #define LED_GPFSEL      GPFSEL4
 #define LED_GPFBIT      21
 #define LED_GPSET       GPSET1
 #define LED_GPCLR       GPCLR1
 #define LED_GPIO_BIT    15
-#define LED_ON()        do { GetGpio()->LED_GPCLR = ( 1 << LED_GPIO_BIT ); } while( 0 )
-#define LED_OFF()       do { GetGpio()->LED_GPSET = ( 1 << LED_GPIO_BIT ); } while( 0 )
-
 
 /***/
 #define GPIO_FSEL0_00_INPUT     ( 0 )
