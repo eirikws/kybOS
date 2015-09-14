@@ -1,4 +1,3 @@
-
 #include <string.h>
 #include <stdint.h>
 #include "base.h"
@@ -23,7 +22,7 @@ static void delay(int32_t count){
     Similarly, to enable reception, the RXE bit and UARTEN bit, must be set to 1.
     NOTE:
     Program the control registers as follows:
-    1. Disable the UART.
+    1. Disable the UART.w
     2. Wait for the end of transmission or reception of the current character.
     3. Flush the transmit FIFO by setting the FEN bit to 0 in the Line Control
     Register, UART_LCRH.
@@ -32,7 +31,7 @@ static void delay(int32_t count){
 */
 void uart_init( void ){
 	//	turn everything off for starters
-	GetUartController()->CR = 0x0000;
+	GetUartController()->CR = 0x00000000;
 	//	Control signal to disable pull up/down and delay for 150 clock cycles
     GetGpio()->GPPUD = PULL_UPDOWN_DISABLE;
     delay(150);
@@ -43,7 +42,7 @@ void uart_init( void ){
     GetGpio()->GPPUD = 0;
     GetGpio()->GPPUDCLK0 = 0;
     //  clear impending intrrupts
-    GetUartController()->ICR = UART_CLEAR_ALL_INTERRUPTS;
+    GetUartController()->ICR = 0x7ff;
     //  set the baud rate:
     //  divider = uart_clock/(16 * baud)
     //  fraction = ( fraction_part * 64 ) + 0.5
@@ -90,6 +89,5 @@ void uart_puts(const char* str){
     uart_write((const unsigned char*)str, strlen(str));
     return;
 }
-
 
 

@@ -3,7 +3,7 @@
     https://sourceware.org/newlib/libc.html#Stubs
 */
 
-
+#include <stdint.h>
 #include <errno.h>
 #undef errno
 extern int errno;
@@ -138,13 +138,12 @@ caddr_t _sbrk( int incr )
     extern char _end;
     static char* heap_end;
     char* prev_heap_end;
-
     if( heap_end == 0 )
         heap_end = &_end;
 
      prev_heap_end = heap_end;
 
-     if( ( (int)heap_end + (int)incr ) > (int)_get_stack_pointer() )
+     if( ( heap_end + incr ) > _get_stack_pointer() )
      {
         while( 1 ) { /* TRAP HERE! */ }
      }

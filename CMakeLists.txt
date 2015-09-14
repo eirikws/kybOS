@@ -24,7 +24,9 @@ add_executable( kybOS
     interrupts.c
     interrupts.h 
     uart.c
-    uart.h )
+    uart.h
+    control.c
+    control.h )
 
 add_custom_command(
     TARGET kybOS POST_BUILD

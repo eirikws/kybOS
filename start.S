@@ -85,7 +85,6 @@ _get_stack_pointer:
     // Return from the function
     mov     pc, lr
 
-
 _enable_interrupts:
     mrs     r0, cpsr
     bic     r0, r0, #0x80

@@ -2,7 +2,7 @@
 #ifndef UART_H
 #define UART_H
 
-# include <stdint.h>
+#include <stdint.h>
 
 /*
     important control register bits
@@ -21,7 +21,7 @@
 /*
     pull up/down control
 */
-#define PULL_UPDOWN_DISABLE        (0 << 1 ) | (0 << 0 )
+#define PULL_UPDOWN_DISABLE         (0 << 1 ) | (0 << 0 )
 #define PULL_UP_CONTROL_ENABLE      (0 << 1 ) | (1 << 0 )
 #define PULL_DOWN_CONTROL_ENABLE    (1 << 1 ) | (0 << 0 )
 #define UART_PINS                   (1 << 14) | (1 << 15)
@@ -66,15 +66,13 @@ typedef struct uart_controller{
     // the data register
     volatile uint32_t DR;
     // receive status/error clear register
-    volatile uint32_t errors;
+    volatile uint32_t RSRECR;
     // padding to align memory
-    volatile uint32_t padding0;
-    volatile uint32_t padding1;
-    volatile uint16_t padding2;
+    volatile uint32_t padding0[4];
     // flag register
     volatile uint32_t FR;
     // padding again...
-    volatile uint16_t padding3;
+    volatile uint32_t padding1[2];
     // integer baud rate divisor
     volatile uint32_t IBRD;
     // Fractional baud rate divisor
@@ -96,7 +94,7 @@ typedef struct uart_controller{
     // DMA control register
     volatile uint32_t DMACR;
     // MOAR padding!
-    volatile uint32_t padding4[14];
+    volatile uint32_t padding2[13];
     // test control register
     volatile uint32_t ITCR;
     // integration test input reg
