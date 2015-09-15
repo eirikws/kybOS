@@ -6,7 +6,8 @@
 #include "base.h"
 #include "gpio.h"
 #include "interrupts.h"
-
+#include "uart.h"
+#include "control.h"
 #define INTERRUPT_CONTROLLER_BASE   ( PERIPHERAL_BASE + 0xB200 )
 
 /*
@@ -27,7 +28,7 @@ irq_controller_t* GetIrqController( void ){
     Reset handler
 */
 void __attribute__((interrupt("ABORT"))) reset_vector(void){
-
+    
 }
 
 /*
@@ -36,7 +37,7 @@ void __attribute__((interrupt("ABORT"))) reset_vector(void){
 void __attribute__((interrupt("UNDEF"))) undefined_instruction_vector(void){
     while( 1 )
     {
-        /* Do Nothing! */
+        uart_puts("Undefined mode!!!\r\n");
     }
 }
 
@@ -45,9 +46,11 @@ void __attribute__((interrupt("UNDEF"))) undefined_instruction_vector(void){
     Software interrupt handler. This switches to supervisor mode
 */
 void __attribute__((interrupt("SWI"))) software_interrupt_vector(void){
+    uart_puts("SWI handler!\r\n");
+    get_cpu_mode();
     while( 1 )
     {
-        /* Do Nothing! */
+        
     }
 }
 

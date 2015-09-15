@@ -5,6 +5,9 @@
 .global _get_stack_pointer
 .global _exception_table
 .global _enable_interrupts
+.global _get_cpsr
+.global _set_cpu_mode
+.global _generate_swi
 
 //  STATUS/MODE REGISTER
 .equ    CPSR_MODE_USER,         0x10
@@ -84,6 +87,21 @@ _get_stack_pointer:
     ldr     r0, [sp]
     // Return from the function
     mov     pc, lr
+
+_generate_swi:
+    swi 12
+    mov pc, lr
+
+_get_cpsr:
+    mrs r0, cpsr
+    mov pc, lr
+
+_set_cpu_mode:
+//    mrs r1, cpsr
+//    and r1, #0xffffffE0  // set previous mode to 0. 0b..1110 0000
+//    orr r1, r0          // set MODE bits (CPSR[4..0]) to the new mode
+    msr cpsr_c, r0
+    mov pc, lr    
 
 _enable_interrupts:
     mrs     r0, cpsr
