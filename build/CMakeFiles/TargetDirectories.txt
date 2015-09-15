@@ -1,0 +1,1 @@
+/home/eirikws/Desktop/kybOS/build/CMakeFiles/kybOS.dir
