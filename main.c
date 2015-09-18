@@ -9,7 +9,7 @@
 #include "control.h"
 
 
-extern void _generate_swi();
+extern void _generate_swi(void* arg);
 
 /* Main function - we'll never return from here */
 void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
@@ -22,8 +22,8 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     GetIrqController()->Enable_Basic_IRQs = ARM_TIMER_IRQ;
 
     /* Setup the system timer interrupt */
-    /* Timer frequency = Clk/256 * 0x400 */
-    GetArmTimer()->Load = 0x400;
+    /* Timer frequency = Clk/256 * LOAD */
+    GetArmTimer()->Load = 0x800;
     
     /* Setup the ARM Timer */
     GetArmTimer()->Control =
@@ -38,14 +38,17 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     /* Never exit as there is no OS to exit to! */
     char c;
     int i = 0;
+    get_cpu_mode();
+    _set_cpu_mode(CPSR_MODE_USER | CPSR_FIQ_INHIBIT);
     while(1){   
-        //c = uart_getc();
+        c = uart_getc();
         //uart_puts("returning :");
         //uart_putc(c);
         //uart_puts("\r\n");
         if (i++ > 2){
-            _set_cpu_mode(CPSR_MODE_USER);
-            _generate_swi();
+            
+            _generate_swi((void*)'a');
+            i = 0;
         }
         get_cpu_mode();
         

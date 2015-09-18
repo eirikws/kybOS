@@ -64,13 +64,20 @@ _reset_:
     mov r0, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r0
     mov sp, #(63 * 1024 * 1024)
+    
+    //  setup the user/system stack pointer. These modes share registers.
+    //  switch to system mode because the we are able to switch back!
+    mov r0, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r0
+    mov sp, #(62 * 1024 * 1024)
+    
 
     //  switch back to supervisor mode and set the stack pointer
     //  towards the end of RAM. The stack will work down, and the heap up.
     mov r0, #(CPSR_MODE_SVR | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r0
 
-    //  set the stack pointer at some point in RAM
+    //  set the stack pointer at some point in RAM. this is the top!
     mov     sp, #(64 * 1024 * 1024)
 
     //  Setup the c runtime
@@ -89,7 +96,7 @@ _get_stack_pointer:
     mov     pc, lr
 
 _generate_swi:
-    swi 12
+    swi 77
     mov pc, lr
 
 _get_cpsr:
@@ -97,11 +104,10 @@ _get_cpsr:
     mov pc, lr
 
 _set_cpu_mode:
-//    mrs r1, cpsr
-//    and r1, #0xffffffE0  // set previous mode to 0. 0b..1110 0000
-//    orr r1, r0          // set MODE bits (CPSR[4..0]) to the new mode
+    //  store lr in r2, becuase lr is banked for different cpu modes    
+    mov r2, lr
     msr cpsr_c, r0
-    mov pc, lr    
+    mov pc, r2
 
 _enable_interrupts:
     mrs     r0, cpsr

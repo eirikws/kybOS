@@ -13,6 +13,8 @@ enum{
     CPSR_MODE_ABORT =       0x17,
     CPSR_MODE_UNDEFINED =   0x1B,
     CPSR_MODE_SYSTEM =      0x1F,
+    CPSR_IRQ_INHIBIT =      0x80,
+    CPSR_FIQ_INHIBIT =      0x40,
 };
 
 

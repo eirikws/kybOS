@@ -28,6 +28,7 @@ irq_controller_t* GetIrqController( void ){
     Reset handler
 */
 void __attribute__((interrupt("ABORT"))) reset_vector(void){
+    uart_puts("ABORT_interrupt!!\r\n");
     
 }
 
@@ -45,13 +46,16 @@ void __attribute__((interrupt("UNDEF"))) undefined_instruction_vector(void){
 /*
     Software interrupt handler. This switches to supervisor mode
 */
-void __attribute__((interrupt("SWI"))) software_interrupt_vector(void){
+void __attribute__((interrupt("SWI"))) software_interrupt_vector(void* arg){
     uart_puts("SWI handler!\r\n");
+    int swi_arg;
+    asm volatile("ldrb %0, [lr, #-2]" : "=r"(swi_arg));
+    uart_putc((uint32_t)arg);
+    uart_putc(swi_arg);
+    if(swi_arg == 77)
+        uart_puts("swi arg is 77\r\n");
     get_cpu_mode();
-    while( 1 )
-    {
-        
-    }
+    uart_puts("SWI handler ends! \r\n");
 }
 
 
@@ -76,7 +80,7 @@ void __attribute__((interrupt("ABORT"))) data_abort_vector(void){
 */
 void __attribute__((interrupt("IRQ"))) interrupt_vector(void){
     static int lit = 0;
-
+    get_cpu_mode();
     GetArmTimer()->IRQClear = 1;
 
     /* Flip the LED */
