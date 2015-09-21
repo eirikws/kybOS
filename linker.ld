@@ -4,10 +4,10 @@ OUTPUT_FORMAT("elf32-littlearm", "elf32-bigarm",
 OUTPUT_ARCH(arm)
 ENTRY(_start)
 SEARCH_DIR("=/usr/local/lib"); SEARCH_DIR("=/lib"); SEARCH_DIR("=/usr/lib");
-SECTIONS
-{
+
+SECTIONS {
   /* Read-only sections, merged into text segment: */
-  PROVIDE (__executable_start = SEGMENT_START("text-segment", 0x8000)); . = SEGMENT_START("text-segment", 0x8000);
+  PROVIDE (__executable_start = SEGMENT_START("text-segment", 0x8000));. = SEGMENT_START("text-segment", 0x8000);
   .interp         : { *(.interp) }
   .note.gnu.build-id : { *(.note.gnu.build-id) }
   .hash           : { *(.hash) }
@@ -227,6 +227,8 @@ SECTIONS
   /* DWARF 3 */
   .debug_pubtypes 0 : { *(.debug_pubtypes) }
   .debug_ranges   0 : { *(.debug_ranges) }
+    .prog1 60*1024*1024 : {*(.prog1) }
+    .prog2 : {*(.prog2) }
     .stack         0x80000 :
   {
     _stack = .;

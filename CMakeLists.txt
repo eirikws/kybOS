@@ -26,7 +26,13 @@ add_executable( kybOS
     uart.c
     uart.h
     control.c
-    control.h )
+    control.h
+    prog1.c
+    prog1.h
+    pcb.c
+    pcb.h
+    threading.c
+    threading.h )
 
 add_custom_command(
     TARGET kybOS POST_BUILD

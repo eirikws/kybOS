@@ -77,7 +77,7 @@ _reset_:
     mov r0, #(CPSR_MODE_SVR | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r0
 
-    //  set the stack pointer at some point in RAM. this is the top!
+    //  set the stack pointer at some point in RAM. this is the top(0x80000)!
     mov     sp, #(64 * 1024 * 1024)
 
     //  Setup the c runtime

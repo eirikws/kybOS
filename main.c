@@ -10,6 +10,7 @@
 
 
 extern void _generate_swi(void* arg);
+extern void _enable_interrupts();
 
 /* Main function - we'll never return from here */
 void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
