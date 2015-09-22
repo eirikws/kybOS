@@ -96,7 +96,7 @@ _get_stack_pointer:
     mov     pc, lr
 
 _generate_swi:
-    swi 77
+    swi #0
     mov pc, lr
 
 _get_cpsr:

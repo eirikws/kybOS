@@ -62,8 +62,7 @@ void uart_init( void ){
     
     //  mask interrupts
     GetUartController()->IMSC   |= RECEIVE_MASK_BIT;
-   // GetUartController()->IMSC =  (1 << 1) | (1 << 4) | (1 << 5) | (1 << 6) |
-   //m                              (1 << 7) | (1 << 8) | (1 << 9) | (1 << 10);
+
     //  restart uart again
     GetIrqController()->Enable_IRQs_2 |= UART_IRQ;
     GetUartController()->CR = UART_ENABLE | TRANSMIT_ENABLE | RECEIVE_ENABLE;
