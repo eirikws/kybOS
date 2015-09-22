@@ -20,7 +20,7 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     GetGpio()->LED_GPFSEL |= LED_GPFBIT;
 
     //  enable the timer interrupt IRQ
-    GetIrqController()->Enable_Basic_IRQs = ARM_TIMER_IRQ;
+    GetIrqController()->Enable_Basic_IRQs |= ARM_TIMER_IRQ;
 
     /* Setup the system timer interrupt */
     /* Timer frequency = Clk/256 * LOAD */
@@ -42,6 +42,7 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     get_cpu_mode();
     _set_cpu_mode(CPSR_MODE_USER | CPSR_FIQ_INHIBIT);
     while(1){   
+        /*
         c = uart_getc();
         //uart_puts("returning :");
         //uart_putc(c);
@@ -52,7 +53,7 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
             i = 0;
         }
         get_cpu_mode();
-        
+        */
     }
 }
 

@@ -60,6 +60,33 @@
 
 
 /*
+    Interrupt FIFO level register
+*/
+#define RECEIVE_IRQ_FIFO_18   (0 << 5) | (0 << 4) | (0 << 3)
+#define RECEIVE_IRQ_FIFO_14   (0 << 5) | (0 << 4) | (1 << 3)
+#define RECEIVE_IRQ_FIFO_12   (0 << 5) | (1 << 4) | (0 << 3)
+#define RECEIVE_IRQ_FIFO_34   (0 << 5) | (1 << 4) | (1 << 3)
+#define RECEIVE_IRQ_FIFO_78   (1 << 5) | (0 << 4) | (0 << 3)
+#define TRANSMIT_IRQ_FIFO_18  (0 << 2) | (0 << 1) | (0 << 0)
+#define TRANSMIT_IRQ_FIFO_14  (0 << 5) | (0 << 4) | (1 << 3)
+#define TRANSMIT_IRQ_FIFO_12  (0 << 5) | (1 << 4) | (0 << 3)
+#define TRANSMIT_IRQ_FIFO_34  (0 << 5) | (1 << 4) | (1 << 3)
+#define TRANSMIT_IRQ_FIFO_78  (1 << 5) | (0 << 4) | (0 << 3)
+
+/*
+    Interupt clear bits
+*/
+#define RECEIVE_CLEAR       (1 << 4)
+#define TRANSMIT_CLEAR      (1 << 5)
+
+/*
+    Mask bits
+*/
+#define RECEIVE_MASK_BIT    (1 << 4)
+#define TRANSMIT MASK_BIT   (1 << 5)
+
+
+/*
     uart controller that is memory mapped
 */
 typedef struct uart_controller{

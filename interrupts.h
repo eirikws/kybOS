@@ -15,6 +15,7 @@
 #define GPU_1_HALTED_IRQ      (1 << 5)
 #define ACCESS_ERROR_1_IRQ    (1 << 6)
 #define ACCESS_ERROR_0_IRQ    (1 << 7)
+#define UART_IRQ              (1 << 25)
 
 /*
     The interrupt controller memory mapped register set

@@ -80,19 +80,25 @@ void __attribute__((interrupt("ABORT"))) data_abort_vector(void){
 */
 void __attribute__((interrupt("IRQ"))) interrupt_vector(void){
     static int lit = 0;
-    get_cpu_mode();
-    GetArmTimer()->IRQClear = 1;
-
-    /* Flip the LED */
-    if( lit )
-    {
-        GetGpio()->LED_GPSET = (1 << LED_GPIO_BIT);
-        lit = 0;
+//    get_cpu_mode();
+    if (GetIrqController()->IRQ_basic_pending && ARM_TIMER_IRQ){
+        GetArmTimer()->IRQClear = 1;
+        if( lit )
+        {
+            GetGpio()->LED_GPSET = (1 << LED_GPIO_BIT);
+            lit = 0;
+        }
+        else
+        {
+            GetGpio()->LED_GPCLR = (1 << LED_GPIO_BIT);
+            lit = 1;
+        }
     }
-    else
-    {
-        GetGpio()->LED_GPCLR = (1 << LED_GPIO_BIT);
-        lit = 1;
+    if (GetIrqController()->IRQ_pending_2 && UART_IRQ){
+        // do uart stuff
+        GetUartController()->ICR |= RECEIVE_CLEAR;
+        uart_putc(uart_getc());
+        
     }
 }
 

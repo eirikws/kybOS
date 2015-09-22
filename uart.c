@@ -3,6 +3,7 @@
 #include "base.h"
 #include "gpio.h"
 #include "uart.h"
+#include "interrupts.h"
 
 
 #define UART_CONTROLLER_BASE    ( PERIPHERAL_BASE + 0x201000 )
@@ -15,6 +16,7 @@ static void delay(int32_t count){
 	asm volatile("__delay_%=: subs %[count], %[count], #1; bne __delay_%=\n"
 		 : : [count]"r"(count) : "cc");
 }
+
 
 /*
     from the datasheet:
@@ -41,7 +43,7 @@ void uart_init( void ){
     //  remove control signal and clocking
     GetGpio()->GPPUD = 0;
     GetGpio()->GPPUDCLK0 = 0;
-    //  clear impending intrrupts
+    //  clear impending interrupts
     GetUartController()->ICR = 0x7ff;
     //  set the baud rate:
     //  divider = uart_clock/(16 * baud)
@@ -53,11 +55,17 @@ void uart_init( void ){
     GetUartController()->IBRD = 1;
     GetUartController()->FBRD = 40;
     // cofigure UART:
-    GetUartController()->LCRH =    WORD_LEN_8BIT | FIFO_ENABLE;
-    // mask interrupts
-    GetUartController()->IMSC =  (1 << 1) | (1 << 4) | (1 << 5) | (1 << 6) |
-                                 (1 << 7) | (1 << 8) | (1 << 9) | (1 << 10);
+    GetUartController()->LCRH =    WORD_LEN_8BIT | FIFO_DISABLE;
+
+    //  set receive interrupt fifo level to 1/8 FIFO level
+    GetUartController()->IFLS |= RECEIVE_IRQ_FIFO_18;
+    
+    //  mask interrupts
+    GetUartController()->IMSC   |= RECEIVE_MASK_BIT;
+   // GetUartController()->IMSC =  (1 << 1) | (1 << 4) | (1 << 5) | (1 << 6) |
+   //m                              (1 << 7) | (1 << 8) | (1 << 9) | (1 << 10);
     //  restart uart again
+    GetIrqController()->Enable_IRQs_2 |= UART_IRQ;
     GetUartController()->CR = UART_ENABLE | TRANSMIT_ENABLE | RECEIVE_ENABLE;
 }
 
