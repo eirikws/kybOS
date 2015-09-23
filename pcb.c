@@ -25,11 +25,6 @@ static PCB_t* pcb_new(PCB_t pcb) {
 	return newNode;
 }
 
-int pcb_free(PCB_t* pcb){
-    free(pcb);
-    return 1;
-}
-
 int pcb_insert(PCB_t pcb) {
 	PCB_t* newNode = pcb_new(pcb);
     if (newNode == NULL){   return -1;}
@@ -43,39 +38,39 @@ int pcb_insert(PCB_t pcb) {
     return 1;
 }
 
-PCB_t* pcb_get(char* id){
+PCB_t* pcb_get(int32_t id){
     if (head == NULL) {return NULL;}
     PCB_t* ite = head;
     uart_puts("\r\n");
-    while( strcmp(id, ite->id)){
+    while( id != ite->id){
         if (ite->next == NULL){ return NULL;}
         ite = ite->next;
     }
     return ite;
 }
 
-int pcb_remove(char* id){
+int pcb_remove(int32_t id){
     if (head == NULL) {return -1;} // is empty
     PCB_t* ite = head;
     PCB_t* ite2 = head;
-    while(!strcmp(id, ite->id)){   
+    while( id != ite->id){   
         if (ite->next == NULL){ return -1;}
         ite = ite->next;
     }
     if (head==tail){ // id is head and tail (the only item in list)
-        pcb_free(ite);
+        free(ite);
         head=NULL;
         tail=NULL;
      }
     else if (head==ite){ // id is head
         ite2=ite->next;
-        pcb_free(ite);
+        free(ite);
         head=ite2;
         ite2->prev=NULL;
     }
     else if (tail==ite){ // id is tail
         ite2=ite->prev;
-        pcb_free(ite);
+        free(ite);
         tail=ite2;
         ite2->next=NULL;
     }

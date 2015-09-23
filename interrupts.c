@@ -95,7 +95,7 @@ void __attribute__((interrupt("IRQ"))) interrupt_vector(void){
     }
     if (GetIrqController()->IRQ_pending_2 && UART_IRQ){
         // do uart stuff
-        GetUartController()->ICR |= RECEIVE_CLEAR;
+        GetUartController()->ICR = RECEIVE_CLEAR;
         c = uart_getc();
         if (c == '\r'){
             uart_putc('\n');

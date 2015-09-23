@@ -1,13 +1,15 @@
 
 #include <stdlib.h>
 
-#include "threading.h"
 #include "pcb.h"
+#include "dispatcher.h"
+#include "threading.h"
 
+extern _pcb_set_arg(PCB_t* pcb, void* arg);
 
-int thread_create(void*(* program), size_t priority,size_t stack_space, char* id){
+int thread_register(void*(* program), size_t priority,size_t stack_space, int32_t id){
     // make process controll block
-    PCB_t pcb = {   .id = "gaga", .state = READY, .priority = priority};
+    PCB_t pcb = {   .id = 1, .state = READY, .priority = priority};
     
     // allocate stack pointer and space
     void* stack_pointer = malloc(stack_space);
@@ -18,4 +20,12 @@ int thread_create(void*(* program), size_t priority,size_t stack_space, char* id
     pcb.context_data.SP=stack_pointer;
     // push it to the data structure
     pcb_insert(pcb);
+    return 1;
+}
+
+int thread_start( int32_t id, void* arg){
+    PCB_t* pcb = pcb_get(id);
+    if (pcb == NULL){ return -1;}
+    _pcb_set_arg(pcb,arg);
+    dispatch_enqueue(id);
 }

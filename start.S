@@ -8,6 +8,8 @@
 .global _get_cpsr
 .global _set_cpu_mode
 .global _generate_swi
+.global _pcb_set_arg
+.global _save_prog_context
 
 //  STATUS/MODE REGISTER
 .equ    CPSR_MODE_USER,         0x10
@@ -102,6 +104,32 @@ _generate_swi:
 _get_cpsr:
     mrs r0, cpsr
     mov pc, lr
+
+    // r0 has pointer to pcb, r1 the arg
+    // #12 is the offset in PDB_t to r0
+_pcb_set_arg:
+    str r1, [r2, #12]
+    mov pc, lr
+    
+    
+    // r0 is pointer to a PCB_t we wish to save to
+    // pc, CPSR, r0-r3, r12 and lr is automatically pushed to stack
+    // see: http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.ddi0337e/Babedgea.html
+    // this function will push the rest!
+    // r0 is a pointer to a PCB block
+    
+_save_prog_context:
+    add     r0  , r0, #28   //offset to r4
+    stmia   r0! ,{ r4, r5, r6, r7, r8, r9, r10, r11}
+    //  enter system mode to access user registers
+    mov r1, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r1
+    //  store sp
+    str sp, [r0]
+    // move back to IRQ MODE
+    mov r1, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    mov pc, lr
+    
 
 _set_cpu_mode:
     //  store lr in r2, becuase lr is banked for different cpu modes    

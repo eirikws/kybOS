@@ -11,7 +11,7 @@ typedef enum thr_state{
     
 
 typedef struct Context_Data{
-    int32_t reg0to12;
+    int32_t reg0to12[12];
     void* SP;
     void* LR;
     void* PC;
@@ -19,7 +19,7 @@ typedef struct Context_Data{
 } context_data_t;
 
 typedef struct PCB{
-    char id[64];
+    int32_t id;
     thread_state_t state;
     int priority;
     context_data_t context_data;
@@ -27,9 +27,9 @@ typedef struct PCB{
     struct PCB* prev;
 } PCB_t;
 
-PCB_t* pcb_get(char* id);
+PCB_t* pcb_get(int32_t id);
 int pcb_insert(PCB_t pcb);
-int pcb_remove(char* id);
+int pcb_remove(int32_t id);
 
 
 
