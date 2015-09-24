@@ -3,9 +3,6 @@
 #include "control.h"
 #include "uart.h"
 
-extern uint32_t _get_cpsr(void);
-
-
 char get_cpu_mode(void){
     int32_t cpsr = _get_cpsr();
     int32_t mode = cpsr & 0b11111;

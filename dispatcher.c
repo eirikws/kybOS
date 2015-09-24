@@ -92,7 +92,7 @@ static int priority_enqueue(priority_node_t* node, int priority){
     }
 }
 
-int dispatch_enqeue(int32_t id){
+int dispatch_enqueue(int32_t id){
     priority_node_t* node =  newNode(id);
     if (node == NULL){ return -1;}
     PCB_t* mypcb = pcb_get(id);
@@ -101,17 +101,18 @@ int dispatch_enqeue(int32_t id){
 }
 
 
-extern _save_prog_context(PCB_t* pcb);
+extern _save_prog_context_irq(PCB_t* pcb);
+extern _load_program_context(PCB_t* pcb);
 
 void dispatch(void){
     //  save old context
-    _save_prog_context(pcb_get(current_running));
+    _save_prog_context_irq(pcb_get(current_running));
     //  put it in priority list
     dispatch_enqueue(current_running);
     //  get the next thread to be run
     current_running = get_highest_priority();
-    // load new program context
-    _load_program_context
+    // load new program context... and decrease stack?
+    _load_program_context_irq(pcb_get(current_running));
     // set current running
     
     // return   

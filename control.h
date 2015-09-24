@@ -3,6 +3,7 @@
 
 char get_cpu_mode(void);
 extern void _set_cpu_mode(uint32_t mode);
+extern uint32_t _get_cpsr(void);
 
 
 enum{

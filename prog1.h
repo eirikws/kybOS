@@ -2,6 +2,7 @@
 #define PROG1_H
 
 
-void prog1_init(void);
+void prog2(void);
+void prog1(void);
 
 #endif

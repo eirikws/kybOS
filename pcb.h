@@ -11,17 +11,17 @@ typedef enum thr_state{
     
 
 typedef struct Context_Data{
-    int32_t reg0to12[12];
-    void* SP;
-    void* LR;
-    void* PC;
-    int32_t CPSR;
+    uint32_t reg0to11[12];
+    uint32_t IP;
+    uint32_t SP;
+    uint32_t LR;
+    uint32_t CPSR;
 } context_data_t;
 
 typedef struct PCB{
     int32_t id;
     thread_state_t state;
-    int priority;
+    int32_t priority;
     context_data_t context_data;
     struct PCB* next;
     struct PCB* prev;
