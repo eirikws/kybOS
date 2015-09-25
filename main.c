@@ -10,6 +10,7 @@
 #include "pcb.h"
 #include "threading.h"
 #include "prog1.h"
+#include "dispatcher.h"
 
 
 extern void _generate_swi(void* arg);
@@ -17,18 +18,14 @@ extern void _enable_interrupts();
 
 /* Main function - we'll never return from here */
 void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
+    
     uart_init();
+    init_pri_array();
     uart_puts("kernel start!\r\n");
     //  enable LED pin as an output 
     GetGpio()->LED_GPFSEL |= LED_GPFBIT;
     /* Enable interrupts! */
     _enable_interrupts();
-    uart_puts("sizeof pointer: ");
-    uart_put_uint32_t(sizeof(int*), 10);
-    uart_puts("thread_state_t: ");
-    uart_put_uint32_t(sizeof(thread_state_t), 10);
-    uart_puts("\r\n");
-    uart_puts("Init done, led should be blinking!\r\n");
    
     get_cpu_mode();
 

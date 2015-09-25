@@ -5,6 +5,7 @@
 
 
 void  prog1(void){
+    uart_puts("in prog1!\r\n");
     uint32_t x=0;
     while(1){
         // do something

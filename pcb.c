@@ -41,7 +41,6 @@ int pcb_insert(PCB_t pcb) {
 PCB_t* pcb_get(int32_t id){
     if (head == NULL) {return NULL;}
     PCB_t* ite = head;
-    uart_puts("\r\n");
     while( id != ite->id){
         if (ite->next == NULL){ return NULL;}
         ite = ite->next;

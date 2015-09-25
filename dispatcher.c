@@ -16,11 +16,14 @@ typedef struct priority_list{
 } priority_list_t;
 
 priority_list_t priority_array[NUM_PRIORITIES];
-int32_t static current_running = 0;
+int32_t static current_running = -1;
 
-void __attribute__((constructor)) init_pri_array(void){
+void init_pri_array(void){
+    uart_puts("init pri array\r\n");
     int i;
     for ( i=0; i<NUM_PRIORITIES; i++){
+      //  uart_put_uint32_t(i,10);
+       // uart_puts("\r\n");
         priority_array[i].head = NULL;
         priority_array[i].tail = NULL;
     }
@@ -68,7 +71,10 @@ static int get_highest_priority(void){
     int i, retval;
     for (i = NUM_PRIORITIES-1; i>-1; i--){
         retval = priority_pop(i);
-        if (i > -1){
+        if (retval > -1){
+            uart_puts("highest pri retval: ");
+            uart_put_uint32_t(retval, 10);
+            uart_puts("\r\n");
             return retval;
         }
     }
@@ -77,13 +83,18 @@ static int get_highest_priority(void){
 
 static int priority_enqueue(priority_node_t* node, int priority){
     //  check priority is within bounds
-    if( priority < 0 || priority > NUM_PRIORITIES){ return -1;}
+    if( priority < 0 || priority > NUM_PRIORITIES-1){ 
+        uart_puts("priority out of bounds\r\n");
+        return -1;
+    }
     //  if empty
-    if (priority_array[priority].tail = NULL){
+    if (priority_array[priority].tail == NULL){
+        uart_puts("priority enqueue into empety list\r\n");
         priority_array[priority].head = node;
         priority_array[priority].tail = node;
         return 1;
     } else {
+        uart_puts("priority enqueue into existing list\r\n");
         priority_node_t* tmp = priority_array[priority].tail;
         tmp->next = node;
         node->prev = tmp;
@@ -97,22 +108,42 @@ int dispatch_enqueue(int32_t id){
     if (node == NULL){ return -1;}
     PCB_t* mypcb = pcb_get(id);
     if (mypcb == NULL){ return -1;}
+    uart_puts("dispatch enqueue id: ");
+    uart_put_uint32_t(node->id, 10);
+    uart_puts("\r\n");
     return priority_enqueue( node, mypcb->priority );
 }
 
 
 extern _save_prog_context_irq(PCB_t* pcb);
 extern _load_program_context(PCB_t* pcb);
+extern _load_basic(uint32_t lr);
 
 void dispatch(void){
     //  save old context
-    _save_prog_context_irq(pcb_get(current_running));
+    uart_puts("saving prog \r\n");
+    
     //  put it in priority list
-    dispatch_enqueue(current_running);
+    if (current_running != -1){
+        uart_put_uint32_t(current_running, 10);
+        uart_puts("\r\n");
+        _save_prog_context_irq(pcb_get(current_running));
+        dispatch_enqueue(current_running);
+    }
     //  get the next thread to be run
+    uart_puts("getting new highest priority: ");
     current_running = get_highest_priority();
+    uart_put_uint32_t((uint32_t)current_running, 10);
+    uart_puts("\r\n");
     // load new program context... and decrease stack?
-    _load_program_context_irq(pcb_get(current_running));
+    int i;
+    uart_puts("loading prog");
+    uart_put_uint32_t((uint32_t)current_running, 10);
+    uart_puts("\r\n");
+    
+    _load_basic(pcb_get(current_running)->context_data.LR);
+    
+    //_load_program_context_irq(pcb_get(current_running));
     // set current running
     
     // return   

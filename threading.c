@@ -8,7 +8,8 @@
 #include "interrupts.h"
 #include "control.h"
 
-extern _pcb_set_arg(PCB_t* pcb, void* arg);
+extern void _pcb_set_arg(PCB_t* pcb, void* arg);
+extern void _init_thr_stack(uint32_t lr, uint32_t sp);
 
 int threading_init(void){
     //  enable the timer interrupt IRQ
@@ -35,23 +36,32 @@ int thread_register(void (* f)(void), size_t priority,size_t stack_space, int32_
         uart_puts("stack pointer allocation failed\r\n");
         return -1;
     }
-    
+    uart_puts("prog starts at ");
+    uart_put_uint32_t((uint32_t)f, 16);
+    uart_puts("\r\n");
     pcb.context_data.SP =(uint32_t) stack_pointer - stack_space;
     // set lr to point to the program
     pcb.context_data.LR = (uint32_t)f;
     // set cpsr to user mode
     pcb.context_data.CPSR = _get_cpsr();
     pcb.context_data.CPSR |= CPSR_MODE_USER;
+    //pcb.context_data.CPSR = 0b00000
     // push it to the data structure
     pcb_insert(pcb);
+    
+    //  need to initialize the stack to the right size
+    //  and put the link register in there
+    _init_thr_stack(pcb.context_data.LR, pcb.context_data.SP);
+    
     return 1;
 }
 
 int thread_start( int32_t id, void* arg){
     PCB_t* pcb = pcb_get(id);
-    uart_puts("setting args1\r\n");
-    if (pcb == NULL){ return -1;}
-    uart_puts("setting args2\r\n");
+    if (pcb == NULL){
+        uart_puts("pcb NULL\r\n");
+        return -1;
+    }
     _pcb_set_arg(pcb,arg);
     dispatch_enqueue(id);
 }

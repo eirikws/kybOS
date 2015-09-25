@@ -3,12 +3,9 @@
 
 #include <stdint.h>
 
-typedef enum thr_state{
-    RUNNING,
-    READY,
-    BLOCKED,
-} thread_state_t;
-    
+#define RUNNIN  1
+#define READY   2
+#define BLOCKED 3
 
 typedef struct Context_Data{
     uint32_t reg0to11[12];
@@ -20,7 +17,7 @@ typedef struct Context_Data{
 
 typedef struct PCB{
     int32_t id;
-    thread_state_t state;
+    int32_t state;
     int32_t priority;
     context_data_t context_data;
     struct PCB* next;

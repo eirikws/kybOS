@@ -11,6 +11,8 @@
 .global _pcb_set_arg
 .global _save_prog_context_irq
 .global _load_program_context_irq
+.global _init_thr_stack
+.global _load_basic
 
 //  STATUS/MODE REGISTER
 .equ    CPSR_MODE_USER,         0x10
@@ -116,7 +118,7 @@ _pcb_set_arg:
     // we need to save the rest in the pcb block!
     // ip is r12
 _save_prog_context_irq:
-    add     r0  , r0, #25   //offset to r4
+    add     r0  , r0, #28   //offset to r4
     stmia   r0! ,{ r4, r5, r6, r7, r8, r9, r10, r11}
     //  enter system mode to access user registers
     mov r1, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
@@ -124,10 +126,10 @@ _save_prog_context_irq:
     //  store sp
     str sp, [r0, #4]
     //  store cpsr. spsr is a banked version
-    mrs r0, spsr
+    mrs r0, cpsr
     str r0, [r0, #12]
     // move back to IRQ MODE and return
-    mov r1, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    mov r1, #(CPSR_MODE_IRQ )
     mov pc, lr
     
     // r0 is pointer to a PCB_t we wish to load from
@@ -137,15 +139,31 @@ _save_prog_context_irq:
 _load_program_context_irq:
     add     r0, r0, #28
     ldmia   r0!, { r4, r5, r6, r7, r8, r9, r10, r11}
-    //  pop the load_program_context_irq stack segment
     
-    //  the same for dispatch(). it pushes two registers, so subtract by 2*4
+    //  load cpsr:
+    ldr r1, [r0, #16]
+    msr cpsr, r1
+    
+    //  pop the for dispatch() stack segment.
+    // it pushes two registers, so subtract by 2*4
     sub sp, #8
     //  load sp the correct sp
     ldr sp, [r0, #4]
     //  pop the irq return stack, and the thread should start executing!
-    ldm	sp!, {r0, r1, r2, r3, ip, pc}^    
+    ldm	sp!, {r0, r1, r2, r3, ip, pc}
 
+
+_load_basic:
+    mov pc, r0
+
+    // r0 carries lr, r1 sp
+_init_thr_stack:
+    mov r2, sp
+    mov sp, r1
+    sub sp, #20
+    push {r0}
+    mov sp, r2
+    mov pc, lr
 
 _set_cpu_mode:
     //  store lr in r2, becuase lr is banked for different cpu modes    
