@@ -9,7 +9,7 @@
 #include "control.h"
 
 extern void _pcb_set_arg(PCB_t* pcb, void* arg);
-extern void _init_thr_stack(uint32_t lr, uint32_t sp);
+extern void _init_thr_stack(uint32_t sp, uint32_t function);
 
 int threading_init(void){
     //  enable the timer interrupt IRQ
@@ -28,7 +28,7 @@ int threading_init(void){
 
 int thread_register(void (* f)(void), size_t priority,size_t stack_space, int32_t id){
     // make process controll block
-    PCB_t pcb = {   .id = 1, .state = READY, .priority = priority};
+    PCB_t pcb = {   .id = id, .state = READY, .priority = priority};
     
     // allocate stack pointer and space
     void* stack_pointer = malloc(stack_space);
@@ -40,18 +40,14 @@ int thread_register(void (* f)(void), size_t priority,size_t stack_space, int32_
     uart_put_uint32_t((uint32_t)f, 16);
     uart_puts("\r\n");
     pcb.context_data.SP =(uint32_t) stack_pointer - stack_space;
-    // set lr to point to the program
-    pcb.context_data.LR = (uint32_t)f;
-    // set cpsr to user mode
     pcb.context_data.CPSR = _get_cpsr();
     pcb.context_data.CPSR |= CPSR_MODE_USER;
-    //pcb.context_data.CPSR = 0b00000
-    // push it to the data structure
+    // push it
     pcb_insert(pcb);
     
     //  need to initialize the stack to the right size
     //  and put the link register in there
-    _init_thr_stack(pcb.context_data.LR, pcb.context_data.SP);
+    _init_thr_stack( pcb.context_data.SP, (uint32_t)f);
     
     return 1;
 }

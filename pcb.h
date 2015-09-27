@@ -8,10 +8,7 @@
 #define BLOCKED 3
 
 typedef struct Context_Data{
-    uint32_t reg0to11[12];
-    uint32_t IP;
     uint32_t SP;
-    uint32_t LR;
     uint32_t CPSR;
 } context_data_t;
 

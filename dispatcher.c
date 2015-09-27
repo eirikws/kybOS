@@ -89,7 +89,7 @@ static int priority_enqueue(priority_node_t* node, int priority){
     }
     //  if empty
     if (priority_array[priority].tail == NULL){
-        uart_puts("priority enqueue into empety list\r\n");
+        uart_puts("priority enqueue into empty list\r\n");
         priority_array[priority].head = node;
         priority_array[priority].tail = node;
         return 1;
@@ -115,20 +115,32 @@ int dispatch_enqueue(int32_t id){
 }
 
 
+extern uint32_t _get_user_sp(void);
+
+void save_stack_ptr( uint32_t id){
+    PCB_t* pcb = pcb_get(id);
+    pcb->context_data.SP = _get_user_sp();
+    return;
+}
+
+
 extern _save_prog_context_irq(PCB_t* pcb);
 extern _load_program_context(PCB_t* pcb);
 extern _load_basic(uint32_t lr);
+extern _push_stack_pointer(uint32_t sp);
 
 void dispatch(void){
     //  save old context
-    uart_puts("saving prog \r\n");
+    uart_puts("dispatch begin \r\n");
     
     //  put it in priority list
+    //  and save stack pointer in pcb
     if (current_running != -1){
+        uart_puts("requeuing: ");
         uart_put_uint32_t(current_running, 10);
         uart_puts("\r\n");
-        _save_prog_context_irq(pcb_get(current_running));
         dispatch_enqueue(current_running);
+        save_stack_ptr(current_running);
     }
     //  get the next thread to be run
     uart_puts("getting new highest priority: ");
@@ -136,17 +148,31 @@ void dispatch(void){
     uart_put_uint32_t((uint32_t)current_running, 10);
     uart_puts("\r\n");
     // load new program context... and decrease stack?
-    int i;
     uart_puts("loading prog");
     uart_put_uint32_t((uint32_t)current_running, 10);
     uart_puts("\r\n");
     
-    _load_basic(pcb_get(current_running)->context_data.LR);
+    //_load_basic(pcb_get(current_running)->context_data.LR);
     
     //_load_program_context_irq(pcb_get(current_running));
     // set current running
     
-    // return   
+    _push_stack_pointer(pcb_get(current_running)->context_data.SP);
+    get_cpu_mode();
+    uart_puts("returning from dispatch\r\n");
+    return;
 }
 
+void _print_reg(uint32_t reg){
+    uart_puts("print reg: ");
+    uart_put_uint32_t(reg, 16);
+    uart_puts("\r\n");
+    return;
+}
+
+void _get_stack_top(uint32_t* top){
+    uart_puts("top of stack contains: ");
+    uart_put_uint32_t(*top, 16);
+    uart_puts("\r\n");
+}
 

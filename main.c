@@ -20,8 +20,9 @@ extern void _enable_interrupts();
 void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     
     uart_init();
-    init_pri_array();
+    
     uart_puts("kernel start!\r\n");
+    init_pri_array();
     //  enable LED pin as an output 
     GetGpio()->LED_GPFSEL |= LED_GPFBIT;
     /* Enable interrupts! */
@@ -44,6 +45,7 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     //thread_start( 2, 0);
     uart_puts("init threads\r\n");
     threading_init();
+    uart_puts("threads initiated\r\n");
     
      /* Never exit as there is no OS to exit to! */
     while(1){ }

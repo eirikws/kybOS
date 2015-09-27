@@ -7,6 +7,7 @@
 #include "interrupts.h"
 #include "uart.h"
 #include "control.h"
+#include "dispatch.h"
 #define INTERRUPT_CONTROLLER_BASE   ( PERIPHERAL_BASE + 0xB200 )
 
 /*
@@ -76,7 +77,7 @@ void __attribute__((interrupt("ABORT"))) data_abort_vector(void){
 /*
     IRQ handler
 */
-void __attribute__((interrupt("IRQ"))) interrupt_vector(void){
+void interrupt_vector_c(void){
     static int lit = 0;
     char c;
     if (GetIrqController()->IRQ_basic_pending & ARM_TIMER_IRQ){
@@ -104,6 +105,8 @@ void __attribute__((interrupt("IRQ"))) interrupt_vector(void){
         }else{   uart_putc(c);}
         
     }
+    uart_puts("irq done\r\n");
+    return;
 }
 
 /*

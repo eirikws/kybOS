@@ -13,6 +13,8 @@
 .global _load_program_context_irq
 .global _init_thr_stack
 .global _load_basic
+.global _push_stack_pointer
+.global _get_user_sp
 
 //  STATUS/MODE REGISTER
 .equ    CPSR_MODE_USER,         0x10
@@ -89,6 +91,63 @@ _reset_:
     // Should never come here, but if it does, loop forever for debug purpuses
 _inf_loop:
     b       _inf_loop
+    
+    // save and restore all registers on the user stack of active thread
+interrupt_vector:
+    bl get_cpu_mode
+    mov r0, lr
+    bl _print_reg
+    
+    mov r7, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r7
+    
+    mov r0, lr
+    bl _print_reg
+    
+    push {lr}
+    mov r0, lr
+    add r0, r0, #4
+    bl _get_stack_top
+    // temporary storage in irq sp
+    push {r7, r8}
+    mov r8, lr
+    
+    // go back to system mode to get correct sp. first trip
+    mov r7, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r7
+    push {r8} // push return address the bottom of the stack
+    bl _get_stack_top
+    push {r0,r1,r2,r3,r4,r5,r6}
+    
+    //  back to irq mode and get more registers!
+    mov r7, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r7    
+    
+    pop {r7, r8}
+    
+    mov r1, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r1
+    push {r7, r8, r9, r10, r11, r12, lr}
+    
+    //  back to irq mode and call interrupt function
+    mov r7, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r7
+    bl _get_stack_top
+    bl interrupt_vector_c
+    
+    //  move to user mode again and pop all the registers that was stored
+    mov r7, #(CPSR_MODE_USER | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r7
+    // the new stack pointer is on top of the old stack, so retrieve it!
+    bl _get_stack_top
+    pop {r0}
+    mov sp, r0
+    pop {r0,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12, lr}
+    mov r0, sp
+    add r0, r0, #4
+    bl _get_stack_top
+    //pop {pc}
+    
 
     //  used in Cstubs code. SP is returned in r0.
 _get_stack_pointer:
@@ -97,6 +156,17 @@ _get_stack_pointer:
     ldr     r0, [sp]
     // Return from the function
     mov     pc, lr
+
+    //  return user sp in r0
+_get_user_sp:
+    push {r4}
+    mov r4, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r4
+    mov r0, sp
+    mov r4, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r4
+    pop {r4}
+    mov pc, lr
 
 _generate_swi:
     swi #0
@@ -118,7 +188,7 @@ _pcb_set_arg:
     // we need to save the rest in the pcb block!
     // ip is r12
 _save_prog_context_irq:
-    add     r0  , r0, #28   //offset to r4
+    add     r0  , r0, #28   //offset to r4 
     stmia   r0! ,{ r4, r5, r6, r7, r8, r9, r10, r11}
     //  enter system mode to access user registers
     mov r1, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
@@ -152,16 +222,31 @@ _load_program_context_irq:
     //  pop the irq return stack, and the thread should start executing!
     ldm	sp!, {r0, r1, r2, r3, ip, pc}
 
+    // this function goes to system mode and pushes a pointer to a new stack
+_push_stack_pointer:
+    push {r0}
+    mov r0, lr
+    bl _print_reg
+    pop {r0}
+    //  enter system mode to access user registers
+    mov r1, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r1
+    push {r0}
+    //  go back to irq mode
+    mov r0, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r0
+    mov pc, lr
+    
 
 _load_basic:
     mov pc, r0
 
-    // r0 carries lr, r1 sp
+    // r0 carries sp, r1 location of code
 _init_thr_stack:
     mov r2, sp
-    mov sp, r1
-    sub sp, #20
-    push {r0}
+    mov sp, r0
+    sub sp, #56
+    push {r1}
     mov sp, r2
     mov pc, lr
 
