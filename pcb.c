@@ -3,14 +3,15 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include "uart.h"
 #include "pcb.h"
 
 
 
 
 
-static PCB_t *head;
-static PCB_t *tail;
+static PCB_t *head = NULL;
+static PCB_t *tail = NULL;
 
 //Creates a new Node and returns pointer to it. 
 static PCB_t* pcb_new(PCB_t pcb) {
@@ -27,14 +28,20 @@ static PCB_t* pcb_new(PCB_t pcb) {
 
 int pcb_insert(PCB_t pcb) {
 	PCB_t* newNode = pcb_new(pcb);
+	uart_puts("pcb insert1\r\n");
     if (newNode == NULL){   return -1;}
 	if (head == NULL){
+	    uart_puts("pcb insert into empty\r\n");
 		head = newNode;
+		tail = newNode;
+		pcb_print();
 		return 1;
 	}
+	uart_puts("pcb insert into existing list\r\n");
 	head->prev = newNode;
-	newNode->next = head; 
+	newNode->next = head;
 	head = newNode;
+	pcb_print();
     return 1;
 }
 
@@ -42,10 +49,22 @@ PCB_t* pcb_get(int32_t id){
     if (head == NULL) {return NULL;}
     PCB_t* ite = head;
     while( id != ite->id){
+        uart_puts("pcb get while\r\n");
         if (ite->next == NULL){ return NULL;}
         ite = ite->next;
     }
     return ite;
+}
+
+void pcb_print(void){
+    PCB_t* ite = head;
+    uart_puts("PCB list contains: ");
+    while( ite != NULL){
+        uart_put_uint32_t(ite->id, 10);
+        uart_puts(", ");
+        ite = ite->next;
+    }
+    uart_puts("\r\n");
 }
 
 int pcb_remove(int32_t id){

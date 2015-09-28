@@ -10,6 +10,11 @@
 #include "dispatcher.h"
 #define INTERRUPT_CONTROLLER_BASE   ( PERIPHERAL_BASE + 0xB200 )
 
+
+typedef enum{
+    IPC_SEND,
+} swi_t
+
 /*
     Put the interupt controller peripheral at it's base address
 */
@@ -46,13 +51,21 @@ void __attribute__((interrupt("UNDEF"))) undefined_instruction_vector(void){
 /*
     Software interrupt handler. This switches to supervisor mode
 */
-void __attribute__((interrupt("SWI"))) software_interrupt_vector(void* arg){
+void __attribute__((interrupt("SWI"))) 
+            software_interrupt_vector(void* arg0, void* arg1, void* arg2, void* arg3){
     uart_puts("SWI handler! : ");
     int32_t swi_arg;
     uart_putc((uint32_t)arg);
     uart_puts("\r\n");
     get_cpu_mode();
     uart_puts("SWI handler ends! \r\n");
+    
+    if ( (swi_t)arg0 == IPC_SEND){
+        pcb_get( (uint32_t)arg3 )->shared_data_ptr = smsg;
+        pcb_get(get_current_running()->state = BLOCKED;
+        //  generate timer interrupt
+        
+    }
     
     return;
 }

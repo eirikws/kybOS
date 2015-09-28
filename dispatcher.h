@@ -7,6 +7,6 @@
 
 int dispatch_enqueue(int32_t id);
 void dispatch(void);
-
+uint32_t get_current_running(void);
 
 #endif

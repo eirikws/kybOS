@@ -17,7 +17,7 @@ int threading_init(void){
 
     /* Setup the system timer interrupt */
     /* Timer frequency = Clk/256 * LOAD */
-    GetArmTimer()->Load = 0x800;
+    GetArmTimer()->Load = 0x100;
     /* Setup the ARM Timer */
     GetArmTimer()->Control =
             ARMTIMER_CTRL_23BIT |
@@ -42,7 +42,6 @@ int thread_register(void (* f)(void), size_t priority,size_t stack_space, int32_
     pcb.context_data.SP =(uint32_t) stack_pointer - stack_space;
     pcb.context_data.CPSR = _get_cpsr();
     pcb.context_data.CPSR |= CPSR_MODE_USER;
-    
     
     uart_puts("stack pointer is: ");
     uart_put_uint32_t( pcb.context_data.SP, 16);

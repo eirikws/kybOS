@@ -104,9 +104,12 @@ static int priority_enqueue(priority_node_t* node, int priority){
 }
 
 int dispatch_enqueue(int32_t id){
+    uart_puts("enqueue begin\r\n");
     priority_node_t* node =  newNode(id);
     if (node == NULL){ return -1;}
+    uart_puts("enqueue begin2\r\n");
     PCB_t* mypcb = pcb_get(id);
+    uart_puts("enqueue begin3\r\n");
     if (mypcb == NULL){ return -1;}
     uart_puts("dispatch enqueue id: ");
     uart_put_uint32_t(node->id, 10);
@@ -130,6 +133,7 @@ extern _load_basic(uint32_t lr);
 extern _push_stack_pointer(uint32_t sp);
 
 void dispatch(void){
+    int err = 0;
     //  save old context
     uart_puts("dispatch begin \r\n");
     
@@ -139,7 +143,10 @@ void dispatch(void){
         uart_puts("requeuing: ");
         uart_put_uint32_t(current_running, 10);
         uart_puts("\r\n");
-        dispatch_enqueue(current_running);
+        err = dispatch_enqueue(current_running);
+        if (err == -1){
+            uart_puts("requing error\r\n");
+        }
         save_stack_ptr(current_running);
     }
     //  get the next thread to be run
@@ -176,3 +183,6 @@ void _get_stack_top(uint32_t* top){
     uart_puts("\r\n");
 }
 
+uint32_t get_current_running(void){
+    return current_running;
+}
