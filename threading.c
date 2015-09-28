@@ -9,7 +9,7 @@
 #include "control.h"
 
 extern void _pcb_set_arg(PCB_t* pcb, void* arg);
-extern void _init_thr_stack(uint32_t sp, uint32_t function);
+extern uint32_t _init_thr_stack(uint32_t sp, uint32_t function);
 
 int threading_init(void){
     //  enable the timer interrupt IRQ
@@ -42,13 +42,19 @@ int thread_register(void (* f)(void), size_t priority,size_t stack_space, int32_
     pcb.context_data.SP =(uint32_t) stack_pointer - stack_space;
     pcb.context_data.CPSR = _get_cpsr();
     pcb.context_data.CPSR |= CPSR_MODE_USER;
-    // push it
-    pcb_insert(pcb);
     
+    
+    uart_puts("stack pointer is: ");
+    uart_put_uint32_t( pcb.context_data.SP, 16);
+    uart_puts("\r\n");
     //  need to initialize the stack to the right size
     //  and put the link register in there
-    _init_thr_stack( pcb.context_data.SP, (uint32_t)f);
-    
+    pcb.context_data.SP = _init_thr_stack( pcb.context_data.SP, (uint32_t)f);
+    uart_puts("initialized sp is: ");
+    uart_put_uint32_t( pcb.context_data.SP, 16);
+    uart_puts("\r\n");
+    // push it
+    pcb_insert(pcb);
     return 1;
 }
 

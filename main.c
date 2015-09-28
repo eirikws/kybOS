@@ -16,6 +16,13 @@
 extern void _generate_swi(void* arg);
 extern void _enable_interrupts();
 
+void loop_forever_and_ever(void){
+    int volatile i = 0;
+    while(1){
+        i++;   // do nothing
+    }
+}
+
 /* Main function - we'll never return from here */
 void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     
@@ -37,7 +44,7 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     uart_puts("registering threads\r\n");
     //  registering first threads!
     
-    thread_register( prog1, 10,200, 1);
+    thread_register( prog1, 10,500, 1);
     //thread_register( prog2, 10,100, 2);
     uart_puts("starting threads\r\n");
     //  starting them
@@ -48,7 +55,7 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     uart_puts("threads initiated\r\n");
     
      /* Never exit as there is no OS to exit to! */
-    while(1){ }
+    loop_forever_and_ever();
 }
 
 

@@ -156,7 +156,7 @@ void dispatch(void){
     
     //_load_program_context_irq(pcb_get(current_running));
     // set current running
-    
+
     _push_stack_pointer(pcb_get(current_running)->context_data.SP);
     get_cpu_mode();
     uart_puts("returning from dispatch\r\n");
