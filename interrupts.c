@@ -7,7 +7,7 @@
 #include "interrupts.h"
 #include "uart.h"
 #include "control.h"
-#include "dispatch.h"
+#include "dispatcher.h"
 #define INTERRUPT_CONTROLLER_BASE   ( PERIPHERAL_BASE + 0xB200 )
 
 /*
