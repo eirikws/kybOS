@@ -98,3 +98,45 @@ void uart_puts(const char* str){
 }
 
 
+void reverse(char str[], int length){
+    int start = 0;
+    int end = length -1;
+    char temp;
+    char temp2;
+    while (start < end){
+        //swap(*(str+start), *(str+end));
+        *(str+start) =  *(str+start) ^ *(str+end);
+        *(str+end) =  *(str+start) ^ *(str+end);
+        *(str+start) =  *(str+end) ^ *(str+start);
+        start++;
+        end--;
+    }
+}
+
+
+char* uart_itoa(int num, char* str, int base){
+    int i = 0;
+    if (num == 0){
+        str[i++] = '0';
+        str[i] = '\0';
+        return str;
+    }
+    // Process individual digits
+    while (num != 0){
+        int rem = num % base;
+        str[i++] = (rem > 9)? (rem-10) + 'a' : rem + '0';
+        num = num/base;
+    }
+    str[i] = '\0'; // Append string terminator
+    // Reverse the string
+    reverse(str, i);
+    return str;
+}
+
+void uart_put_uint32_t(uint32_t in, int base){
+    char c[5];
+    if (base == 16){    uart_puts("0x");}
+    else if (base == 2){    uart_puts("0b");}
+    uart_puts(uart_itoa(in,c,base));
+}
+

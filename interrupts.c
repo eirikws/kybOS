@@ -14,7 +14,15 @@
 */
 static irq_controller_t* IRQController =
         (irq_controller_t*)INTERRUPT_CONTROLLER_BASE;
-
+        
+        
+        
+void print_reg(uint32_t reg){
+    uart_puts("print reg: ");
+    uart_put_uint32_t(reg, 16);
+    uart_puts("\r\n");
+    return;
+}
 
 /*
      Return the IRQ Controller register set
@@ -72,11 +80,13 @@ void __attribute__((interrupt("ABORT"))) data_abort_vector(void){
 
 }
 
+extern _get_lr(void);
 
 /*
     IRQ handler
 */
 void __attribute__((interrupt("IRQ"))) interrupt_vector(void){
+    print_reg(_get_lr());
     static int lit = 0;
     char c;
     //get_cpu_mode();

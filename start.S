@@ -8,6 +8,7 @@
 .global _get_cpsr
 .global _set_cpu_mode
 .global _generate_swi
+.global _get_lr
 
 //  STATUS/MODE REGISTER
 .equ    CPSR_MODE_USER,         0x10
@@ -95,9 +96,15 @@ _get_stack_pointer:
     // Return from the function
     mov     pc, lr
 
+_get_lr:
+    pop {r0, r1, r2, r3, r4, r5}
+    mov r0, r5 
+    push {r0, r1, r2, r3, r4, r5}
+    mov pc, lr
+
 _generate_swi:
     swi #0
-    mov pc, lr
+    mov pc, lr 
 
 _get_cpsr:
     mrs r0, cpsr
