@@ -103,8 +103,10 @@ static int priority_enqueue(priority_node_t* node, int priority){
     }
 }
 
-int dispatch_enqueue(int32_t id){
-    uart_puts("enqueue begin\r\n");
+int dispatch_enqueue(uint32_t id){
+    uart_puts("enqueue begin: ");
+    uart_put_uint32_t(id, 10);
+    uart_puts("\r\n");
     priority_node_t* node =  newNode(id);
     if (node == NULL){ return -1;}
     uart_puts("enqueue begin2\r\n");
@@ -123,6 +125,9 @@ extern uint32_t _get_user_sp(void);
 void save_stack_ptr( uint32_t id){
     PCB_t* pcb = pcb_get(id);
     pcb->context_data.SP = _get_user_sp();
+    uart_puts("saving user sp: ");
+    uart_put_uint32_t(pcb->context_data.SP, 16);
+    uart_puts("\r\n");
     return;
 }
 
@@ -134,6 +139,7 @@ extern _push_stack_pointer(uint32_t sp);
 
 void dispatch(void){
     int err = 0;
+    pcb_print();
     //  save old context
     uart_puts("dispatch begin \r\n");
     
@@ -159,13 +165,18 @@ void dispatch(void){
     uart_put_uint32_t((uint32_t)current_running, 10);
     uart_puts("\r\n");
     
-    //_load_basic(pcb_get(current_running)->context_data.LR);
-    
-    //_load_program_context_irq(pcb_get(current_running));
-    // set current running
-
     _push_stack_pointer(pcb_get(current_running)->context_data.SP);
     get_cpu_mode();
+    
+    
+    uart_puts("debug pcb get curr running");
+    uart_put_uint32_t(pcb_get(current_running)->id, 10);
+    uart_puts("\r\n");
+    
+    int i;
+    for (i=0; i<1; i++){
+        uart_puts("iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii\r\n");
+    }
     uart_puts("returning from dispatch\r\n");
     return;
 }

@@ -15,6 +15,8 @@
 
 extern void _generate_swi(void* arg);
 extern void _enable_interrupts();
+extern uint32_t _get_user_sp();
+extern uint32_t _get_stack_pointer();
 
 void loop_forever_and_ever(void){
     int volatile i = 0;
@@ -40,11 +42,15 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     _set_cpu_mode(CPSR_MODE_USER | CPSR_FIQ_INHIBIT);
     get_cpu_mode();
     
+    uart_puts("User sp: ");
+    uart_put_uint32_t(_get_stack_pointer(), 16);
+    uart_puts("\r\n");
+    
     _generate_swi( (void*) 'a');
     uart_puts("registering threads\r\n");
     //  registering first threads!
     
-    thread_register( prog1, 10,500, 1);
+    thread_register( prog1, 10,2048, 1);
     //thread_register( prog2, 10,100, 2);
     uart_puts("starting threads\r\n");
     //  starting them

@@ -94,11 +94,7 @@ _inf_loop:
     
     // save and restore all registers on the user stack of active thread
 interrupt_vector:
-     
     // temporary storage in irq sp
-    
-    
-    
     push {r0-r6}
     mov r6, lr
     
@@ -109,18 +105,17 @@ interrupt_vector:
     msr cpsr_c, r7
     
     mov r0, r6
+    push {lr}
     bl _print_reg
-    
+    pop {lr}
     push {r6} // push lr the bottom of the stack
-    
-    push {r7-r12}
+    push {r7-r12, lr}
     
     //  back to irq mode and get more registers!
     mov r5, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r7
     
     pop {r0-r6}
-    
     
     mov r7, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r1
@@ -130,9 +125,8 @@ interrupt_vector:
     mov r7, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r7
     
-    
     bl interrupt_vector_c
-    
+    bl get_cpu_mode
     //  move to user mode again and pop all the registers that was stored
     mov r7, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r7
@@ -145,10 +139,18 @@ interrupt_vector:
     bl _get_stack_top
     
     pop {r0,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,lr}
-    mov r0, sp
-    bl _get_stack_top
-    mov r7, #(CPSR_MODE_USER | CPSR_FIQ_INHIBIT )
+    push {lr}
     bl _enable_interrupts
+    pop {lr}
+    mov r7, #(CPSR_MODE_USER | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r7
+    push {lr}
+    mov r0, sp
+    add r0, r0, #4
+    bl _get_stack_top
+    bl get_cpu_mode
+    pop {lr}
+    //bl loop_forever_and_ever
     pop {pc}
 
     

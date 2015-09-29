@@ -17,7 +17,7 @@ int threading_init(void){
 
     /* Setup the system timer interrupt */
     /* Timer frequency = Clk/256 * LOAD */
-    GetArmTimer()->Load = 0x100;
+    GetArmTimer()->Load = 0x400;
     /* Setup the ARM Timer */
     GetArmTimer()->Control =
             ARMTIMER_CTRL_23BIT |
@@ -26,7 +26,7 @@ int threading_init(void){
             ARMTIMER_CTRL_PRESCALE_256;
 }
 
-int thread_register(void (* f)(void), size_t priority,size_t stack_space, int32_t id){
+int thread_register(void (* f)(void), size_t priority,size_t stack_space, uint32_t id){
     // make process controll block
     PCB_t pcb = {   .id = id, .state = READY, .priority = priority};
     
@@ -57,7 +57,7 @@ int thread_register(void (* f)(void), size_t priority,size_t stack_space, int32_
     return 1;
 }
 
-int thread_start( int32_t id, void* arg){
+int thread_start( uint32_t id, void* arg){
     PCB_t* pcb = pcb_get(id);
     if (pcb == NULL){
         uart_puts("pcb NULL\r\n");

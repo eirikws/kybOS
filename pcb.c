@@ -21,6 +21,14 @@ static PCB_t* pcb_new(PCB_t pcb) {
         return NULL;
     }
     *newNode = pcb;
+    uart_puts("pcb new arg id: ");
+    uart_put_uint32_t(pcb.id, 10);
+    uart_puts("\r\n");    
+    
+    uart_puts("pcb new create id: ");
+    uart_put_uint32_t(newNode->id, 10);
+    uart_puts("\r\n");
+    
 	newNode->prev = NULL;
 	newNode->next = NULL;
 	return newNode;
@@ -30,6 +38,10 @@ int pcb_insert(PCB_t pcb) {
 	PCB_t* newNode = pcb_new(pcb);
 	uart_puts("pcb insert1\r\n");
     if (newNode == NULL){   return -1;}
+    
+    if (head == NULL && tail == NULL){
+        uart_puts("Insert_ head and tail NULL\r\n");
+    }
 	if (head == NULL){
 	    uart_puts("pcb insert into empty\r\n");
 		head = newNode;
@@ -45,14 +57,27 @@ int pcb_insert(PCB_t pcb) {
     return 1;
 }
 
-PCB_t* pcb_get(int32_t id){
+PCB_t* pcb_get(uint32_t id){
+    //pcb_print();
     if (head == NULL) {return NULL;}
+    uart_puts("pcb get looking for id: ");
+    uart_put_uint32_t(id, 10);
+    uart_puts("\r\n");
     PCB_t* ite = head;
+    if (ite->next == NULL){
+        uart_puts("ite next NULL\r\n");
+    }
+    
     while( id != ite->id){
-        uart_puts("pcb get while\r\n");
+        uart_puts("pcb get while id: ");
+        uart_put_uint32_t(ite->id, 10);
+        uart_puts("\r\n");
         if (ite->next == NULL){ return NULL;}
         ite = ite->next;
     }
+    uart_puts("pcb get returns: ");
+    uart_put_uint32_t(ite->id, 10);
+    uart_puts("\r\n");
     return ite;
 }
 
@@ -67,7 +92,7 @@ void pcb_print(void){
     uart_puts("\r\n");
 }
 
-int pcb_remove(int32_t id){
+int pcb_remove(uint32_t id){
     if (head == NULL) {return -1;} // is empty
     PCB_t* ite = head;
     PCB_t* ite2 = head;

@@ -22,9 +22,9 @@ typedef struct PCB{
     uint32_t shared_data_ptr;
 } PCB_t;
 
-PCB_t* pcb_get(int32_t id);
+PCB_t* pcb_get(uint32_t id);
 int pcb_insert(PCB_t pcb);
-int pcb_remove(int32_t id);
+int pcb_remove(uint32_t id);
 void pcb_print(void);
 
 
