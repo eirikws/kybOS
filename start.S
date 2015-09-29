@@ -102,23 +102,25 @@ interrupt_vector:
     
     // go back to system mode to get correct sp. first trip
     mov r5, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
-    msr cpsr_c, r7
-    
+    msr cpsr_c, r5
     mov r0, r6
     push {lr}
     bl _print_reg
+    mov r0, sp
+    bl _print_reg
+    bl get_cpu_mode
     pop {lr}
     push {r6} // push lr the bottom of the stack
     push {r7-r12, lr}
     
     //  back to irq mode and get more registers!
     mov r5, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
-    msr cpsr_c, r7
+    msr cpsr_c, r5
     
     pop {r0-r6}
     
     mov r7, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
-    msr cpsr_c, r1
+    msr cpsr_c, r7
     push {r0-r6}
     
     //  back to irq mode and call interrupt function
@@ -149,8 +151,9 @@ interrupt_vector:
     add r0, r0, #4
     bl _get_stack_top
     bl get_cpu_mode
+    
+    bl print_alot
     pop {lr}
-    //bl loop_forever_and_ever
     pop {pc}
 
     

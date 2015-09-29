@@ -140,3 +140,10 @@ void uart_put_uint32_t(uint32_t in, int base){
     uart_puts(uart_itoa(in,c,base));
 }
 
+void print_alot(void){
+    int i;
+    for (i=0; i<20; i++){
+        uart_puts("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\r\n");
+    }
+}
+
