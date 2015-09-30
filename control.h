@@ -4,6 +4,8 @@
 char get_cpu_mode(void);
 extern void _set_cpu_mode(uint32_t mode);
 extern uint32_t _get_cpsr(void);
+void _save_spsr(uint32_t spsr );
+uint32_t _restore_spsr(void);
 
 
 enum{

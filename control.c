@@ -1,6 +1,8 @@
 
 #include <stdint.h>
 #include "control.h"
+#include "dispatcher.h"
+#include "pcb.h"
 #include "uart.h"
 
 char get_cpu_mode(void){
@@ -36,4 +38,16 @@ char get_cpu_mode(void){
             return CPSR_MODE_SYSTEM;
             break;
     }
+}
+
+void _save_spsr(uint32_t spsr ){
+    uint32_t current_running = get_current_running();
+    PCB_t* pcb = pcb_get(current_running);
+    pcb->context_data.CPSR = spsr;
+}
+
+uint32_t _restore_spsr(void){
+    uint32_t current_running = get_current_running();
+    PCB_t* pcb = pcb_get(current_running);
+    return pcb->context_data.CPSR;
 }

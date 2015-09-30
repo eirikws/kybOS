@@ -97,20 +97,30 @@ interrupt_vector:
     // temporary storage in irq sp
     push {r0-r6}
     mov r6, lr
+    mrs r5, spsr
+
+    mov r0, r5
+    bl _print_reg
+    mov r0, r5
+    bl _save_spsr
     
     bl _ack_irq
     
     // go back to system mode to get correct sp. first trip
-    mov r5, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
-    msr cpsr_c, r5
+    mov r4, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r4
+    
     mov r0, r6
+    
+    
     push {lr}
-    bl _print_reg
     mov r0, sp
     bl _print_reg
     bl get_cpu_mode
     pop {lr}
-    push {r6} // push lr the bottom of the stack
+    
+    push {r6}   // push pc the bottom of the stack
+    push {r5}   //  spsr
     push {r7-r12, lr}
     
     //  back to irq mode and get more registers!
@@ -128,34 +138,63 @@ interrupt_vector:
     msr cpsr_c, r7
     
     bl interrupt_vector_c
-    bl get_cpu_mode
     //  move to user mode again and pop all the registers that was stored
     mov r7, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r7
     
+    
     // the new stack pointer is on top of the old stack, so retrieve it!
     mov r0, sp
-    bl _get_stack_top
     pop {r0}
     mov sp, r0
+    
+    
     bl _get_stack_top
     
-    pop {r0,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,lr}
-    push {lr}
-    bl _enable_interrupts
-    pop {lr}
-    mov r7, #(CPSR_MODE_USER | CPSR_FIQ_INHIBIT )
-    msr cpsr_c, r7
-    push {lr}
     mov r0, sp
-    add r0, r0, #4
+    mov r4, r0
+    add r0, r4, #4
     bl _get_stack_top
-    bl get_cpu_mode
+    add r0, r4, #8
+    bl _get_stack_top
+    add r0, r4, #12
+    bl _get_stack_top
+    add r0, r4, #16
+    bl _get_stack_top
+    add r0, r4, #20
+    bl _get_stack_top
+    add r0, r4, #24
+    bl _get_stack_top
+    add r0, r4, #28
+    bl _get_stack_top
+    add r0, r4, #32
+    bl _get_stack_top
+    add r0, r4, #36
+    bl _get_stack_top
+    add r0, r4, #40
+    bl _get_stack_top
+    add r0, r4, #44
+    bl _get_stack_top
+    add r0, r4, #48
+    bl _get_stack_top
+    add r0, r4, #52
+    bl _get_stack_top
+    add r0, r4, #56
+    bl _get_stack_top
+    add r0, r4, #60
+    bl _get_stack_top
+   
     
-    bl print_alot
-    pop {lr}
+    pop {r0-r12,lr}
+    //push {r0-r3,lr}
+    
+    //bl get_cpu_mode
+    
+    //bl print_alot
+    //pop {r0-r3,lr}
+    pop {r7}
+    msr cpsr, r7
     pop {pc}
-
     
 
     //  used in Cstubs code. SP is returned in r0.
@@ -204,21 +243,33 @@ _push_stack_pointer:
     mov r0, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r0
     mov pc, lr
-    
 
-_load_basic:
-    mov pc, r0
-
-    // r0 carries sp, r1 location of code
+    // r0 carries sp, r1 location of code, r2 cpsr
 _init_thr_stack:
-    mov r2, sp
+    mov r3, sp
     mov sp, r0
     push {r1}
-    sub sp, #52
+    push {r2}
+    mov r1, #42
+    push {r1}
+    mov r1, #0
+    push {r1}
+    push {r1}
+    push {r1}
+    push {r1}
+    push {r1}
+    push {r1}
+    push {r1}
+    push {r1}
+    push {r1}
+    push {r1}
+    push {r1}
+    //sub sp, #52
     mov r0, #42
     push {r0}
+    push {r0}
     mov r0, sp
-    mov sp, r2
+    mov sp, r3
     mov pc, lr
 
 _set_cpu_mode:

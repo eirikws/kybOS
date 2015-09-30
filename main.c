@@ -31,6 +31,11 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     uart_init();
     
     uart_puts("kernel start!\r\n");
+    
+    uint32_t r = _get_cpsr();
+    uart_puts("initial cpsr");
+    uart_put_uint32_t(r,16);// 0b0110 0000 0000 0000 0000 0001 1101 0011
+    uart_puts("\r\n");
     init_pri_array();
     //  enable LED pin as an output 
     GetGpio()->LED_GPFSEL |= LED_GPFBIT;
@@ -40,6 +45,10 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     get_cpu_mode();
 
     _set_cpu_mode(CPSR_MODE_USER | CPSR_FIQ_INHIBIT);
+    r = _get_cpsr();
+    uart_puts("changed cpsr");
+    uart_put_uint32_t(r,16); //0b0110 0000 0000 0000 0000 0001 0101 0000
+    uart_puts("\r\n");
     get_cpu_mode();
     
     uart_puts("User sp: ");

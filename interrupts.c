@@ -104,7 +104,6 @@ void interrupt_vector_c(void){
             GetGpio()->LED_GPCLR = (1 << LED_GPIO_BIT);
             lit = 1;
         }
-        uart_puts("starting_dispatch\r\n");
         dispatch();
    // }
     /*
@@ -119,8 +118,6 @@ void interrupt_vector_c(void){
         
     }
     */
-    uart_puts("irq done\r\n");
-
     return;
 }
 
