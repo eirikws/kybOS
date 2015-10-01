@@ -60,11 +60,11 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     //  registering first threads!
     
     thread_register( prog1, 10,2048, 1);
-    //thread_register( prog2, 10,100, 2);
+    thread_register( prog2, 2,2048, 2);
     uart_puts("starting threads\r\n");
     //  starting them
     thread_start( 1, 0);
-    //thread_start( 2, 0);
+    thread_start( 2, 0);
     uart_puts("init threads\r\n");
     pcb_print();
     threading_init();

@@ -91,7 +91,7 @@ static int priority_enqueue(priority_node_t* node, int priority){
         priority_array[priority].tail = node;
         return 1;
     } else {
-        uart_puts("priority enqueue into existing list\r\n");
+        //uart_puts("priority enqueue into existing list\r\n");
         priority_node_t* tmp = priority_array[priority].tail;
         tmp->next = node;
         node->prev = tmp;
@@ -103,7 +103,13 @@ static int priority_enqueue(priority_node_t* node, int priority){
 int dispatch_enqueue(uint32_t id){
     priority_node_t* node =  newNode(id);
     PCB_t* mypcb = pcb_get(id);
-    if (mypcb == NULL){ return -1;}
+    if (mypcb == NULL){ 
+        uart_puts("dispatch enqueue ");
+        uart_put_uint32_t(id, 10);
+        uart_puts("mypcb = NULL\r\n");
+        return -1;
+    
+    }
     return priority_enqueue( node, mypcb->priority );
 }
 
@@ -113,9 +119,11 @@ extern uint32_t _get_user_sp(void);
 void save_stack_ptr( uint32_t id){
     PCB_t* pcb = pcb_get(id);
     pcb->context_data.SP = _get_user_sp();
+    /*
     uart_puts("saving user sp: ");
     uart_put_uint32_t(pcb->context_data.SP, 16);
     uart_puts("\r\n");
+    */
     return;
 }
 
@@ -154,17 +162,18 @@ void dispatch(void){
    // uart_puts("\r\n");
     
     _push_stack_pointer(pcb_get(current_running)->context_data.SP);
-    get_cpu_mode();
+    //get_cpu_mode();
     
     
     //uart_puts("debug pcb get curr running");
     //uart_put_uint32_t(pcb_get(current_running)->id, 10);
     //uart_puts("\r\n");
-    
+    /*
     int i;
     for (i=0; i<1; i++){
         uart_puts("iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii\r\n");
     }
+    */
     //uart_puts("returning from dispatch\r\n");
     return;
 }

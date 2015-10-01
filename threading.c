@@ -17,7 +17,7 @@ int threading_init(void){
 
     /* Setup the system timer interrupt */
     /* Timer frequency = Clk/256 * LOAD */
-    GetArmTimer()->Load = 0x150;
+    GetArmTimer()->Load = 0x200;
     /* Setup the ARM Timer */
     GetArmTimer()->Control =
             ARMTIMER_CTRL_23BIT |

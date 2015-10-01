@@ -96,13 +96,12 @@ _inf_loop:
 interrupt_vector:
     // temporary storage in irq sp
     push {r0-r6}
-    mov r6, lr
+    sub r6, lr, #4
     mrs r5, spsr
-
     mov r0, r5
+    bl _print_reg 0010 0000 0000 0000 0000 0001 0001 0000
+    mov r0, r6
     bl _print_reg
-    mov r0, r5
-    bl _save_spsr
     
     bl _ack_irq
     
@@ -110,18 +109,10 @@ interrupt_vector:
     mov r4, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r4
     
-    mov r0, r6
-    
-    
-    push {lr}
-    mov r0, sp
-    bl _print_reg
-    bl get_cpu_mode
-    pop {lr}
-    
     push {r6}   // push pc the bottom of the stack
-    push {r5}   //  spsr
+    
     push {r7-r12, lr}
+    mov r8, r5
     
     //  back to irq mode and get more registers!
     mov r5, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
@@ -132,6 +123,10 @@ interrupt_vector:
     mov r7, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r7
     push {r0-r6}
+    
+    push {r8}   // push cpsr
+    //mov r0, sp
+    //bl _get_stack_top
     
     //  back to irq mode and call interrupt function
     mov r7, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
@@ -183,17 +178,18 @@ interrupt_vector:
     bl _get_stack_top
     add r0, r4, #60
     bl _get_stack_top
-   
     
-    pop {r0-r12,lr}
-    //push {r0-r3,lr}
-    
-    //bl get_cpu_mode
-    
-    //bl print_alot
-    //pop {r0-r3,lr}
+    // pop cpsr
     pop {r7}
     msr cpsr, r7
+    
+    pop {r0-r12,lr}
+    
+    push {r0-r4, lr}
+    mrs r0, cpsr
+    bl _print_reg
+    pop {r0-r4, lr}
+    
     pop {pc}
     
 
@@ -232,9 +228,11 @@ _pcb_set_arg:
 
     // this function goes to system mode and pushes a pointer to a new stack
 _push_stack_pointer:
+    /*
     push {r0, lr}
     bl _print_reg
     pop {r0,lr}
+    */
     //  enter system mode to access user registers
     mov r1, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r1
@@ -249,7 +247,7 @@ _init_thr_stack:
     mov r3, sp
     mov sp, r0
     push {r1}
-    push {r2}
+    
     mov r1, #42
     push {r1}
     mov r1, #0
@@ -268,6 +266,7 @@ _init_thr_stack:
     mov r0, #42
     push {r0}
     push {r0}
+    push {r2}
     mov r0, sp
     mov sp, r3
     mov pc, lr
