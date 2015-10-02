@@ -1,4 +1,5 @@
 #include <string.h>
+#include <_ansi.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include "base.h"
@@ -59,13 +60,13 @@ void uart_init( void ){
     GetUartController()->LCRH =    WORD_LEN_8BIT | FIFO_DISABLE;
 
     //  set receive interrupt fifo level to 1/8 FIFO level
-    GetUartController()->IFLS |= RECEIVE_IRQ_FIFO_18;
+    //GetUartController()->IFLS |= RECEIVE_IRQ_FIFO_18;
     
     //  mask interrupts
-    GetUartController()->IMSC   |= RECEIVE_MASK_BIT;
+    //GetUartController()->IMSC   |= RECEIVE_MASK_BIT;
 
     //  restart uart again
-    GetIrqController()->Enable_IRQs_2 |= UART_IRQ;
+    //GetIrqController()->Enable_IRQs_2 |= UART_IRQ;
     GetUartController()->CR = UART_ENABLE | TRANSMIT_ENABLE | RECEIVE_ENABLE;
 }
 

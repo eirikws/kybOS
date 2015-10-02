@@ -43,7 +43,9 @@ void __attribute__((interrupt("ABORT"))) reset_vector(void){
 void __attribute__((interrupt("UNDEF"))) undefined_instruction_vector(void){
     while( 1 )
     {
-        uart_puts("Undefined mode!!!\r\n");
+        uart_puts("Undefined mode1!!!\r\n");
+        uart_puts("Undefined mode2!!!\r\n");
+        uart_puts("Undefined mode3!!!\r\n");
     }
 }
 
@@ -74,7 +76,6 @@ void __attribute__((interrupt("SWI")))
     Pefetch abort interrupt handler
 */
 void __attribute__((interrupt("ABORT"))) prefetch_abort_vector(void){
-
 }
 
 
@@ -82,7 +83,6 @@ void __attribute__((interrupt("ABORT"))) prefetch_abort_vector(void){
     Data abort interrupt handler
 */
 void __attribute__((interrupt("ABORT"))) data_abort_vector(void){
-
 }
 
 

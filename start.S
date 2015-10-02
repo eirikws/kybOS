@@ -99,7 +99,7 @@ interrupt_vector:
     sub r6, lr, #4
     mrs r5, spsr
     mov r0, r5
-    bl _print_reg 0010 0000 0000 0000 0000 0001 0001 0000
+    bl _print_reg
     mov r0, r6
     bl _print_reg
     
@@ -112,6 +112,8 @@ interrupt_vector:
     push {r6}   // push pc the bottom of the stack
     
     push {r7-r12, lr}
+    mov r0, lr
+    bl _print_reg
     mov r8, r5
     
     //  back to irq mode and get more registers!
@@ -143,7 +145,9 @@ interrupt_vector:
     pop {r0}
     mov sp, r0
     
-    
+    mov r0, sp
+    bl _print_reg
+    mov r0, sp
     bl _get_stack_top
     
     mov r0, sp
@@ -180,18 +184,20 @@ interrupt_vector:
     bl _get_stack_top
     
     // pop cpsr
-    pop {r7}
+    pop {r10}
+    mov spsr, r10
+    
     msr cpsr, r7
+    mov r10, sp
+    mov r7, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r7
     
+    pop {r0-r12,lr, pc}^
+    /*
     pop {r0-r12,lr}
-    
-    push {r0-r4, lr}
-    mrs r0, cpsr
-    bl _print_reg
-    pop {r0-r4, lr}
-    
-    pop {pc}
-    
+    pop {r10}
+    bx r10
+    */    
 
     //  used in Cstubs code. SP is returned in r0.
 _get_stack_pointer:
