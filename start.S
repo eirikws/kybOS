@@ -97,11 +97,238 @@ _inf_loop:
 
 interrupt_vector:
     sub lr, lr, #4
-    push {r0-r12, lr}
+    
+    push {r0-r3, lr}
+    bl _print_reg
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    mov r0, lr
+    bl _print_reg
+    mov r0, r9
+    bl _print_reg
     mrs r0, cpsr
     bl _print_reg
+    mrs r0, spsr
+    bl _print_reg
+    pop {r0-r3, lr}
+    
+    push {r9}
+    mov r9, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r9
+    push {r0-r12,lr}
+    
+    push {r0-r3}
+    mov r0, lr
+    bl _print_reg
+    pop {r0-r3}
+    
+    
+    push {r0-r3}
+    bl _print_reg
+    pop {r0-r3}
+    mov r0, r1
+    push {r0-r3}
+    bl _print_reg
+    pop {r0-r3}
+    mov r0, r2
+    push {r0-r3}
+    bl _print_reg
+    pop {r0-r3}
+    mov r0, r3
+    push {r0-r3}
+    bl _print_reg
+    pop {r0-r3}
+    mov r0, r4
+    push {r0-r3}
+    bl _print_reg
+    pop {r0-r3}
+    mov r0, r5
+    push {r0-r3}
+    bl _print_reg
+    pop {r0-r3}
+    mov r0, r6
+    push {r0-r3}
+    bl _print_reg
+    pop {r0-r3}
+    mov r0, r7
+    push {r0-r3}
+    bl _print_reg
+    pop {r0-r3}
+    mov r0, r8
+    push {r0-r3}
+    bl _print_reg
+    pop {r0-r3}
+    mov r0, r9
+    push {r0-r3}
+    bl _print_reg
+    pop {r0-r3}
+    mov r0, r10
+    push {r0-r3}
+    bl _print_reg
+    pop {r0-r3}
+    mov r0, r11
+    push {r0-r3}
+    bl _print_reg
+    pop {r0-r3}
+    
+    mov r0, r12
+    push {r0-r3}
+    bl _print_reg
+    pop {r0-r3}
+    mov r0, sp
+    sub r0, r0, #60
+    push {r0-r3}
+    bl _print_reg
+    pop {r0-r3}
+    mov r0, lr
+    push {r0-r3}
+    bl _print_reg
+    pop {r0-r3}
+    
+    pop {r0-r12,lr}
+    mov r9, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r9
+    pop {r9}
+    
+    push {r0-r6} // store stuff temp
+    mrs r5, spsr
+    mov r6, lr // thread pc
+    
+    push {r0-r3}
+    bl print_line
+    pop {r0-r3}
+    
+    
+    mov r4, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r4
+    
+    push {r0-r3}
+    mov r0, lr
+    bl _print_reg
+    pop {r0, r3}
+    
+    push {r7-r12, lr}
+    
+    
+    mov r9, r6  // move PC to safety
+    mov r8, r5  // move spsr to safety ;)
+    mov r4, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r4
+    pop {r0-r6}
+    mov r7, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r7
+    push {r0-r6}
+    push {r8, r9}
+    /*
+    mov r0, sp
+    mov r4, r0
+    bl _get_stack_top
+    add r0, r4, #4
+    bl _get_stack_top
+    add r0, r4, #8
+    bl _get_stack_top
+    add r0, r4, #12
+    bl _get_stack_top
+    add r0, r4, #16
+    bl _get_stack_top
+    add r0, r4, #20
+    bl _get_stack_top
+    add r0, r4, #24
+    bl _get_stack_top
+    add r0, r4, #28
+    bl _get_stack_top
+    add r0, r4, #32
+    bl _get_stack_top
+    add r0, r4, #36
+    bl _get_stack_top
+    add r0, r4, #40
+    bl _get_stack_top
+    add r0, r4, #44
+    bl _get_stack_top
+    add r0, r4, #48
+    bl _get_stack_top
+    add r0, r4, #52
+    bl _get_stack_top
+    add r0, r4, #56
+    bl _get_stack_top
+    add r0, r4, #60
+    bl _get_stack_top
+    */
+    
+    mov r7, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r7
     bl interrupt_vector_c
-    ldm sp!, {r0-r12, pc}^
+    mov r7, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT)
+    msr cpsr_c, r7
+    pop {r0-r1}    // pop cpsr, pc that we stored
+    mov r7, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT)
+    msr cpsr_c, r7
+    msr spsr, r0
+    push {r1} // push pc
+    mov r7, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT)
+    msr cpsr_c, r7
+    pop {r0-r12, lr}
+    push {r0-r2}
+    mov r0, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT)
+    msr cpsr_c, r0
+    push {r3-r12, lr}
+    mov r7, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT)
+    msr cpsr_c, r7
+    pop {r0-r2}
+    mov r7, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT)
+    msr cpsr_c, r7
+    push {r0-r2}
+    
+    
+    mrs r0, cpsr
+    push {r0-r3}
+    bl _print_reg
+    pop {r0-r3}
+    mrs r0, spsr
+    push {r0-r3}
+    bl _print_reg
+    pop {r0-r3}
+    /*
+    mov r0, sp
+    mov r4, r0
+    bl _get_stack_top
+    add r0, r4, #4
+    bl _get_stack_top
+    add r0, r4, #8
+    bl _get_stack_top
+    add r0, r4, #12
+    bl _get_stack_top
+    add r0, r4, #16
+    bl _get_stack_top
+    add r0, r4, #20
+    bl _get_stack_top
+    add r0, r4, #24
+    bl _get_stack_top
+    add r0, r4, #28
+    bl _get_stack_top
+    add r0, r4, #32
+    bl _get_stack_top
+    add r0, r4, #36
+    bl _get_stack_top
+    add r0, r4, #40
+    bl _get_stack_top
+    add r0, r4, #44
+    bl _get_stack_top
+    add r0, r4, #48
+    bl _get_stack_top
+    add r0, r4, #52
+    bl _get_stack_top
+    add r0, r4, #56
+    bl _get_stack_top
+    add r0, r4, #60
+    bl _get_stack_top
+    */
+    mrs r0, cpsr
+    bl _print_reg
+    mrs r0, spsr
+    bl _print_reg
+    
+    ldm sp!, {r0-r12,lr, pc}^
 
     //  used in Cstubs code. SP is returned in r0.
 _get_stack_pointer:

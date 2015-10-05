@@ -178,19 +178,6 @@ void dispatch(void){
     return;
 }
 
-void _print_reg(uint32_t reg){
-    uart_puts("print reg: ");
-    uart_put_uint32_t(reg, 16);
-    uart_puts("\r\n");
-    return;
-}
-
-void _get_stack_top(uint32_t* top){
-    uart_puts("top of stack contains: ");
-    uart_put_uint32_t(*top, 16);
-    uart_puts("\r\n");
-}
-
 uint32_t get_current_running(void){
     return current_running;
 }

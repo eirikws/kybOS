@@ -141,10 +141,28 @@ void uart_put_uint32_t(uint32_t in, int base){
     uart_puts(uart_itoa(in,c,base));
 }
 
+void print_line(void){
+    uart_puts("-------------------------------------------------------\r\n");
+    return;
+}
+
 void print_alot(void){
     int i;
     for (i=0; i<20; i++){
         uart_puts("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\r\n");
     }
+}
+void _get_stack_top(uint32_t* top){
+    uart_puts("top of stack contains: ");
+    uart_put_uint32_t(*top, 16);
+    uart_puts("\r\n");
+}
+
+
+void _print_reg(uint32_t reg){
+    uart_puts("print reg: ");
+    uart_put_uint32_t(reg, 16);
+    uart_puts("\r\n");
+    return;
 }
 
