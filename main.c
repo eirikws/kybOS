@@ -44,7 +44,7 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
    
     get_cpu_mode();
 
-    _set_cpu_mode(CPSR_MODE_USER | CPSR_FIQ_INHIBIT);
+    _set_cpu_mode(CPSR_MODE_SYSTEM | CPSR_FIQ_INHIBIT);
     r = _get_cpsr();
     uart_puts("changed cpsr");
     uart_put_uint32_t(r,16); //0b0110 0000 0000 0000 0000 0001 0101 0000
@@ -60,15 +60,19 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     //  registering first threads!
     
     thread_register( prog1, 10,2048, 1);
-    thread_register( prog2, 2,2048, 2);
+    //thread_register( prog2, 2,2048, 2);
     uart_puts("starting threads\r\n");
     //  starting them
     thread_start( 1, 0);
-    thread_start( 2, 0);
+    //thread_start( 2, 0);
     uart_puts("init threads\r\n");
     pcb_print();
     threading_init();
     uart_puts("threads initiated\r\n");
+    
+    //prog1();
+    
+    change_to_prog1();
     
      /* Never exit as there is no OS to exit to! */
     loop_forever_and_ever();

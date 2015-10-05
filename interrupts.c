@@ -89,12 +89,12 @@ void __attribute__((interrupt("ABORT"))) data_abort_vector(void){
 /*
     IRQ handler
 */
-void interrupt_vector_c(void){
-    static int lit = 0;
-    char c;
+void  interrupt_vector_c(void){
+    //static int lit = 0;
+    //char c;
     //if (GetIrqController()->IRQ_basic_pending & ARM_TIMER_IRQ){
-    //    GetArmTimer()->IRQClear = 1;
-        if( lit )
+        GetArmTimer()->IRQClear = 1;
+        /*if( lit )
         {
             GetGpio()->LED_GPSET = (1 << LED_GPIO_BIT);
             lit = 0;
@@ -103,8 +103,9 @@ void interrupt_vector_c(void){
         {
             GetGpio()->LED_GPCLR = (1 << LED_GPIO_BIT);
             lit = 1;
-        }
-        dispatch();
+        }*/
+        uart_puts("interrupt\r\n");
+        //dispatch();
    // }
     /*
     if (GetIrqController()->IRQ_pending_2 & UART_IRQ){

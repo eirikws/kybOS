@@ -26,3 +26,9 @@ void  prog2(void){
         uart_puts("\r\n");
     }
 }
+
+void change_to_prog1(void){
+
+
+
+}

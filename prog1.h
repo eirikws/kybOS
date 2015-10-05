@@ -4,5 +4,6 @@
 
 void prog2(void);
 void prog1(void);
+void change_to_prog1(void);
 
 #endif
