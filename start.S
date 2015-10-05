@@ -98,9 +98,23 @@ _inf_loop:
 interrupt_vector:
     sub lr, lr, #4
     push {r0-r12, lr}
+    mrs r1, spsr
+    mov r4, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r4
+    mov r0, lr
+    mov r4, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r4
+    push {r0-r1}
     mrs r0, cpsr
     bl _print_reg
     bl interrupt_vector_c
+    pop {r0-r1}
+    msr spsr, r1
+    mov r4, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r4
+    mov lr, r0
+    mov r4, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r4
     ldm sp!, {r0-r12, pc}^
 
     //  used in Cstubs code. SP is returned in r0.
