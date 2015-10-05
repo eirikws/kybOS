@@ -113,14 +113,14 @@ interrupt_vector:
     mov r0, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r0
     
-    
-    mrs r0, spsr
-    bl _print_reg
     bl interrupt_vector_c
-    
     
     mov r0, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r0
+    
+    pop {r0}
+    mov sp, r0
+    
     pop {r0-r2}// pc, spsr, lr
     mov lr, r2
     mov r3, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
@@ -195,27 +195,25 @@ _push_stack_pointer:
 _init_thr_stack:
     mov r3, sp
     mov sp, r0
-    push {r1}
-    
-    mov r1, #42
-    push {r1}
-    mov r1, #0
-    push {r1}
-    push {r1}
-    push {r1}
-    push {r1}
-    push {r1}
-    push {r1}
-    push {r1}
-    push {r1}
-    push {r1}
-    push {r1}
-    push {r1}
-    //sub sp, #52
     mov r0, #42
     push {r0}
     push {r0}
-    push {r2}
+    mov r0, #0
+    push {r0}
+    push {r0}
+    push {r0}
+    push {r0}
+    push {r0}
+    push {r0}
+    push {r0}
+    push {r0}
+    push {r0}
+    push {r0}
+    mov r0, #42
+    push {r0}
+    push {r0} // lr contains nothing
+    push {r2} // cpsr
+    push {r1} // pc
     mov r0, sp
     mov sp, r3
     mov pc, lr
@@ -227,8 +225,7 @@ _asm_reload:
     pop {r0}
     msr cpsr, r0
     ldm sp!, {r0-r12, lr,pc}
-    
-    
+     
 _set_cpu_mode:
     //  store lr in r2, becuase lr is banked for different cpu modes    
     mov r2, lr

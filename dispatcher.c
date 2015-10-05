@@ -42,6 +42,9 @@ static priority_node_t* newNode(int32_t id){
 }
 
 static int priority_pop(int priority){
+    uart_puts("priority pop: ");
+    uart_put_uint32_t(priority, 10);
+    uart_puts("\r\n");
     //  check priority is within bounds
     if (priority < 0 || priority > NUM_PRIORITIES){ return -1;}
     //  if empty
@@ -49,18 +52,24 @@ static int priority_pop(int priority){
     // if one item
     else if (priority_array[priority].head == priority_array[priority].tail){
         priority_node_t* tmp = priority_array[priority].head;
-        priority_array[priority].head = priority_array[priority].tail;
-        priority_array[priority].tail = priority_array[priority].head;
+        priority_array[priority].head = NULL;
+        priority_array[priority].tail = NULL;
         int retval = tmp->id;
         free(tmp);
+        uart_puts("priority pop: one item: ");
+        uart_put_uint32_t(retval, 10);
+        uart_puts("\r\n");
         return retval;
     // if more than one item
     } else {
         priority_node_t* tmp = priority_array[priority].head;
         tmp->next->prev=NULL;
-        priority_array[priority].head=priority_array[priority].head->next;
+        priority_array[priority].head = tmp->next;
         int retval = tmp->id;
         free(tmp);
+        uart_puts("priority pop: more than one item: ");
+        uart_put_uint32_t(retval, 10);
+        uart_puts("\r\n");
         return retval;
     }
         
@@ -72,9 +81,14 @@ static int get_highest_priority(void){
     for (i = NUM_PRIORITIES-1; i>-1; i--){
         retval = priority_pop(i);
         if (retval > -1){
+            uart_puts("get highest pri returns with: ");
+            uart_put_uint32_t(retval, 10);
+            uart_puts("\r\n");
             return retval;
         }
     }
+    uart_puts("get highest pri failed\r\n");
+    
     return -1;
 }
 
@@ -86,12 +100,14 @@ static int priority_enqueue(priority_node_t* node, int priority){
     }
     //  if empty
     if (priority_array[priority].tail == NULL){
-        //uart_puts("priority enqueue into empty list\r\n");
+        uart_puts("priority enqueue into empty list\r\n");
         priority_array[priority].head = node;
         priority_array[priority].tail = node;
         return 1;
     } else {
-        //uart_puts("priority enqueue into existing list\r\n");
+        uart_puts("priority enqueue into existing list: ");
+        uart_put_uint32_t(priority, 10);
+        uart_puts("\r\n");
         priority_node_t* tmp = priority_array[priority].tail;
         tmp->next = node;
         node->prev = tmp;
@@ -106,7 +122,7 @@ int dispatch_enqueue(uint32_t id){
     if (mypcb == NULL){ 
         uart_puts("dispatch enqueue ");
         uart_put_uint32_t(id, 10);
-        uart_puts("mypcb = NULL\r\n");
+        uart_puts(" mypcb == NULL\r\n");
         return -1;
     
     }
@@ -119,11 +135,6 @@ extern uint32_t _get_user_sp(void);
 void save_stack_ptr( uint32_t id){
     PCB_t* pcb = pcb_get(id);
     pcb->context_data.SP = _get_user_sp();
-    /*
-    uart_puts("saving user sp: ");
-    uart_put_uint32_t(pcb->context_data.SP, 16);
-    uart_puts("\r\n");
-    */
     return;
 }
 
@@ -134,47 +145,30 @@ extern _load_basic(uint32_t lr);
 extern _push_stack_pointer(uint32_t sp);
 
 void dispatch(void){
+    PCB_t* pcb;
     int err = 0;
-    //pcb_print();
-    //  save old context
-    //uart_puts("dispatch begin \r\n");
-    
-    //  put it in priority list
-    //  and save stack pointer in pcb
     if (current_running != -1){
-        //uart_puts("requeuing: ");
-        //uart_put_uint32_t(current_running, 10);
-       // uart_puts("\r\n");
+
         err = dispatch_enqueue(current_running);
         if (err == -1){
             uart_puts("requing error\r\n");
         }
         save_stack_ptr(current_running);
+        uart_puts("saved sp: ");
+        uart_put_uint32_t(pcb_get(current_running)->context_data.SP, 16);
+        uart_puts("\r\n");
     }
-    //  get the next thread to be run
-    //uart_puts("getting new highest priority: ");
     current_running = get_highest_priority();
-    //uart_put_uint32_t((uint32_t)current_running, 10);
-   // uart_puts("\r\n");
-    // load new program context... and decrease stack?
-   // uart_puts("loading prog");
-   // uart_put_uint32_t((uint32_t)current_running, 10);
-   // uart_puts("\r\n");
     
-    _push_stack_pointer(pcb_get(current_running)->context_data.SP);
-    //get_cpu_mode();
+    uart_puts("current running: ");
+    uart_put_uint32_t(current_running, 10);
+    uart_puts("\r\n");
     
-    
-    //uart_puts("debug pcb get curr running");
-    //uart_put_uint32_t(pcb_get(current_running)->id, 10);
-    //uart_puts("\r\n");
-    /*
-    int i;
-    for (i=0; i<1; i++){
-        uart_puts("iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii\r\n");
-    }
-    */
-    //uart_puts("returning from dispatch\r\n");
+    pcb = pcb_get(current_running);
+    uart_puts("loading sp: ");
+    uart_put_uint32_t(pcb->context_data.SP, 16);
+    uart_puts("\r\n");
+    _push_stack_pointer(pcb->context_data.SP);
     return;
 }
 

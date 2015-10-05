@@ -45,13 +45,18 @@ int pcb_insert(PCB_t pcb) {
 }
 
 PCB_t* pcb_get(uint32_t id){
-    //pcb_print();
+    pcb_print();
     if (head == NULL) {return NULL;}
     PCB_t* ite = head;
     while( id != ite->id){
         if (ite->next == NULL){ return NULL;}
         ite = ite->next;
     }
+    uart_puts("pcb get: ");
+    uart_put_uint32_t(ite->id, 10);
+    uart_puts("     ");
+    uart_put_uint32_t(ite->context_data.SP, 10);
+    uart_puts("\r\n");
     return ite;
 }
 

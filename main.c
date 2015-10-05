@@ -60,7 +60,7 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     //  registering first threads!
     
     thread_register( prog1, 10,2048, 1);
-    //thread_register( prog2, 2,2048, 2);
+    thread_register( prog2, 10,2048, 2);
     uart_puts("starting threads\r\n");
     //  starting them
     thread_start( 1, 0);
@@ -72,7 +72,7 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     
     //prog1();
     
-    change_to_prog(1);
+    //change_to_prog(1);
     
      /* Never exit as there is no OS to exit to! */
     loop_forever_and_ever();
