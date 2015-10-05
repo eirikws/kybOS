@@ -121,11 +121,11 @@ interrupt_vector:
     
     mov r0, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r0
-    pop {r0-r2}// lr, spsr, pc
-    mov lr, r0
+    pop {r0-r2}// pc, spsr, lr
+    mov lr, r2
     mov r3, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r3
-    push {r2}
+    push {r0}
     msr spsr, r1
     mov r4, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r4
@@ -140,37 +140,6 @@ interrupt_vector:
     mov r1, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r1
     push {r0}
-    
-    mrs r0, spsr
-    bl _print_reg
-    mrs r0, spsr
-    bl _print_reg
-    mrs r0, spsr
-    bl _print_reg
-    mrs r0, spsr
-    bl _print_reg
-    mrs r0, spsr
-    bl _print_reg
-    mrs r0, spsr
-    bl _print_reg
-    mrs r0, spsr
-    bl _print_reg
-    mrs r0, spsr
-    bl _print_reg
-    mrs r0, spsr
-    bl _print_reg
-    mrs r0, spsr
-    bl _print_reg
-    mrs r0, spsr
-    bl _print_reg
-    mrs r0, spsr
-    bl _print_reg
-    mrs r0, spsr
-    bl _print_reg
-    mrs r0, spsr
-    bl _print_reg
-    mrs r0, spsr
-    bl _print_reg
     ldm sp!, {r0-r12, pc}^
 
     //  used in Cstubs code. SP is returned in r0.
