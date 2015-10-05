@@ -97,24 +97,80 @@ _inf_loop:
 
 interrupt_vector:
     sub lr, lr, #4
-    push {r0-r12, lr}
-    mrs r1, spsr
-    mov r4, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
-    msr cpsr_c, r4
-    mov r0, lr
-    mov r4, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
-    msr cpsr_c, r4
-    push {r0-r1}
-    mrs r0, cpsr
+    push {r0}
+    mov r0, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r0
+    push {r1-r12}
+    mov r0, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r0
+    pop {r0}
+    mov r1, lr
+    mrs r2, spsr
+    mov r3, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r3
+    push {r0}
+    push {r1,r2, lr}
+    mov r0, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r0
+    
+    
+    mrs r0, spsr
     bl _print_reg
     bl interrupt_vector_c
-    pop {r0-r1}
+    
+    
+    mov r0, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r0
+    pop {r0-r2}// lr, spsr, pc
+    mov lr, r0
+    mov r3, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r3
+    push {r2}
     msr spsr, r1
     mov r4, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r4
-    mov lr, r0
-    mov r4, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
-    msr cpsr_c, r4
+    pop {r0-r12}
+    push {r0}
+    mov r0, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r0
+    push {r1-r12}
+    mov r0, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r0
+    pop {r0}
+    mov r1, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r1
+    push {r0}
+    
+    mrs r0, spsr
+    bl _print_reg
+    mrs r0, spsr
+    bl _print_reg
+    mrs r0, spsr
+    bl _print_reg
+    mrs r0, spsr
+    bl _print_reg
+    mrs r0, spsr
+    bl _print_reg
+    mrs r0, spsr
+    bl _print_reg
+    mrs r0, spsr
+    bl _print_reg
+    mrs r0, spsr
+    bl _print_reg
+    mrs r0, spsr
+    bl _print_reg
+    mrs r0, spsr
+    bl _print_reg
+    mrs r0, spsr
+    bl _print_reg
+    mrs r0, spsr
+    bl _print_reg
+    mrs r0, spsr
+    bl _print_reg
+    mrs r0, spsr
+    bl _print_reg
+    mrs r0, spsr
+    bl _print_reg
     ldm sp!, {r0-r12, pc}^
 
     //  used in Cstubs code. SP is returned in r0.
