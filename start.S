@@ -15,6 +15,7 @@
 .global _load_basic
 .global _push_stack_pointer
 .global _get_user_sp
+.global _asm_reload
 
 //  STATUS/MODE REGISTER
 .equ    CPSR_MODE_USER,         0x10
@@ -97,7 +98,7 @@ _inf_loop:
 interrupt_vector:
     sub lr, lr, #4
     push {r0-r12, lr}
-    msr cpsr, r0
+    mrs r0, cpsr
     bl _print_reg
     bl interrupt_vector_c
     ldm sp!, {r0-r12, pc}^
@@ -179,7 +180,16 @@ _init_thr_stack:
     mov r0, sp
     mov sp, r3
     mov pc, lr
-
+    
+    
+    //r0 with sp
+_asm_reload:
+    mov sp, r0
+    pop {r0}
+    msr cpsr, r0
+    ldm sp!, {r0-r12, lr,pc}
+    
+    
 _set_cpu_mode:
     //  store lr in r2, becuase lr is banked for different cpu modes    
     mov r2, lr

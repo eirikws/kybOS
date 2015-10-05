@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include "uart.h"
 #include "control.h"
+#include "pcb.h"
 #include "prog1.h"
 
 
@@ -27,8 +28,7 @@ void  prog2(void){
     }
 }
 
-void change_to_prog1(void){
-
-
-
+void change_to_prog(int id){
+    PCB_t *pcb = pcb_get(id);
+    _asm_reload(pcb->context_data.SP);
 }

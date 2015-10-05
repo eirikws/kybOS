@@ -72,7 +72,7 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     
     //prog1();
     
-    change_to_prog1();
+    change_to_prog(1);
     
      /* Never exit as there is no OS to exit to! */
     loop_forever_and_ever();
