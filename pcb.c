@@ -55,7 +55,7 @@ PCB_t* pcb_get(uint32_t id){
     uart_puts("pcb get: ");
     uart_put_uint32_t(ite->id, 10);
     uart_puts("     ");
-    uart_put_uint32_t(ite->context_data.SP, 10);
+    uart_put_uint32_t(ite->context_data.SP, 16);
     uart_puts("\r\n");
     return ite;
 }

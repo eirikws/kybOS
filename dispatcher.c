@@ -41,6 +41,32 @@ static priority_node_t* newNode(int32_t id){
     return newNode;
 }
 
+void priority_print(int pri){
+    int i = 0;
+    priority_node_t* node = priority_array[pri].head;
+    if(node == NULL){   return;}
+    uart_puts("priority print ");
+    uart_put_uint32_t(pri, 10);
+    uart_puts(": ");
+    while(1){
+        uart_put_uint32_t(node->id, 10);
+        uart_puts(", ");
+        if (node->next == NULL || i++ >10){
+            uart_puts("\r\n");
+            return;
+        }
+        node = node->next;
+    }
+}
+
+void priority_print_list(void){
+    int i;
+    for(i=NUM_PRIORITIES-1; i>-1; i--){
+        priority_print(i);
+    }
+    return;
+}
+
 static int priority_pop(int priority){
     uart_puts("priority pop: ");
     uart_put_uint32_t(priority, 10);
@@ -145,8 +171,10 @@ extern _load_basic(uint32_t lr);
 extern _push_stack_pointer(uint32_t sp);
 
 void dispatch(void){
+    priority_print_list();
     PCB_t* pcb;
     int err = 0;
+    
     if (current_running != -1){
 
         err = dispatch_enqueue(current_running);
@@ -169,6 +197,7 @@ void dispatch(void){
     uart_put_uint32_t(pcb->context_data.SP, 16);
     uart_puts("\r\n");
     _push_stack_pointer(pcb->context_data.SP);
+    priority_print_list();
     return;
 }
 
