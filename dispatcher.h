@@ -8,5 +8,5 @@
 int dispatch_enqueue(uint32_t id);
 void dispatch(void);
 uint32_t get_current_running(void);
-
+void priority_print_list(void);
 #endif

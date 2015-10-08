@@ -15,19 +15,46 @@ typedef struct priority_list{
     priority_node_t* tail;
 } priority_list_t;
 
-priority_list_t priority_array[NUM_PRIORITIES];
+//priority_list_t priority_array[NUM_PRIORITIES];
+priority_list_t* priority_array;
+
 int32_t static current_running = -1;
 
 void init_pri_array(void){
     uart_puts("init pri array\r\n");
+    uart_puts("sizeof priority array: ");
+    uart_put_uint32_t(sizeof(priority_list_t)*NUM_PRIORITIES, 16);
+    uart_puts("\r\n");
     int i;
+    /*
     for ( i=0; i<NUM_PRIORITIES; i++){
       //  uart_put_uint32_t(i,10);
        // uart_puts("\r\n");
         priority_array[i].head = NULL;
         priority_array[i].tail = NULL;
     }
+    */
+    
+    priority_array = malloc( sizeof( priority_list_t) * NUM_PRIORITIES);
+    if (priority_array == NULL){
+        uart_puts("priority_array NULL+\r\n");
+        return;
+    }
+    uart_puts("priority_array is at: ");
+    uart_put_uint32_t( (uint32_t)priority_array, 16);
+    uart_puts("\r\n");
+    for ( i=0; i<NUM_PRIORITIES; i++){
+      //  uart_put_uint32_t(i,10);
+       // uart_puts("\r\n");
+        priority_array[i].head = NULL;
+        priority_array[i].tail = NULL;
+    }
+    priority_print_list();
+    return;
 }
+    
+    
+    
 
 static priority_node_t* newNode(int32_t id){
     priority_node_t *newNode = malloc(sizeof(priority_node_t));
@@ -61,6 +88,7 @@ void priority_print(int pri){
 
 void priority_print_list(void){
     int i;
+    uart_puts("priority print list! :\r\n");
     for(i=NUM_PRIORITIES-1; i>-1; i--){
         priority_print(i);
     }
@@ -68,9 +96,9 @@ void priority_print_list(void){
 }
 
 static int priority_pop(int priority){
-    uart_puts("priority pop: ");
-    uart_put_uint32_t(priority, 10);
-    uart_puts("\r\n");
+    //uart_puts("priority pop: ");
+    //uart_put_uint32_t(priority, 10);
+    //uart_puts("\r\n");
     //  check priority is within bounds
     if (priority < 0 || priority > NUM_PRIORITIES){ return -1;}
     //  if empty

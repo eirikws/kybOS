@@ -193,29 +193,106 @@ _push_stack_pointer:
 
     // r0 carries sp, r1 location of code, r2 cpsr
 _init_thr_stack:
+    push {r0-r3, lr}
+    bl priority_print_list
+    pop {r0-r3, lr}
     mov r3, sp
+    push {r0-r3, lr}
+    bl priority_print_list
+    pop {r0-r3, lr}
     mov sp, r0
+    
+    push {r0-r3, lr}
+    bl _print_reg
+    pop {r0-r3, lr}
+    
+    push {r0-r3, lr}
+    bl priority_print_list
+    pop {r0-r3, lr}
     mov r0, #42
+    push {r0-r3, lr}
+    bl priority_print_list
+    pop {r0-r3, lr}
     push {r0}
+    push {r0-r3, lr}
+    bl priority_print_list
+    pop {r0-r3, lr}
     push {r0}
+    push {r0-r3, lr}
+    bl priority_print_list
+    pop {r0-r3, lr}
     mov r0, #0
+    push {r0-r3, lr}
+    bl priority_print_list
+    pop {r0-r3, lr}
     push {r0}
+    push {r0-r3, lr}
+    bl priority_print_list
+    pop {r0-r3, lr}
     push {r0}
+    push {r0-r3, lr}
+    bl priority_print_list
+    pop {r0-r3, lr}
     push {r0}
+    push {r0-r3, lr}
+    bl priority_print_list
+    pop {r0-r3, lr}
     push {r0}
+    push {r0-r3, lr}
+    bl priority_print_list
+    pop {r0-r3, lr}
     push {r0}
+    push {r0-r3, lr}
+    bl priority_print_list
+    pop {r0-r3, lr}
     push {r0}
+    push {r0-r3, lr}
+    bl priority_print_list
+    pop {r0-r3, lr}
     push {r0}
+    push {r0-r3, lr}
+    bl priority_print_list
+    pop {r0-r3, lr}
     push {r0}
+    push {r0-r3, lr}
+    bl priority_print_list
+    pop {r0-r3, lr}
     push {r0}
+    push {r0-r3, lr}
+    bl priority_print_list
+    pop {r0-r3, lr}
     push {r0}
+    push {r0-r3, lr}
+    bl priority_print_list
+    pop {r0-r3, lr}
     mov r0, #42
+    push {r0-r3, lr}
+    bl priority_print_list
+    pop {r0-r3, lr}
     push {r0}
+    push {r0-r3, lr}
+    bl priority_print_list
+    pop {r0-r3, lr}
     push {r0} // lr contains nothing
+    push {r0-r3, lr}
+    bl priority_print_list
+    pop {r0-r3, lr}
     push {r2} // cpsr
+    push {r0-r3, lr}
+    bl priority_print_list
+    pop {r0-r3, lr}
     push {r1} // pc
+    push {r0-r3, lr}
+    bl priority_print_list
+    pop {r0-r3, lr}
     mov r0, sp
+    push {r0-r3, lr}
+    bl priority_print_list
+    pop {r0-r3, lr}
     mov sp, r3
+    push {r0-r3, lr}
+    bl priority_print_list
+    pop {r0-r3, lr}
     mov pc, lr
     
     
