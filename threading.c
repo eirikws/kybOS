@@ -17,7 +17,7 @@ int threading_init(void){
 
     /* Setup the system timer interrupt */
     /* Timer frequency = Clk/256 * LOAD */
-    GetArmTimer()->Load = 0x500;
+    GetArmTimer()->Load = 0x5;
     /* Setup the ARM Timer */
     GetArmTimer()->Control =
             ARMTIMER_CTRL_23BIT |
@@ -29,7 +29,6 @@ int threading_init(void){
 int thread_register(void (* f)(void), size_t priority,size_t stack_space, uint32_t id){
     // make process controll block
     PCB_t pcb = {   .id = id, .state = READY, .priority = priority};
-    priority_print_list();
     // allocate stack pointer and space
     void* stack_pointer = malloc(stack_space);
     if (stack_pointer == NULL){
@@ -41,21 +40,17 @@ int thread_register(void (* f)(void), size_t priority,size_t stack_space, uint32
     uart_puts("\r\n");
     pcb.context_data.SP =(uint32_t) stack_pointer + stack_space;
     pcb.context_data.CPSR = (CPSR_MODE_USER | CPSR_FIQ_INHIBIT);
-    priority_print_list();
     uart_puts("stack pointer is: ");
     uart_put_uint32_t( pcb.context_data.SP, 16);
     uart_puts("\r\n");
     //  need to initialize the stack to the right size
     //  and put the link register in there
     pcb.context_data.SP = _init_thr_stack( pcb.context_data.SP, (uint32_t)f, CPSR_MODE_USER);
-    priority_print_list();
     uart_puts("initialized sp is: ");
     uart_put_uint32_t( pcb.context_data.SP, 16);
     uart_puts("\r\n");
     // push it
-    priority_print_list();
     pcb_insert(pcb);
-    priority_print_list();
     return 1;
 }
 

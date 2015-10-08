@@ -6,24 +6,11 @@
 #include "uart.h"
 #include "pcb.h"
 
-#define NUM_PCB 64
-
-static PCB_t pcb_array[NUM_PCB];
 
 static PCB_t *head = NULL;
 static PCB_t *tail = NULL;
 
 
-
-
-
-void pcb_put(PCB_t pcb, int index){
-    pcb_array[index] = pcb;
-}
-
-PCB_t *pcb_Get(int index){
-    return &pcb_array[index];
-}
 
 //Creates a new Node and returns pointer to it. 
 static PCB_t* pcb_new(PCB_t pcb) {
@@ -39,60 +26,30 @@ static PCB_t* pcb_new(PCB_t pcb) {
 }
 
 int pcb_insert(PCB_t pcb) {
-    uart_puts("sizeof pcb array: ");
-    uart_put_uint32_t(sizeof(pcb_array), 16);
-    uart_puts("\r\n");
-    
-    pcb_put(pcb, pcb.id);
-    uart_puts("pcb insert: ");
-    uart_put_uint32_t(pcb_array[pcb.id].id, 10);
-    uart_puts("    ");
-    uart_put_uint32_t(pcb_array[pcb.id].context_data.SP, 16);
-    uart_puts("\r\n");
-    return 1;
-    /*
 	PCB_t* newNode = pcb_new(pcb);
     if (newNode == NULL){   return -1;}
 	if (head == NULL){
-	    uart_puts("pcb insert into empty\r\n");
 		head = newNode;
 		tail = newNode;
 		pcb_print();
 		return 1;
 	}
-	uart_puts("pcb insert into existing list\r\n");
 	head->prev = newNode;
 	newNode->next = head;
 	head = newNode;
-	pcb_print();
+	//pcb_print();
     return 1;
-    */
 }
 
 PCB_t* pcb_get(uint32_t id){
-    PCB_t* pcb = pcb_Get(id);
-    uart_puts("pcb get: ");
-    uart_put_uint32_t(pcb->id, 10);
-    uart_puts("    ");
-    uart_put_uint32_t(pcb->context_data.SP, 16);
-    uart_puts("\r\n");
-    return pcb;
-    
-    /*
-    pcb_print();
+    //pcb_print();
     if (head == NULL) {return NULL;}
     PCB_t* ite = head;
     while( id != ite->id){
         if (ite->next == NULL){ return NULL;}
         ite = ite->next;
     }
-    uart_puts("pcb get: ");
-    uart_put_uint32_t(ite->id, 10);
-    uart_puts("     ");
-    uart_put_uint32_t(ite->context_data.SP, 16);
-    uart_puts("\r\n");
     return ite;
-    */
 }
 
 void pcb_print(void){

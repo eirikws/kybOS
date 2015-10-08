@@ -15,42 +15,17 @@ typedef struct priority_list{
     priority_node_t* tail;
 } priority_list_t;
 
-//priority_list_t priority_array[NUM_PRIORITIES];
-priority_list_t* priority_array;
+priority_list_t priority_array[NUM_PRIORITIES];
 
 int32_t static current_running = -1;
 
 void init_pri_array(void){
-    uart_puts("init pri array\r\n");
-    uart_puts("sizeof priority array: ");
-    uart_put_uint32_t(sizeof(priority_list_t)*NUM_PRIORITIES, 16);
-    uart_puts("\r\n");
     int i;
-    /*
-    for ( i=0; i<NUM_PRIORITIES; i++){
-      //  uart_put_uint32_t(i,10);
-       // uart_puts("\r\n");
-        priority_array[i].head = NULL;
-        priority_array[i].tail = NULL;
-    }
-    */
     
-    priority_array = malloc( sizeof( priority_list_t) * NUM_PRIORITIES);
-    if (priority_array == NULL){
-        uart_puts("priority_array NULL+\r\n");
-        return;
-    }
-    uart_puts("priority_array is at: ");
-    uart_put_uint32_t( (uint32_t)priority_array, 16);
-    uart_puts("\r\n");
     for ( i=0; i<NUM_PRIORITIES; i++){
-      //  uart_put_uint32_t(i,10);
-       // uart_puts("\r\n");
         priority_array[i].head = NULL;
         priority_array[i].tail = NULL;
     }
-    priority_print_list();
-    return;
 }
     
     
@@ -88,7 +63,7 @@ void priority_print(int pri){
 
 void priority_print_list(void){
     int i;
-    uart_puts("priority print list! :\r\n");
+    uart_puts("priority print list:\r\n");
     for(i=NUM_PRIORITIES-1; i>-1; i--){
         priority_print(i);
     }
@@ -96,9 +71,6 @@ void priority_print_list(void){
 }
 
 static int priority_pop(int priority){
-    //uart_puts("priority pop: ");
-    //uart_put_uint32_t(priority, 10);
-    //uart_puts("\r\n");
     //  check priority is within bounds
     if (priority < 0 || priority > NUM_PRIORITIES){ return -1;}
     //  if empty
@@ -110,9 +82,6 @@ static int priority_pop(int priority){
         priority_array[priority].tail = NULL;
         int retval = tmp->id;
         free(tmp);
-        uart_puts("priority pop: one item: ");
-        uart_put_uint32_t(retval, 10);
-        uart_puts("\r\n");
         return retval;
     // if more than one item
     } else {
@@ -121,9 +90,6 @@ static int priority_pop(int priority){
         priority_array[priority].head = tmp->next;
         int retval = tmp->id;
         free(tmp);
-        uart_puts("priority pop: more than one item: ");
-        uart_put_uint32_t(retval, 10);
-        uart_puts("\r\n");
         return retval;
     }
         
@@ -135,14 +101,9 @@ static int get_highest_priority(void){
     for (i = NUM_PRIORITIES-1; i>-1; i--){
         retval = priority_pop(i);
         if (retval > -1){
-            uart_puts("get highest pri returns with: ");
-            uart_put_uint32_t(retval, 10);
-            uart_puts("\r\n");
             return retval;
         }
     }
-    uart_puts("get highest pri failed\r\n");
-    
     return -1;
 }
 
@@ -154,14 +115,10 @@ static int priority_enqueue(priority_node_t* node, int priority){
     }
     //  if empty
     if (priority_array[priority].tail == NULL){
-        uart_puts("priority enqueue into empty list\r\n");
         priority_array[priority].head = node;
         priority_array[priority].tail = node;
         return 1;
     } else {
-        uart_puts("priority enqueue into existing list: ");
-        uart_put_uint32_t(priority, 10);
-        uart_puts("\r\n");
         priority_node_t* tmp = priority_array[priority].tail;
         tmp->next = node;
         node->prev = tmp;
@@ -178,7 +135,6 @@ int dispatch_enqueue(uint32_t id){
         uart_put_uint32_t(id, 10);
         uart_puts(" mypcb == NULL\r\n");
         return -1;
-    
     }
     return priority_enqueue( node, mypcb->priority );
 }
@@ -199,7 +155,7 @@ extern _load_basic(uint32_t lr);
 extern _push_stack_pointer(uint32_t sp);
 
 void dispatch(void){
-    priority_print_list();
+    //priority_print_list();
     PCB_t* pcb;
     int err = 0;
     
@@ -210,22 +166,11 @@ void dispatch(void){
             uart_puts("requing error\r\n");
         }
         save_stack_ptr(current_running);
-        uart_puts("saved sp: ");
-        uart_put_uint32_t(pcb_get(current_running)->context_data.SP, 16);
-        uart_puts("\r\n");
     }
     current_running = get_highest_priority();
     
-    uart_puts("current running: ");
-    uart_put_uint32_t(current_running, 10);
-    uart_puts("\r\n");
-    
     pcb = pcb_get(current_running);
-    uart_puts("loading sp: ");
-    uart_put_uint32_t(pcb->context_data.SP, 16);
-    uart_puts("\r\n");
     _push_stack_pointer(pcb->context_data.SP);
-    priority_print_list();
     return;
 }
 
