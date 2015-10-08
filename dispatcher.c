@@ -15,13 +15,12 @@ typedef struct priority_list{
     priority_node_t* tail;
 } priority_list_t;
 
-priority_list_t priority_array[NUM_PRIORITIES];
+static priority_list_t priority_array[NUM_PRIORITIES];
 
 int32_t static current_running = -1;
 
 void init_pri_array(void){
     int i;
-    
     for ( i=0; i<NUM_PRIORITIES; i++){
         priority_array[i].head = NULL;
         priority_array[i].tail = NULL;
