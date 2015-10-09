@@ -89,26 +89,25 @@ void __attribute__((interrupt("ABORT"))) data_abort_vector(void){
 /*
     IRQ handler
 */
-void  interrupt_vector_c(void){
+void interrupt_vector_c(void){
+    char c;
     static int lit = 0;
-    //char c;
-    //if (GetIrqController()->IRQ_basic_pending & ARM_TIMER_IRQ){
-        GetArmTimer()->IRQClear = 1;
-        if( lit )
-        {
-            GetGpio()->LED_GPSET = (1 << LED_GPIO_BIT);
-            lit = 0;
-        }
-        else
-        {
-            GetGpio()->LED_GPCLR = (1 << LED_GPIO_BIT);
-            lit = 1;
-        }
-        //uart_puts("interrupt\r\n");
-        dispatch();
-   // }
-    /*
+    if( lit ){
+        GetGpio()->LED_GPSET = (1 << LED_GPIO_BIT);
+        lit = 0;
+    } else {
+        GetGpio()->LED_GPCLR = (1 << LED_GPIO_BIT);
+        lit = 1;
+    }
+    
+
+    
     if (GetIrqController()->IRQ_pending_2 & UART_IRQ){
+    
+        GetUartController()->ICR = RECEIVE_CLEAR;
+        c = uart_getc();
+        uart_puts("interrupt\r\n");
+    /*
         // do uart stuff
         GetUartController()->ICR = RECEIVE_CLEAR;
         c = uart_getc();
@@ -116,9 +115,9 @@ void  interrupt_vector_c(void){
             uart_putc('\n');
             uart_putc(c);
         }else{   uart_putc(c);}
-        
-    }
     */
+    }
+    
     return;
 }
 
@@ -130,7 +129,7 @@ void __attribute__((interrupt("FIQ"))) fast_interrupt_vector(void){
 }
 
 
-void _ack_irq(void){
+void _ack_timer_irq(void){
     GetArmTimer()->IRQClear = 1;
     return;
 }

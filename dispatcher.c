@@ -26,9 +26,6 @@ void init_pri_array(void){
         priority_array[i].tail = NULL;
     }
 }
-    
-    
-    
 
 static priority_node_t* newNode(int32_t id){
     priority_node_t *newNode = malloc(sizeof(priority_node_t));
@@ -157,9 +154,7 @@ void dispatch(void){
     //priority_print_list();
     PCB_t* pcb;
     int err = 0;
-    
     if (current_running != -1){
-
         err = dispatch_enqueue(current_running);
         if (err == -1){
             uart_puts("requing error\r\n");
@@ -167,7 +162,6 @@ void dispatch(void){
         save_stack_ptr(current_running);
     }
     current_running = get_highest_priority();
-    
     pcb = pcb_get(current_running);
     _push_stack_pointer(pcb->context_data.SP);
     return;

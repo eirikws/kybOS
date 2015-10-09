@@ -95,8 +95,18 @@ _inf_loop:
     
     // save and restore all registers on the user stack of active thread
 
+
 interrupt_vector:
     sub lr, lr, #4
+    
+    push {r0-r12, lr}
+    bl GetIrqController
+    ldr r0, [r0, #0x0] // offset to IRQbasic pending
+    cmp r0, #1  // check if arm timer irq pending bit is set
+    bne _prep_interrupt_vector
+    bl _ack_timer_irq
+    pop {r0-r12, lr}
+    
     push {r0}
     mov r0, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r0
@@ -113,7 +123,7 @@ interrupt_vector:
     mov r0, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r0
     
-    bl interrupt_vector_c
+    bl dispatch
     
     mov r0, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r0
@@ -141,6 +151,15 @@ interrupt_vector:
     msr cpsr_c, r1
     push {r0}
     ldm sp!, {r0-r12, pc}^
+
+
+
+_prep_interrupt_vector:
+    //pop {r0-r12, lr}
+    //push {r0-r3, ip ,lr}
+    bl interrupt_vector_c
+    ldm sp!, {r0-r12, pc}^
+
 
     //  used in Cstubs code. SP is returned in r0.
 _get_stack_pointer:
