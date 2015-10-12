@@ -34,7 +34,9 @@ add_executable( kybOS
     threading.c
     threading.h
     dispatcher.c
-    dispatcher.h )
+    dispatcher.h
+    ipc.c
+    ipc.h )
 
 add_custom_command(
     TARGET kybOS POST_BUILD

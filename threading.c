@@ -39,7 +39,7 @@ int thread_register(void (* f)(void), size_t priority,size_t stack_space, uint32
     uart_put_uint32_t((uint32_t)f, 16);
     uart_puts("\r\n");
     pcb.context_data.SP =(uint32_t) stack_pointer + stack_space;
-    pcb.context_data.CPSR = (CPSR_MODE_USER | CPSR_FIQ_INHIBIT);
+    pcb.state = READY;
     uart_puts("stack pointer is: ");
     uart_put_uint32_t( pcb.context_data.SP, 16);
     uart_puts("\r\n");
@@ -60,6 +60,5 @@ int thread_start( uint32_t id, void* arg){
         uart_puts("pcb NULL\r\n");
         return -1;
     }
-    _pcb_set_arg(pcb,arg);
     dispatch_enqueue(id);
 }

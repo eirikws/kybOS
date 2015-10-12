@@ -126,13 +126,17 @@ static int priority_enqueue(priority_node_t* node, int priority){
 int dispatch_enqueue(uint32_t id){
     priority_node_t* node =  newNode(id);
     PCB_t* mypcb = pcb_get(id);
+    int retval;
     if (mypcb == NULL){ 
         uart_puts("dispatch enqueue ");
         uart_put_uint32_t(id, 10);
         uart_puts(" mypcb == NULL\r\n");
         return -1;
     }
-    return priority_enqueue( node, mypcb->priority );
+    if (mypcb->state == READY){
+        retval = priority_enqueue( node, mypcb->priority );
+    }
+    return retval;
 }
 
 

@@ -7,15 +7,11 @@
 .global _enable_interrupts
 .global _get_cpsr
 .global _set_cpu_mode
-.global _generate_swi
-.global _pcb_set_arg
-.global _save_prog_context_irq
-.global _load_program_context_irq
+.global _SYSTEM_CALL
 .global _init_thr_stack
-.global _load_basic
 .global _push_stack_pointer
 .global _get_user_sp
-.global _asm_reload
+.global _generate_dispatch
 
 //  STATUS/MODE REGISTER
 .equ    CPSR_MODE_USER,         0x10
@@ -103,8 +99,30 @@ interrupt_vector:
     bl GetIrqController
     ldr r0, [r0, #0x0] // offset to IRQbasic pending
     cmp r0, #1  // check if arm timer irq pending bit is set
-    bne _prep_interrupt_vector
+    bne _prep_interrupt_vector  // if not equal, go to ordinary interrupt
+    
+    // if it is a timer interrupt, determine which mode it came from, 
+    // and branch to appropriate handlers
     bl _ack_timer_irq
+    mrs r0, spsr
+    and r0, r0, #(CPSR_MODE_USER)
+    cmp r0, #(CPSR_MODE_USER)
+    beq dispatch_prepare_user
+    
+    //  have no code that goes here and is interruptable....but might be in the future!
+    mrs r0, spsr
+    and r0, r0, #(CPSR_MODE_SYSTEM)
+    cmp r0, #(CPSR_MODE_SYSTEM)
+    beq dispatch_prepare_user   // this should be identical to user ;)
+    
+    mrs r0, spsr
+    and r0, r0, #(CPSR_MODE_SVR)
+    cmp r0, #(CPSR_MODE_SVR)
+    beq dispatch_prepare_svr
+
+
+
+dispatch_prepare_user:
     pop {r0-r12, lr}
     
     push {r0}
@@ -153,6 +171,54 @@ interrupt_vector:
     ldm sp!, {r0-r12, pc}^
 
 
+dispatch_prepare_svr:
+    pop {r0-r12, lr}
+    
+    push {r0}
+    mov r0, #(CPSR_MODE_SVR | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r0
+    push {r1-r12}
+    mov r0, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r0
+    pop {r0}
+    mov r1, lr
+    mrs r2, spsr
+    mov r3, #(CPSR_MODE_SVR | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r3
+    push {r0}
+    push {r1,r2, lr}
+    mov r0, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r0
+    
+    bl dispatch
+    
+    mov r0, #(CPSR_MODE_SVR | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r0
+    
+    pop {r0}
+    mov sp, r0
+    
+    pop {r0-r2}// pc, spsr, lr
+    mov lr, r2
+    mov r3, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r3
+    push {r0}
+    msr spsr, r1
+    mov r4, #(CPSR_MODE_SVR | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r4
+    pop {r0-r12}
+    push {r0}
+    mov r0, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r0
+    push {r1-r12}
+    mov r0, #(CPSR_MODE_SVR | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r0
+    pop {r0}
+    mov r1, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r1
+    push {r0}
+    ldm sp!, {r0-r12, pc}^
+
 
 _prep_interrupt_vector:
     //pop {r0-r12, lr}
@@ -160,6 +226,23 @@ _prep_interrupt_vector:
     bl interrupt_vector_c
     ldm sp!, {r0-r12, pc}^
 
+    //  Called when a user thread wants to generate a dispatch
+    //  with a swi call. This branch is called in SVR mode
+_generate_dispatch:
+    pop	{r0, r1, r2, r3, r4, r5, r6, r7, ip, lr}
+    push {r0-r2}
+    mrs r0, spsr
+    mov r1, lr
+    mov r2, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r2
+    msr spsr, r0
+    mov lr, r1
+    mov r2, #(CPSR_MODE_SVR | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r2
+    pop {r0-r2}
+    mov r2, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r2
+    b dispatch_prepare_user
 
     //  used in Cstubs code. SP is returned in r0.
 _get_stack_pointer:
@@ -180,18 +263,12 @@ _get_user_sp:
     pop {r4}
     mov pc, lr
 
-_generate_swi:
+_SYSTEM_CALL:
     swi #0
     mov pc, lr
 
 _get_cpsr:
     mrs r0, cpsr
-    mov pc, lr
-
-    // r0 has pointer to pcb, r1 the arg
-    // #12 is the offset in PDB_t to r0
-_pcb_set_arg:
-    str r1, [r2, #12]
     mov pc, lr
 
     // this function goes to system mode and pushes a pointer to a new stack
@@ -210,11 +287,11 @@ _push_stack_pointer:
     msr cpsr_c, r0
     mov pc, lr
 
+
     // r0 carries sp, r1 location of code, r2 cpsr
 _init_thr_stack:
     mov r3, sp
     mov sp, r0
-    
     mov r0, #42
     push {r0}
     push {r0}
@@ -237,14 +314,6 @@ _init_thr_stack:
     mov r0, sp
     mov sp, r3
     mov pc, lr
-    
-    
-    //r0 with sp
-_asm_reload:
-    mov sp, r0
-    pop {r0}
-    msr cpsr, r0
-    ldm sp!, {r0-r12, lr,pc}
      
 _set_cpu_mode:
     //  store lr in r2, becuase lr is banked for different cpu modes    

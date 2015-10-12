@@ -17,6 +17,13 @@
 #define ACCESS_ERROR_0_IRQ    (1 << 7)
 #define UART_IRQ              (1 << 25)
 
+
+typedef enum{
+    IPC_SEND,
+    IPC_RECV,
+    DISPATCH,
+} system_call_t;
+
 /*
     The interrupt controller memory mapped register set
 */

@@ -205,3 +205,51 @@ int write( int file, char *ptr, int len )
 
     return len;
 }
+
+/*
+//    semaphore to protect the heap
+
+static OS_EVENT *heapsem;
+ 
+//    id of the task that is
+//    currently manipulating the heap 
+
+static int lockid;
+
+//    number of times
+//    __malloc_lock has recursed
+
+static int locks;
+
+void __malloc_lock ( struct _reent *_r ){
+    OS_TCB tcb;
+    OS_SEM_DATA semdata;
+    INT8U err;
+    int id;
+    // use our priority as a task id 
+    OSTaskQuery( OS_PRIO_SELF, &tcb );
+    id = tcb.OSTCBPrio;
+    // see if we own the heap already 
+    OSSemQuery( heapsem, &semdata );
+    if( semdata.OSEventGrp && id == lockid ) {
+        // we do; just count the recursion 
+        locks++;
+    }
+    else {
+        // wait on the other task to yield the
+        // heap, then claim ownership of it 
+        OSSemPend( heapsem, 0, &err );
+        lockid = id;
+        }
+    return;
+}
+
+void __malloc_unlock ( struct _reent *_r ){
+    // release the heap once the number of
+    //locks == the number of unlocks 
+    if( (--locks) == 0 ) {
+        lockid = -1;
+        OSSemPost( heapsem );
+    }
+}
+*/

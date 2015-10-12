@@ -5,10 +5,13 @@
 
 int ipc_send(int coid, const void* smsg, int sbytes);
 
-int ipc_receive(void rmesg, rbytes);
+int ipc_receive(void* rmesg, int rbytes);
 
 
-
+typedef struct{
+    int sender;
+    const void* payload;
+}ipc_msg_t;
 
 
 

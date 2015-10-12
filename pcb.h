@@ -9,7 +9,6 @@
 
 typedef struct Context_Data{
     uint32_t SP;
-    uint32_t CPSR;
 } context_data_t;
 
 typedef struct PCB{
@@ -19,7 +18,8 @@ typedef struct PCB{
     context_data_t context_data;
     struct PCB* next;
     struct PCB* prev;
-    uint32_t shared_data_ptr;
+    uint32_t waiting_data_from;
+    void* shared_data_ptr;
 } PCB_t;
 
 PCB_t* pcb_get(uint32_t id);

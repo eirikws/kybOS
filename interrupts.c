@@ -1,5 +1,7 @@
 
 #include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "armtimer.h"
 #include "base.h"
@@ -8,12 +10,10 @@
 #include "uart.h"
 #include "control.h"
 #include "dispatcher.h"
+#include "ipc.h"
+#include "pcb.h"
 #define INTERRUPT_CONTROLLER_BASE   ( PERIPHERAL_BASE + 0xB200 )
 
-
-typedef enum{
-    IPC_SEND,
-} swi_t;
 
 /*
     Put the interupt controller peripheral at it's base address
@@ -56,18 +56,57 @@ void __attribute__((interrupt("UNDEF"))) undefined_instruction_vector(void){
 void __attribute__((interrupt("SWI"))) 
             software_interrupt_vector(void* arg0, void* arg1, void* arg2, void* arg3){
     uart_puts("SWI handler! : ");
+    /*
     uart_putc((uint32_t)arg0);
     uart_puts("\r\n");
     get_cpu_mode();
     uart_puts("SWI handler ends! \r\n");
-    /*
-    if ( (swi_t)arg0 == IPC_SEND){
-        pcb_get( (uint32_t)arg3 )->shared_data_ptr = smsg;
-        pcb_get(get_current_running()->state = BLOCKED;
-        //  generate timer interrupt
+    */
+    uint32_t size;
+    switch( (system_call_t)arg0) {
+        case IPC_SEND:
+        uart_puts("SWI send\r\n");
+        //  setup for IPC:
+            // set shared data ptrs do the message
+            // wake up receiving thread
+            // block the sending thread            
+        void* msg = arg1;
+        size = (uint32_t)arg2;
+        uint32_t coid = (uint32_t)arg3;
+        
+        pcb_get(coid)->shared_data_ptr = msg;
+        pcb_get(get_current_running())->state = BLOCKED;
+        pcb_get(coid)->state = READY;
+        _generate_dispatch();
+        break;
+        /*
+        case DISPATCH:
+        uart_puts("DISPATCH!\r\n");
+        _generate_dispatch();
+        uart_puts("After swi dispatch. should never get here...\r\n");
+        break;
+        */
+        case IPC_RECV:
+        uart_puts("SWI recv\r\n");
+        ipc_msg_t* recv_msg = arg1;
+        size = (uint32_t)arg2;
+        int *success = (int*)arg3;
+        PCB_t* my_pcb = pcb_get( get_current_running() );
+        if (my_pcb->shared_data_ptr != NULL){
+            memcpy( (void*)recv_msg, my_pcb->shared_data_ptr, size);
+            my_pcb->shared_data_ptr=NULL;
+            pcb_get(recv_msg->sender)->state=READY;
+            *success = 1;
+        }
+        else{
+            my_pcb->state = BLOCKED;
+            *success = 0;
+            _generate_dispatch();
+        }
+        break;
         
     }
-    */
+    
     return;
 }
 
