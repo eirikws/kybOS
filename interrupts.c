@@ -70,11 +70,15 @@ void __attribute__((interrupt("SWI")))
             // set shared data ptrs do the message
             // wake up receiving thread
             // block the sending thread            
-        void* msg = arg1;
+        void* payload = arg1;
         size = (uint32_t)arg2;
         uint32_t coid = (uint32_t)arg3;
         
-        pcb_get(coid)->shared_data_ptr = msg;
+        ipc_msg_t* send_msg = malloc( sizeof(ipc_msg_t) + size );
+        send_msg->sender = get_current_running();
+        memcpy( send_msg->payload, payload, size);
+        
+        pcb_get(coid)->shared_data_ptr = send_msg;
         pcb_get(get_current_running())->state = BLOCKED;
         pcb_get(coid)->state = READY;
         _generate_dispatch();

@@ -10,7 +10,7 @@ int ipc_receive(void* rmesg, int rbytes);
 
 typedef struct{
     int sender;
-    const void* payload;
+    char payload[0];
 }ipc_msg_t;
 
 

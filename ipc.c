@@ -15,15 +15,12 @@ void extern _SYSTEM_CALL(system_call_t arg0, void* arg1, void* arg2, void* arg3)
     send msg rmsg to coid
 */
 int ipc_send(int coid, const void* smsg, int size){
-    // signal coid. use pcb
-    //memcpy(rmsg, recv_msg.payload, size);
-    ipc_msg_t sendmsg = {   .sender = get_current_running(),
-                            .payload = smsg};
-                       
-                    
-    _SYSTEM_CALL(IPC_SEND,(void*)&sendmsg, (void*)size, (void*)coid);
+    
+    
+    
+    _SYSTEM_CALL(IPC_SEND,(void*)&smsg, (void*)size, (void*)coid);
     // generate dispatch
-    //_SYSTEM_CALL(DISPATCH, (void*)0, (void*)0,(void*)0);
+
     return 1;
 }
 
