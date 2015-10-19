@@ -13,8 +13,9 @@ typedef struct{
     char payload[0];
 }ipc_msg_t;
 
-
-
+// used by system calls
+void system_send(void* payload, uint32_t size, uint32_t coid);
+void system_receive(ipc_msg_t *recv_msg, uint32_t size, int* success);
 
 
 #endif

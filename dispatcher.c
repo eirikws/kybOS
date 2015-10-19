@@ -155,6 +155,7 @@ extern _load_basic(uint32_t lr);
 extern _push_stack_pointer(uint32_t sp);
 
 uint32_t dispatch(void){
+    //priority_print_list();
     PCB_t* pcb;
     int err = 0;
     if (current_running != -1){

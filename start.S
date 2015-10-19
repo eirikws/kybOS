@@ -130,6 +130,12 @@ dispatch_prepare_user:
     mrs r0, spsr
     
     pop {r0-r3, lr}
+    /*
+    push {r0-r3, lr}
+    mov r0, lr
+    bl _print_reg
+    pop {r0-r3, lr}
+    */
     
     push {r0}
     mov r0, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
@@ -249,12 +255,20 @@ dispatch_return_svr:
 
 _prep_interrupt_vector:
     bl interrupt_vector_c
-    ldm sp!, {r0-r12, pc}^
+    ldm sp!, {r0-r3, pc}^
 
     //  Called when a user thread wants to generate a dispatch
     //  with a swi call. This branch is called in SVR mode
 _generate_dispatch:
-    pop	{r0, r1, r2, r3, r4, r5, r6, r7, ip, lr}
+    pop	{r0, r1, r2, r3, ip, lr}
+    
+    /*
+    push {r0-r3, lr}
+    mov r0, lr
+    bl _print_reg
+    pop {r0-r3, lr}
+    */
+    
     push {r0-r2}
     mrs r0, spsr
     mov r1, lr

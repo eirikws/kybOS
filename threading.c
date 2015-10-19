@@ -17,7 +17,8 @@ int threading_init(void){
 
     /* Setup the system timer interrupt */
     /* Timer frequency = Clk/256 * LOAD */
-    GetArmTimer()->Load = 0x600;
+    /* Clk = 3000000?, 7 000 000 in config.txt , baud rate = 115200*/
+    GetArmTimer()->Load = 0x400;
     /* Setup the ARM Timer */
     GetArmTimer()->Control =
             ARMTIMER_CTRL_23BIT |
