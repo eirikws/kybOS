@@ -48,7 +48,6 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     thread_start( 1, 0);
     thread_start( 2, 0);
     thread_start( 3, 0);
-    uart_puts("init threads\r\n");
     //pcb_print();
     threading_init();
     uart_puts("threads initiated\r\n");

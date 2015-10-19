@@ -95,7 +95,7 @@ _inf_loop:
 interrupt_vector:
     sub lr, lr, #4
     
-    push {r0-r12, lr}
+    push {r0-r3, lr}
     bl GetIrqController
     ldr r0, [r0, #0x0] // offset to IRQbasic pending
     cmp r0, #1  // check if arm timer irq pending bit is set
@@ -104,6 +104,11 @@ interrupt_vector:
     // if it is a timer interrupt, determine which mode it came from, 
     // and branch to appropriate handlers
     bl _ack_timer_irq
+    b dispatch_find_calling_mode
+        
+
+
+dispatch_find_calling_mode:
     mrs r0, spsr
     and r0, r0, #(CPSR_MODE_USER)
     cmp r0, #(CPSR_MODE_USER)
@@ -119,11 +124,12 @@ interrupt_vector:
     and r0, r0, #(CPSR_MODE_SVR)
     cmp r0, #(CPSR_MODE_SVR)
     beq dispatch_prepare_svr
-
-
+    
 
 dispatch_prepare_user:
-    pop {r0-r12, lr}
+    mrs r0, spsr
+    
+    pop {r0-r3, lr}
     
     push {r0}
     mov r0, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
@@ -132,29 +138,69 @@ dispatch_prepare_user:
     mov r0, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r0
     pop {r0}
-    mov r1, lr
-    mrs r2, spsr
+    mrs r1, spsr
+    mov r2, lr
     mov r3, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r3
     push {r0}
     push {r1,r2, lr}
     mov r0, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r0
+    b call_and_return_dispatch
+
+
+dispatch_prepare_svr:
+    pop {r0-r12, lr}
     
+    push {r0}
+    mov r0, #(CPSR_MODE_SVR | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r0
+    push {r1-r12}
+    mov r0, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r0
+    pop {r0}
+    mrs r1, spsr
+    mov r2, lr
+    mov r3, #(CPSR_MODE_SVR | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r3
+    push {r0}
+    push {r1,r2, lr}
+    mov r0, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r0
+    
+    b call_and_return_dispatch
+
+
+
+call_and_return_dispatch:
     bl dispatch
+    // dispatch returns with the new SP in r0
+    mov r4, r0
     
+    // figure out what mode we should build the return stack for
+    pop {r1} // this is spsr
+    push {r1}
+    and r0, r1, #CPSR_MODE_USER
+    cmp r0, #(CPSR_MODE_USER)
+    beq dispatch_return_user
+    
+    and r0, r1, #CPSR_MODE_SVR
+    cmp r0, #(CPSR_MODE_SVR)
+    beq dispatch_return_svr
+
+dispatch_return_user:
+    // build the return stack
     mov r0, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r0
     
-    pop {r0}
-    mov sp, r0
+    mov sp, r4
+    pop {r0-r2}// spsr, pc, lr
     
-    pop {r0-r2}// pc, spsr, lr
     mov lr, r2
     mov r3, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r3
-    push {r0}
-    msr spsr, r1
+    push {r1}
+    msr spsr, r0
     mov r4, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r4
     pop {r0-r12}
@@ -169,41 +215,22 @@ dispatch_prepare_user:
     msr cpsr_c, r1
     push {r0}
     ldm sp!, {r0-r12, pc}^
+    
+    
 
-
-dispatch_prepare_svr:
-    pop {r0-r12, lr}
-    
-    push {r0}
-    mov r0, #(CPSR_MODE_SVR | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
-    msr cpsr_c, r0
-    push {r1-r12}
-    mov r0, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
-    msr cpsr_c, r0
-    pop {r0}
-    mov r1, lr
-    mrs r2, spsr
-    mov r3, #(CPSR_MODE_SVR | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
-    msr cpsr_c, r3
-    push {r0}
-    push {r1,r2, lr}
-    mov r0, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
-    msr cpsr_c, r0
-    
-    bl dispatch
-    
+dispatch_return_svr:
+    // build the return stack
     mov r0, #(CPSR_MODE_SVR | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r0
     
-    pop {r0}
-    mov sp, r0
+    mov sp, r4
     
-    pop {r0-r2}// pc, spsr, lr
+    pop {r0-r2}// spsr, pc, lr
     mov lr, r2
     mov r3, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r3
-    push {r0}
-    msr spsr, r1
+    push {r1}
+    msr spsr, r0
     mov r4, #(CPSR_MODE_SVR | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r4
     pop {r0-r12}
@@ -218,11 +245,9 @@ dispatch_prepare_svr:
     msr cpsr_c, r1
     push {r0}
     ldm sp!, {r0-r12, pc}^
-
+    
 
 _prep_interrupt_vector:
-    //pop {r0-r12, lr}
-    //push {r0-r3, ip ,lr}
     bl interrupt_vector_c
     ldm sp!, {r0-r12, pc}^
 
@@ -237,11 +262,14 @@ _generate_dispatch:
     msr cpsr_c, r2
     msr spsr, r0
     mov lr, r1
+    push {r2}
     mov r2, #(CPSR_MODE_SVR | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r2
     pop {r0-r2}
     mov r2, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r2
+    pop {r2}
+    push {r0-r3, lr}
     b dispatch_prepare_user
 
     //  used in Cstubs code. SP is returned in r0.
@@ -273,11 +301,6 @@ _get_cpsr:
 
     // this function goes to system mode and pushes a pointer to a new stack
 _push_stack_pointer:
-    /*
-    push {r0, lr}
-    bl _print_reg
-    pop {r0,lr}
-    */
     //  enter system mode to access user registers
     mov r1, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r1
@@ -309,8 +332,8 @@ _init_thr_stack:
     mov r0, #42
     push {r0}
     push {r0} // lr contains nothing
-    push {r2} // cpsr
-    push {r1} // pc
+    push {r1} // cpsr
+    push {r2} // pc
     mov r0, sp
     mov sp, r3
     mov pc, lr

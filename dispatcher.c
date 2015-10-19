@@ -154,8 +154,8 @@ extern _load_program_context(PCB_t* pcb);
 extern _load_basic(uint32_t lr);
 extern _push_stack_pointer(uint32_t sp);
 
-void dispatch(void){
-    //priority_print_list();
+uint32_t dispatch(void){
+    priority_print_list();
     PCB_t* pcb;
     int err = 0;
     if (current_running != -1){
@@ -166,9 +166,13 @@ void dispatch(void){
         save_stack_ptr(current_running);
     }
     current_running = get_highest_priority();
+    
+    uart_puts("new current running is: ");
+    uart_put_uint32_t(current_running, 10);
+    uart_puts("\r\n");
     pcb = pcb_get(current_running);
-    _push_stack_pointer(pcb->context_data.SP);
-    return;
+    //_push_stack_pointer(pcb->context_data.SP);
+    return pcb->context_data.SP;
 }
 
 void _print_reg(uint32_t reg){
