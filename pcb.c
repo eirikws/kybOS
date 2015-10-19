@@ -32,18 +32,15 @@ int pcb_insert(PCB_t pcb) {
 	if (head == NULL){
 		head = newNode;
 		tail = newNode;
-		pcb_print();
 		return 1;
 	}
 	head->prev = newNode;
 	newNode->next = head;
 	head = newNode;
-	//pcb_print();
     return 1;
 }
 
 PCB_t* pcb_get(uint32_t id){
-    //pcb_print();
     if (head == NULL) {return NULL;}
     PCB_t* ite = head;
     while( id != ite->id){

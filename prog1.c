@@ -40,8 +40,6 @@ void prog2(void){
         uart_puts("     from  ");
         uart_put_uint32_t(from, 10);
         uart_puts("\r\n");
-        
-        
     }
 }
 

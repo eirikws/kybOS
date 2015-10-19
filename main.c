@@ -39,10 +39,8 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     uart_puts("registering threads\r\n");
     //  registering first threads!
     thread_register( prog2, 10,1000, 2);
-    priority_print_list();
     thread_register( prog1, 10,1000, 1);
     thread_register( prog3, 1,1000, 3);
-    priority_print_list();
     uart_puts("starting threads\r\n");
     //  starting them
     thread_start( 1, 0);

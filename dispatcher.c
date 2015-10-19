@@ -152,10 +152,9 @@ void save_stack_ptr( uint32_t id){
 extern _save_prog_context_irq(PCB_t* pcb);
 extern _load_program_context(PCB_t* pcb);
 extern _load_basic(uint32_t lr);
-extern _push_stack_pointer(uint32_t sp);
 
 uint32_t dispatch(void){
-    //priority_print_list();
+    priority_print_list();
     PCB_t* pcb;
     int err = 0;
     if (current_running != -1){

@@ -2,21 +2,23 @@
 #define PCB_H
 
 #include <stdint.h>
+#include "dispatcher.h"
 
-#define RUNNIN  1
+#define RUNNING  1
 #define READY   2
 #define BLOCKED 3
-/*
+
 typedef struct ipc_msg{
-    int from;
-    void* payload;
-}ipc_msg_t;
+    int sender;
+    struct ipc_msg* next;
+    struct ipc_msg* prev;
+    char payload[0];
+} ipc_msg_t;
 
 typedef struct Msg_queue{
-    head*
-    tail*
+    ipc_msg_t* head;
+    ipc_msg_t* tail;
 } msg_queue_t;
-*/
 
 typedef struct Context_Data{
     uint32_t SP;
@@ -31,7 +33,7 @@ typedef struct PCB{
     struct PCB* prev;
     uint32_t waiting_msg_from;
     void* shared_data_ptr;
- //   msg_queue_t;
+    msg_queue_t msg_queue[NUM_PRIORITIES];
 } PCB_t;
 
 PCB_t* pcb_get(uint32_t id);
