@@ -55,7 +55,7 @@ void __attribute__((interrupt("UNDEF"))) undefined_instruction_vector(void){
 */
 void __attribute__((interrupt("SWI"))) 
             software_interrupt_vector(void* arg0, void* arg1, void* arg2, void* arg3){
-    uart_puts("SWI handler! : ");
+    //uart_puts("SWI handler! : ");
     /*
     uart_putc((uint32_t)arg0);
     uart_puts("\r\n");
@@ -89,19 +89,17 @@ void __attribute__((interrupt("SWI")))
         size = (uint32_t)arg2;
         ipc_msg_t* recv_msg = arg1;
         int *success = (int*)arg3;
-        
         PCB_t* my_pcb = pcb_get( get_current_running() );
-        
         //while( *success == 0){
             if ( my_pcb->shared_data_ptr != NULL){
                 memcpy(      (void*)recv_msg,
                              my_pcb->shared_data_ptr,
                              sizeof(ipc_msg_t) + size);
-                my_pcb->shared_data_ptr=NULL;
+                free(my_pcb->shared_data_ptr);
+                my_pcb->shared_data_ptr = NULL;
                 pcb_get(recv_msg->sender)->state=READY;
                 dispatch_enqueue(recv_msg->sender);
                 *success = 1;
-                priority_print_list();
             }
             else{
                 my_pcb->state = BLOCKED;

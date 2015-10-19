@@ -26,7 +26,6 @@ int ipc_receive(void* rmsg, int size){
     int sender;
     ipc_msg_t* recv_msg = malloc( sizeof(ipc_msg_t) + size);
     while(success == 0){
-        uart_puts("ipc recv while\r\n");
         _SYSTEM_CALL(IPC_RECV, recv_msg, (void*)size, &success);
     }
     memcpy(rmsg, recv_msg->payload, size);

@@ -16,7 +16,7 @@ void prog1(void){
         ipc_send(2, (void*)&x, sizeof(x) );
         
         uart_puts("1: ");
-        uart_put_uint32_t(x++, 10);
+        uart_put_uint32_t(++x, 10);
         uart_puts("\r\n");
 
     }
