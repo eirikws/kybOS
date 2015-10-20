@@ -7,8 +7,6 @@
 #include "dispatcher.h"
 #include "pcb.h"
 
-
-
 static ipc_msg_t* ipc_new_node(void* payload, uint32_t size){
     ipc_msg_t *newNode = malloc(sizeof(ipc_msg_t) + size);
     if (newNode == NULL){
@@ -21,34 +19,7 @@ static ipc_msg_t* ipc_new_node(void* payload, uint32_t size){
     newNode->prev = NULL;
     return newNode;
 }
-/*
-void msg_print(int pri){
-    int i = 0;
-    priority_node_t* node = priority_array[pri].head;
-    if(node == NULL){   return;}
-    uart_puts("priority print ");
-    uart_put_uint32_t(pri, 10);
-    uart_puts(": ");
-    while(1){
-        uart_put_uint32_t(node->id, 10);
-        uart_puts(", ");
-        if (node->next == NULL || i++ >10){
-            uart_puts("\r\n");
-            return;
-        }
-        node = node->next;
-    }
-}
 
-void priority_print_list(void){
-    int i;
-    uart_puts("priority print list:\r\n");
-    for(i=NUM_PRIORITIES-1; i>-1; i--){
-        priority_print(i);
-    }
-    return;
-}
-*/
 static ipc_msg_t* msg_priority_pop(int priority){
     PCB_t* my_pcb = pcb_get( get_current_running() );
     //  check priority is within bounds
@@ -135,7 +106,6 @@ int ipc_receive(void* rmsg, int size){
     int sender;
     ipc_msg_t* recv_msg = malloc( sizeof(ipc_msg_t) + size);
     while(success == 0){
-        uart_puts("receive\r\n");
         _SYSTEM_CALL(IPC_RECV, recv_msg, (void*)size, &success);
         
         if (success == 0){
@@ -158,18 +128,18 @@ void system_send(void* payload, uint32_t size, uint32_t coid){
     if (pcb_get(coid)->state == BLOCKED){
         pcb_get(coid)->state = READY;
         dispatch_enqueue(coid);
-        uart_puts("system send blocked\r\n");
     }
     return;
 }
 
 void system_receive(ipc_msg_t *recv_msg, uint32_t size, int* success){
     PCB_t* my_pcb = pcb_get( get_current_running() );
-    if ( my_pcb->shared_data_ptr != NULL){
+    ipc_msg_t* popped_msg = ipc_dequeue();
+    if ( popped_msg != NULL){
         memcpy(      (void*)recv_msg,
-                     (void*)ipc_dequeue(),
+                     (void*)popped_msg,
                      sizeof(ipc_msg_t) + size);
-        free(my_pcb->shared_data_ptr);
+        free(popped_msg);
         pcb_get(recv_msg->sender)->state=READY;
         dispatch_enqueue(recv_msg->sender);
         *success = 1;

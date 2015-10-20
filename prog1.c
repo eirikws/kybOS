@@ -8,36 +8,27 @@
 
 
 void prog1(void){
-    volatile uint32_t x=0;
+    uint32_t x=0;
     while(1){
-        // do something
-        
-        uart_puts("1 sending x\r\n");
-        ipc_send(2, (void*)&x, sizeof(x) );
-        
-        uart_puts("1: ");
-        uart_put_uint32_t(++x, 10);
-        uart_puts("\r\n");
+        x++;
+        if (x%1000 == 0 ){
+            uart_puts("1 sending x:");
+            uart_put_uint32_t(x, 10);
+            uart_puts("\r\n");
+            ipc_send(2 , &x, sizeof(x));
+        }
 
     }
 }
 
 void prog2(void){
-    volatile uint32_t x=0;
-    volatile uint32_t y=0;
+    uint32_t x=0;
     int from;
     while(1){
-        // do something
-        
-        uart_puts("2: ");
-        uart_put_uint32_t(y++, 10);
-        uart_puts("\r\n");
-        
-        uart_puts("2 receiving x: \r\n");
-        from = ipc_receive((void*)&x,sizeof(x));
-        uart_puts("2 x is ");
+        from = ipc_receive(&x, sizeof(x));
+        uart_puts("2 received x=");
         uart_put_uint32_t(x, 10);
-        uart_puts("     from  ");
+        uart_puts(" from ");
         uart_put_uint32_t(from, 10);
         uart_puts("\r\n");
     }
@@ -46,7 +37,7 @@ void prog2(void){
 void prog3(void){
     volatile uint32_t x=0;
     while(1){
-        x++;
-        uart_puts("3 is runniiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiing\r\n");
+            x++;
+            uart_puts("3 is runniiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiing\r\n");
     }
 }
