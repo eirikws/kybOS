@@ -14,7 +14,7 @@ static uart_controller_t* UARTController =
 		(uart_controller_t*)UART_CONTROLLER_BASE;
 
 /* Loop <delay> times in a way that the compiler won't optimize away. */
-static void delay(int32_t count){
+void delay(int32_t count){
 	asm volatile("__delay_%=: subs %[count], %[count], #1; bne __delay_%=\n"
 		 : : [count]"r"(count) : "cc");
 }
@@ -98,7 +98,7 @@ void uart_puts(const char* str){
     uart_write((const unsigned char*)str, strlen(str));
     return;
 }
-
+/*
 void reverse(char str[], int length){
     int start = 0;
     int end = length -1;
@@ -133,9 +133,40 @@ char* uart_itoa(int num, char* str, int base){
     reverse(str, i);
     return str;
 }
+*/
+char* uart_itoa(int value, char* result, int base){
+    // check that the base if valid 
+    if ( base < 2 || base > 36 ) {
+        *result = '\0';
+	    return result;
+    }
+    
+    char* ptr = result, *ptr1 = result, tmp_char;
+    int tmp_value;
+ 
+    do {
+	    tmp_value = value;
+	    value /= base;
+	    *ptr++ = "zyxwvutsrqponmlkjihgfedcba9876543210123456789abcdefghijklmnopqrstuvwxyz"[35 + (tmp_value - value * base)];
+    } while ( value );
+ 
+    // Apply negative sign
+    if ( tmp_value < 0 ){
+	    *ptr++ = '-';
+    }
+    *ptr-- = '\0';
+ 
+    while ( ptr1 < ptr ) {
+	tmp_char = *ptr;
+	*ptr-- = *ptr1;
+	*ptr1++ = tmp_char;
+    }
+ 
+    return result;
+}
 
 void uart_put_uint32_t(uint32_t in, int base){
-    char c[5];
+    char c[35];
     if (base == 16){    uart_puts("0x");}
     else if (base == 2){    uart_puts("0b");}
     uart_puts(uart_itoa(in,c,base));

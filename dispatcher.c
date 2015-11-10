@@ -154,7 +154,7 @@ extern _load_program_context(PCB_t* pcb);
 extern _load_basic(uint32_t lr);
 
 uint32_t dispatch(void){
-    //priority_print_list();
+    uart_puts("i");
     PCB_t* pcb;
     int err = 0;
     if (current_running != -1){
