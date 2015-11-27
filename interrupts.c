@@ -83,6 +83,7 @@ void __attribute__((interrupt("SWI")))
     Pefetch abort interrupt handler
 */
 void __attribute__((interrupt("ABORT"))) prefetch_abort_vector(void){
+    uart_puts("prefetch abort\r\n");
 }
 
 
@@ -90,6 +91,7 @@ void __attribute__((interrupt("ABORT"))) prefetch_abort_vector(void){
     Data abort interrupt handler
 */
 void __attribute__((interrupt("ABORT"))) data_abort_vector(void){
+    uart_puts("data abort\r\n");
 }
 
 
@@ -132,7 +134,7 @@ void interrupt_vector_c(void){
     Fast irq handler
 */
 void __attribute__((interrupt("FIQ"))) fast_interrupt_vector(void){
-
+    uart_puts("FIQ\r\n");
 }
 
 

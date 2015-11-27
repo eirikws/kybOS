@@ -106,7 +106,9 @@ static int get_highest_priority(void){
 static int priority_enqueue(priority_node_t* node, int priority){
     //  check priority is within bounds
     if( priority < 0 || priority > NUM_PRIORITIES-1){ 
-        uart_puts("priority out of bounds\r\n");
+        uart_puts("priority out of bounds");
+        uart_put_uint32_t(priority, 10);
+        uart_puts("\r\n");
         return -1;
     }
     //  if empty
@@ -140,21 +142,18 @@ int dispatch_enqueue(uint32_t id){
 }
 
 
-extern uint32_t _get_user_sp(void);
 
-void save_stack_ptr( uint32_t id){
+void save_stack_ptr( uint32_t id, uint32_t stack_pointer){
     PCB_t* pcb = pcb_get(id);
-    pcb->context_data.SP = _get_user_sp();
+    pcb->context_data.SP = stack_pointer;
     return;
 }
 
 
-extern _save_prog_context_irq(PCB_t* pcb);
-extern _load_program_context(PCB_t* pcb);
-extern _load_basic(uint32_t lr);
-
-uint32_t dispatch(void){
-    uart_puts("i");
+uint32_t dispatch(uint32_t stack_pointer){
+    static int i;
+    uart_put_uint32_t(i++, 10);
+    uart_puts("\r\n");
     PCB_t* pcb;
     int err = 0;
     if (current_running != -1){
@@ -162,11 +161,18 @@ uint32_t dispatch(void){
         if (err == -1){
             uart_puts("requing error\r\n");
         }
-        save_stack_ptr(current_running);
+        save_stack_ptr(current_running, stack_pointer);
     }
     current_running = get_highest_priority();
     pcb = pcb_get(current_running);
-    //_push_stack_pointer(pcb->context_data.SP);
+    
+    uart_puts("switching to process: ");
+    uart_put_uint32_t(current_running, 10);
+    uart_puts("\r\n");
+    uart_puts("Loading stack pointer: ");
+    uart_put_uint32_t(pcb->context_data.SP, 16);
+    uart_puts("\r\n");
+    
     return pcb->context_data.SP;
 }
 

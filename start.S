@@ -15,6 +15,7 @@
 
 
 //  STATUS/MODE REGISTER
+.equ    CPSR_MODE_FILTER,       0x1F 
 .equ    CPSR_MODE_USER,         0x10
 .equ    CPSR_MODE_FIQ,          0x11
 .equ    CPSR_MODE_IRQ,          0x12
@@ -86,6 +87,11 @@ _reset_:
     sub r0, r0, #16*1024            // set some memory for tlb  
     mov sp, r0 
 
+    
+
+
+
+
     //  Setup the c runtime
     bl      _cstartup
 
@@ -102,37 +108,50 @@ interrupt_vector:
     push {r0-r3, lr}
     bl GetIrqController
     ldr r0, [r0, #0x0] // offset to IRQbasic pending
+    
+    push {r0-r3, lr}
+    bl _print_reg
+    pop {r0-r3, lr}
+    
     cmp r0, #1  // check if arm timer irq pending bit is set
     bne _prep_interrupt_vector  // if not equal, go to ordinary interrupt
     
     // if it is a timer interrupt, determine which mode it came from, 
     // and branch to appropriate handlers
+    push {r0-r3, lr}
+    bl GetIrqController
+    ldr r0, [r0, #0x0] // offset to IRQbasic pending
+    bl _print_reg
+    pop {r0-r3, lr}
     bl _ack_timer_irq
+    push {r0-r3, lr}
+    bl GetIrqController
+    ldr r0, [r0, #0x0] // offset to IRQbasic pending
+    bl _print_reg
+    pop {r0-r3, lr}
     b dispatch_find_calling_mode
         
 
 
 dispatch_find_calling_mode:
     mrs r0, spsr
-    and r0, r0, #(CPSR_MODE_USER)
+    and r0, r0, #(CPSR_MODE_FILTER)
     cmp r0, #(CPSR_MODE_USER)
     beq dispatch_prepare_user
     
     //  have no code that goes here and is interruptable....but might be in the future!
-    mrs r0, spsr
-    and r0, r0, #(CPSR_MODE_SYSTEM)
+   // mrs r0, spsr
+   // and r0, r0, #(CPSR_MODE_SYSTEM)
     cmp r0, #(CPSR_MODE_SYSTEM)
     beq dispatch_prepare_user   // this should be identical to user ;)
     
-    mrs r0, spsr
-    and r0, r0, #(CPSR_MODE_SVR)
+  //  mrs r0, spsr
+  //  and r0, r0, #(CPSR_MODE_SVR)
     cmp r0, #(CPSR_MODE_SVR)
     beq dispatch_prepare_svr
     
 
 dispatch_prepare_user:
-    mrs r0, spsr
-    
     pop {r0-r3, lr}
     /*
     push {r0-r3, lr}
@@ -154,13 +173,16 @@ dispatch_prepare_user:
     msr cpsr_c, r3
     push {r0}
     push {r1,r2, lr}
-    mov r0, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
-    msr cpsr_c, r0
+    
+    mov r0, sp // save SP so we can use it as parameter in dispatcher
+    
+    mov r1, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r1
     b call_and_return_dispatch
 
 
 dispatch_prepare_svr:
-    pop {r0-r12, lr}
+    pop {r0-r3, lr}
     
     push {r0}
     mov r0, #(CPSR_MODE_SVR | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
@@ -175,26 +197,135 @@ dispatch_prepare_svr:
     msr cpsr_c, r3
     push {r0}
     push {r1,r2, lr}
-    mov r0, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
-    msr cpsr_c, r0
     
+    mov r0, sp
+    
+    push {r0-r3, lr}
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    add r0, r0, #4
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    add r0, r0, #8
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    add r0, r0, #12
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    add r0, r0, #16
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    add r0, r0, #20
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    add r0, r0, #24
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    add r0, r0, #28
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    add r0, r0, #32
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    add r0, r0, #36
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    add r0, r0, #40
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    add r0, r0, #44
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    add r0, r0, #48
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    add r0, r0, #52
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    add r0, r0, #56
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    add r0, r0, #60
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    add r0, r0, #64
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    add r0, r0, #68
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    add r0, r0, #72
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    add r0, r0, #76
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    add r0, r0, #80
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    add r0, r0, #84
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    bl _print_reg
+    pop {r0-r3, lr}
+    
+    mov r0, sp  // save SP so we can use it as parameter in dispatcher
+    
+    mov r1, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r1
     b call_and_return_dispatch
 
-
-
+    // When this label is called, a thread has been saved and the SP is in r0
 call_and_return_dispatch:
+    // call dispatch with sp in r0
     bl dispatch
     // dispatch returns with the new SP in r0
     mov r4, r0
+    mov r3, sp
+    mov sp, r4
+    
+    // debug
+    mov r0, sp
+    push {r0-r3, lr}
+    bl _print_reg
+    pop {r0-r3, lr}
+    // end debug
+    
+    
+    pop {r1}
+    push {r1}
+    
+    mov sp, r4
+    mov sp, r3
     
     // figure out what mode we should build the return stack for
-    pop {r1} // this is spsr
-    push {r1}
-    and r0, r1, #CPSR_MODE_USER
+    and r0, r1, #CPSR_MODE_FILTER
     cmp r0, #(CPSR_MODE_USER)
     beq dispatch_return_user
     
-    and r0, r1, #CPSR_MODE_SVR
+    and r0, r1, #CPSR_MODE_FILTER
     cmp r0, #(CPSR_MODE_SVR)
     beq dispatch_return_svr
 
@@ -224,6 +355,121 @@ dispatch_return_user:
     mov r1, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r1
     push {r0}
+    /*
+    
+    mov r0, sp
+    
+    push {r0-r3, lr}
+    mov r0, sp
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    mov r0, sp
+    add r0, r0, #4
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    mov r0, sp
+    add r0, r0, #8
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    mov r0, sp
+    add r0, r0, #12
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    mov r0, sp
+    add r0, r0, #16
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    mov r0, sp
+    add r0, r0, #20
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    mov r0, sp
+    add r0, r0, #24
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    mov r0, sp
+    add r0, r0, #28
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    mov r0, sp
+    add r0, r0, #32
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    mov r0, sp
+    add r0, r0, #36
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    mov r0, sp
+    add r0, r0, #40
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    mov r0, sp
+    add r0, r0, #44
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    mov r0, sp
+    add r0, r0, #48
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    mov r0, sp
+    add r0, r0, #52
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    mov r0, sp
+    add r0, r0, #56
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    mov r0, sp
+    add r0, r0, #60
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    mov r0, sp
+    add r0, r0, #64
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    mov r0, sp
+    add r0, r0, #68
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    mov r0, sp
+    add r0, r0, #72
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    mov r0, sp
+    add r0, r0, #76
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    mov r0, sp
+    add r0, r0, #80
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    mov r0, sp
+    add r0, r0, #84
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    */
+    
     ldm sp!, {r0-r12, pc}^
     
     
@@ -234,8 +480,8 @@ dispatch_return_svr:
     msr cpsr_c, r0
     
     mov sp, r4
-    
     pop {r0-r2}// spsr, pc, lr
+    
     mov lr, r2
     mov r3, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r3
@@ -254,6 +500,119 @@ dispatch_return_svr:
     mov r1, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r1
     push {r0}
+    
+    push {r0-r3, lr}
+    mov r0, sp
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    mov r0, sp
+    add r0, r0, #4
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    mov r0, sp
+    add r0, r0, #8
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    mov r0, sp
+    add r0, r0, #12
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    mov r0, sp
+    add r0, r0, #16
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    mov r0, sp
+    add r0, r0, #20
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    mov r0, sp
+    add r0, r0, #24
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    mov r0, sp
+    add r0, r0, #28
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    mov r0, sp
+    add r0, r0, #32
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    mov r0, sp
+    add r0, r0, #36
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    mov r0, sp
+    add r0, r0, #40
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    mov r0, sp
+    add r0, r0, #44
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    mov r0, sp
+    add r0, r0, #48
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    mov r0, sp
+    add r0, r0, #52
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    mov r0, sp
+    add r0, r0, #56
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    mov r0, sp
+    add r0, r0, #60
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    mov r0, sp
+    add r0, r0, #64
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    mov r0, sp
+    add r0, r0, #68
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    mov r0, sp
+    add r0, r0, #72
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    mov r0, sp
+    add r0, r0, #76
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    mov r0, sp
+    add r0, r0, #80
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    push {r0-r3, lr}
+    mov r0, sp
+    add r0, r0, #84
+    bl _get_stack_top
+    pop {r0-r3, lr}
+    
+    
+    
     ldm sp!, {r0-r12, pc}^
     
 

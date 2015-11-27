@@ -18,7 +18,7 @@ int threading_init(void){
     /* Setup the system timer interrupt */
     /* Timer frequency = Clk/256 * LOAD */
     /* Clk = 3000000?, 7 000 000 in config.txt , baud rate = 115200*/
-    GetArmTimer()->Load = 0x2;
+    GetArmTimer()->Load = 0x400;
     /* Setup the ARM Timer */
     GetArmTimer()->Control =
             ARMTIMER_CTRL_23BIT |
@@ -46,7 +46,7 @@ int thread_register(void (* f)(void), size_t priority,size_t stack_space, uint32
     uart_puts("\r\n");
     //  need to initialize the stack to the right size
     //  and put the link register in there
-    pcb.context_data.SP = _init_thr_stack( pcb.context_data.SP, (uint32_t)f, CPSR_MODE_USER);
+    pcb.context_data.SP = _init_thr_stack( pcb.context_data.SP, (uint32_t)f, CPSR_MODE_SVR);
     uart_puts("initialized sp is: ");
     uart_put_uint32_t( pcb.context_data.SP, 16);
     uart_puts("\r\n");

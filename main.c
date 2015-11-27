@@ -31,7 +31,6 @@ void loop_forever_and_ever(void){
 
 /* Main function - we'll never return from here */
 void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
-    int i= 0;
     
     uart_init();
     
@@ -44,26 +43,18 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     uart_puts("     hexadecimal:");
     uart_put_uint32_t(0xFFFFFFFF, 16);
     uart_puts("\r\n");
-    int lit = 0;
-    while(1){
-        delay(500000);
-        if (i++ > 10){
-            jtag_enable();
-        }
-        
-        
-        if( lit ){
-            GetGpio()->LED_GPSET = (1 << LED_GPIO_BIT);
-            lit = 0;
-        } else {
-            GetGpio()->LED_GPCLR = (1 << LED_GPIO_BIT);
-            lit = 1;
-        }
-    }
+    
+    
+    
+    jtag_enable();
+    
+    delay(10000000);
+    
+    
     init_pri_array();
     uart_puts("starting mmu\r\n");
-    //loop_forever_and_ever();
-    //_mmu_test2();
+    mmu_init_table();
+    //mmu_init();
     uart_puts("mmu started\r\n");
     
     //  enable LED pin as an output 
@@ -71,7 +62,7 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     /* Enable interrupts! */
     _enable_interrupts();
 
-    _set_cpu_mode(CPSR_MODE_SYSTEM | CPSR_FIQ_INHIBIT);
+    //_set_cpu_mode(CPSR_MODE_USER | CPSR_FIQ_INHIBIT);
     uart_puts("registering threads\r\n");
     //  registering first threads!
     thread_register( prog2, 10,1000, 2);

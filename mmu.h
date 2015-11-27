@@ -3,14 +3,10 @@
 
 
 
-int mmu_init(void)
+void mmu_init(void);
+void mmu_init_table(void);
 
 
 
 
-
-
-
-
-
-#endif MMU_H
+#endif
