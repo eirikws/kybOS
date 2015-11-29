@@ -41,12 +41,7 @@ void __attribute__((interrupt("ABORT"))) reset_vector(void){
     Undefined interrupt handler
 */
 void __attribute__((interrupt("UNDEF"))) undefined_instruction_vector(void){
-    while( 1 )
-    {
-        uart_puts("Undefined mode1!!!\r\n");
-        uart_puts("Undefined mode2!!!\r\n");
-        uart_puts("Undefined mode3!!!\r\n");
-    }
+    uart_puts("undefined mode!\r\n");
 }
 
 
