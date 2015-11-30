@@ -124,6 +124,7 @@ interrupt_vector:
    
     
     cmp r0, #1  // check if arm timer irq pending bit is set
+    pop {r0-r3, lr}
     bne _prep_interrupt_vector  // if not equal, go to ordinary interrupt
     
     // if it is a timer interrupt, determine which mode it came from, 
@@ -135,17 +136,21 @@ interrupt_vector:
 
 
 dispatch_find_calling_mode:
+    push {r0}
     mrs r0, spsr
     and r0, r0, #(CPSR_MODE_FILTER)
     cmp r0, #(CPSR_MODE_USER)
+    popeq {r0}
     beq dispatch_prepare_user
     
     //  have no code that goes here and is interruptable....but might be in the future!
-
+    
     cmp r0, #(CPSR_MODE_SYSTEM)
+    popeq {r0}
     beq dispatch_prepare_user   // this should be identical to user ;)
     
     cmp r0, #(CPSR_MODE_SVR)
+    popeq {r0}
     beq dispatch_prepare_svr
     
 
@@ -164,9 +169,9 @@ dispatch_prepare_user:
     msr cpsr_c, r3
     push {r0}
     push {r1,r2, lr}
-    /*
-    mov r0, sp
     
+    
+    mov r0, sp
     push {r0-r3, lr}
     bl _get_stack_top
     pop {r0-r3, lr}
@@ -257,7 +262,7 @@ dispatch_prepare_user:
     push {r0-r3, lr}
     bl _print_reg
     pop {r0-r3, lr}
-    */
+    
     
     
     
@@ -284,9 +289,9 @@ dispatch_prepare_svr:
     msr cpsr_c, r3
     push {r0}
     push {r1,r2, lr}
-    /*
+
+
     mov r0, sp
-    
     push {r0-r3, lr}
     bl _get_stack_top
     pop {r0-r3, lr}
@@ -377,9 +382,9 @@ dispatch_prepare_svr:
     push {r0-r3, lr}
     bl _print_reg
     pop {r0-r3, lr}
-    */
+
+
     mov r0, sp  // save SP so we can use it as parameter in dispatcher
-    
     mov r1, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r1
     b call_and_return_dispatch
@@ -441,121 +446,102 @@ dispatch_return_user:
     msr cpsr_c, r1
     push {r0}
     
-    /*
-    mov r0, sp
     
-    push {r0-r3, lr}
     mov r0, sp
+    push {r0-r3, lr}
     bl _get_stack_top
     pop {r0-r3, lr}
     push {r0-r3, lr}
-    mov r0, sp
     add r0, r0, #4
     bl _get_stack_top
     pop {r0-r3, lr}
     push {r0-r3, lr}
-    mov r0, sp
     add r0, r0, #8
     bl _get_stack_top
     pop {r0-r3, lr}
     push {r0-r3, lr}
-    mov r0, sp
     add r0, r0, #12
     bl _get_stack_top
     pop {r0-r3, lr}
     push {r0-r3, lr}
-    mov r0, sp
     add r0, r0, #16
     bl _get_stack_top
     pop {r0-r3, lr}
     push {r0-r3, lr}
-    mov r0, sp
     add r0, r0, #20
     bl _get_stack_top
     pop {r0-r3, lr}
     push {r0-r3, lr}
-    mov r0, sp
     add r0, r0, #24
     bl _get_stack_top
     pop {r0-r3, lr}
     push {r0-r3, lr}
-    mov r0, sp
     add r0, r0, #28
     bl _get_stack_top
     pop {r0-r3, lr}
     push {r0-r3, lr}
-    mov r0, sp
     add r0, r0, #32
     bl _get_stack_top
     pop {r0-r3, lr}
     push {r0-r3, lr}
-    mov r0, sp
     add r0, r0, #36
     bl _get_stack_top
     pop {r0-r3, lr}
     push {r0-r3, lr}
-    mov r0, sp
     add r0, r0, #40
     bl _get_stack_top
     pop {r0-r3, lr}
     push {r0-r3, lr}
-    mov r0, sp
     add r0, r0, #44
     bl _get_stack_top
     pop {r0-r3, lr}
     push {r0-r3, lr}
-    mov r0, sp
     add r0, r0, #48
     bl _get_stack_top
     pop {r0-r3, lr}
     push {r0-r3, lr}
-    mov r0, sp
     add r0, r0, #52
     bl _get_stack_top
     pop {r0-r3, lr}
     push {r0-r3, lr}
-    mov r0, sp
     add r0, r0, #56
     bl _get_stack_top
     pop {r0-r3, lr}
     push {r0-r3, lr}
-    mov r0, sp
     add r0, r0, #60
     bl _get_stack_top
     pop {r0-r3, lr}
     push {r0-r3, lr}
-    mov r0, sp
     add r0, r0, #64
     bl _get_stack_top
     pop {r0-r3, lr}
     push {r0-r3, lr}
-    mov r0, sp
     add r0, r0, #68
     bl _get_stack_top
     pop {r0-r3, lr}
     push {r0-r3, lr}
-    mov r0, sp
     add r0, r0, #72
     bl _get_stack_top
     pop {r0-r3, lr}
     push {r0-r3, lr}
-    mov r0, sp
     add r0, r0, #76
     bl _get_stack_top
     pop {r0-r3, lr}
     push {r0-r3, lr}
-    mov r0, sp
     add r0, r0, #80
     bl _get_stack_top
     pop {r0-r3, lr}
     push {r0-r3, lr}
-    mov r0, sp
     add r0, r0, #84
     bl _get_stack_top
     pop {r0-r3, lr}
-    */
+    push {r0-r3, lr}
+    bl _print_reg
+    pop {r0-r3, lr}
+    
     
     ldm sp!, {r0-r12}
+    
     ldm sp!, {pc}^
     
 
@@ -585,118 +571,107 @@ dispatch_return_svr:
     mov r1, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r1
     push {r0}
-    /*
-    push {r0-r3, lr}
+    
+    
+    
     mov r0, sp
+    push {r0-r3, lr}
     bl _get_stack_top
     pop {r0-r3, lr}
     push {r0-r3, lr}
-    mov r0, sp
     add r0, r0, #4
     bl _get_stack_top
     pop {r0-r3, lr}
     push {r0-r3, lr}
-    mov r0, sp
     add r0, r0, #8
     bl _get_stack_top
     pop {r0-r3, lr}
     push {r0-r3, lr}
-    mov r0, sp
     add r0, r0, #12
     bl _get_stack_top
     pop {r0-r3, lr}
     push {r0-r3, lr}
-    mov r0, sp
     add r0, r0, #16
     bl _get_stack_top
     pop {r0-r3, lr}
     push {r0-r3, lr}
-    mov r0, sp
     add r0, r0, #20
     bl _get_stack_top
     pop {r0-r3, lr}
     push {r0-r3, lr}
-    mov r0, sp
     add r0, r0, #24
     bl _get_stack_top
     pop {r0-r3, lr}
     push {r0-r3, lr}
-    mov r0, sp
     add r0, r0, #28
     bl _get_stack_top
     pop {r0-r3, lr}
     push {r0-r3, lr}
-    mov r0, sp
     add r0, r0, #32
     bl _get_stack_top
     pop {r0-r3, lr}
     push {r0-r3, lr}
-    mov r0, sp
     add r0, r0, #36
     bl _get_stack_top
     pop {r0-r3, lr}
     push {r0-r3, lr}
-    mov r0, sp
     add r0, r0, #40
     bl _get_stack_top
     pop {r0-r3, lr}
     push {r0-r3, lr}
-    mov r0, sp
     add r0, r0, #44
     bl _get_stack_top
     pop {r0-r3, lr}
     push {r0-r3, lr}
-    mov r0, sp
     add r0, r0, #48
     bl _get_stack_top
     pop {r0-r3, lr}
     push {r0-r3, lr}
-    mov r0, sp
     add r0, r0, #52
     bl _get_stack_top
     pop {r0-r3, lr}
     push {r0-r3, lr}
-    mov r0, sp
     add r0, r0, #56
     bl _get_stack_top
     pop {r0-r3, lr}
     push {r0-r3, lr}
-    mov r0, sp
     add r0, r0, #60
     bl _get_stack_top
     pop {r0-r3, lr}
     push {r0-r3, lr}
-    mov r0, sp
     add r0, r0, #64
     bl _get_stack_top
     pop {r0-r3, lr}
     push {r0-r3, lr}
-    mov r0, sp
     add r0, r0, #68
     bl _get_stack_top
     pop {r0-r3, lr}
     push {r0-r3, lr}
-    mov r0, sp
     add r0, r0, #72
     bl _get_stack_top
     pop {r0-r3, lr}
     push {r0-r3, lr}
-    mov r0, sp
     add r0, r0, #76
     bl _get_stack_top
     pop {r0-r3, lr}
     push {r0-r3, lr}
-    mov r0, sp
     add r0, r0, #80
     bl _get_stack_top
     pop {r0-r3, lr}
     push {r0-r3, lr}
-    mov r0, sp
     add r0, r0, #84
     bl _get_stack_top
     pop {r0-r3, lr}
-    */
     
+    
+    push {r0-r3, lr}
+    bl _print_reg
+    pop {r0-r3, lr}
+    
+    push {lr}
+    mrs r0, spsr
+    bl _print_reg
+    pop {lr}
     
     ldm sp!, {r0-r12}
     
@@ -704,37 +679,49 @@ dispatch_return_svr:
     
 
 _prep_interrupt_vector:
+    push {r0-r3}
     bl interrupt_vector_c
     ldm sp!, {r0-r3, pc}^
 
+
     //  Called when a user thread wants to generate a dispatch
-    //  with a swi call. This branch is called in SVR mode
+    //  with a swi call. This branch is called in SVR mode.
+    //  mush move SPSR and LR to IRQ mode
 _generate_dispatch:
-    pop	{r0, r1, r2, r3, ip, lr}
-    
-    /*
-    push {r0-r3, lr}
-    mov r0, lr
-    bl _print_reg
-    pop {r0-r3, lr}
-    */
-    
-    push {r0-r2}
+    push {r0-r3}
     mrs r0, spsr
     mov r1, lr
     mov r2, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r2
     msr spsr, r0
     mov lr, r1
-    push {r2}
+    push {r3}
     mov r2, #(CPSR_MODE_SVR | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r2
     pop {r0-r2}
+    mov r3, r2
     mov r2, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r2
-    pop {r2}
+    mov r2, r3
+    pop {r3}
+    b dispatch_find_calling_mode
+
+    // r0, contains the value of SWI call. 
+software_interrupt_vector:
+    push {r0-r1, lr}
+    mov r1, r0
+    bl _get_dispatch_val
+    cmp r0, r1
+    popeq {r0-r1, lr}
+    beq _generate_dispatch
+    pop {r0-r1, lr}
     push {r0-r3, lr}
-    b dispatch_prepare_user
+    bl software_interrupt_vector_c
+    
+    mov r0, #0xff
+    bl _print_reg
+    ldm	sp!, {r0-r3, pc}^
+    
 
     //  used in Cstubs code. SP is returned in r0.
 _get_stack_pointer:
@@ -825,260 +812,5 @@ _enable_interrupts:
     mov     pc, lr
 
 
-/*
-    r0 is base. sets the translation table base.  
-*/
-.global _set_tt_base
-_set_tt_base:
-    mcr p15, 0, r0, c3, c0, 0       // c3 is Domaing acess control register
-    mov pc, lr 
 
-
-
-.global _mmu_start
-_mmu_start:
-    mov r2, #0
-    mcr p15, 0, r2, c7, c7, 0   // invalidate caches
-    mcr p15, 0, r2, c8, c7, 0   // invalidate tlb
-
-
-
-
-//MCR{cond} P15, <Opcode_1>, <Rd>, <CRn>, <CRm>, <Opcode_2>
-//MRC{cond} P15, <Opcode_1>, <Rd>, <CRn>, <CRm>, <Opcode_2>
-
-/*
-    1 .build translation table in memory. Translation table include
-        - virtual to physical translation
-        - cachable and bufferable flags
-        - domain number
-        - access permissions
-   
-    2. store the location of translation table in CP15 register c2
-    
-    3. enable caches and enable the MMU by writing to cp15 in register c1
-    
-*/
-
-.global _mmu_test2
-_mmu_test2:
-    // test
-    mov r0, #0b1000
-    mov r1, #0b10000000
-    orr r2, r0, r1, lsl #1
-    push {r0-r3, lr}
-    mov r0, r2
-    bl _print_reg
-    pop {r0-r3, lr}
-    
-    
-    push {r0-r3, lr}
-    mov r0, #(1 << 18)
-    bl _print_reg
-    pop {r0-r3, lr}
-
-    // build translation table
-    ldr r0, =TTB         // set translation table to 3ffc00
-    push {r0-r3, lr}
-    bl _print_reg
-    pop {r0-r3, lr}
-    ldr r1, =0xfff      // set loop counter for 4096
-    mov r2,     #0b110000000000 // full access
-    orr r2, r2, #0b000111100000 // domain number 15
-    orr r2, r2, #0b000000010000 // bit 4 to one
-    orr r2, r2, #0b000000000010 // set as 1 MB section
-    push {r0-r3, lr}
-    mov r0, r2
-    bl _print_reg
-    pop {r0-r3, lr}
-    // r2 is 1101 1111 0010
-loop:
-    orr r3, r2, r1, lsl #20     // build pattern into empty register
-    str r3, [r0, r1, lsl #2]     // use loop counter to create individual table base adresses
-    push {r0-r3, lr}
-    mov r0, r3
-    bl _print_reg
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    mov r0, r1, lsl #2
-    bl _print_reg
-    pop {r0-r3, lr}
-    subs r1, r1,#1              // decrement loop counter
-    bpl loop                    // loop until r1 goes negative
-    
-    // configure TTBCR
-    MRC p15, 0, r0, c2, c0, 2   // read
-    push {r0-r3, lr}
-    bl _print_reg
-    pop {r0-r3, lr}
-    and r0, r0, #0b000          // set TTBCR.N == 0, so that we use TTBR0 as ttb base
-    MCR p15, 0, r0, c2, c0, 2 // write back
-    
-    // set location of table
-    ldr r1, =TTB
-    mrc p15, 0, r0, c2, c0, 0   // read TTBR0
-    push {r0-r3, lr}
-    bl _print_reg
-    pop {r0-r3, lr}
-    
-    orr r0, r1                  // write location of TTB to TTBR0
-    mcr p15, 0, r0, c2, c0, 0   // write
-    
-    
-    push {r0-r3, lr}
-    bl _print_reg
-    pop {r0-r3, lr}
-    
-    
-    
-      
-    
-    //enable mmu
-    MRC p15,0,r0,c1,c0,0          // Read control register
-    ORR r0,r0,#0xC00000000        // Set asynchronous clocking mode bits
-    ORR r0,r0,#0x1000             // Set enable instruction cache bit
-    ORR r0,r0,#0x5                // Set enable data cache and MMU bits
-    push {r0-r3, lr}
-    bl _print_reg
-    pop {r0-r3, lr}
-    MCR p15,0,r0,c1,c0,0          // Write to control register
-    mov pc, lr
-    //bl loop_forever_and_ever
-
-
-
-
-
-.global _mmu_test
-_mmu_test:
-    // disable mmu
-    mrc p15, 0, r1, c1, c0, 0 //access c1, system control register
-    bic r1, r1, #0x1
-    mcr p15, 0, r1, c1, c0, 0
-    
-    // disable L1 caches
-    mrc p15, 0, r1, c1, c0, 0
-    bic r1, r1, #(0x1 << 12)
-    bic r1, r1, #(0x1 << 2)
-    mcr p15, 0, r1, c1, c0, 0
-    
-    // invalidate caches
-    // instruction
-    mov r1, #0
-    mcr p15, 0, r1, c7, c5, 0
-    // get cache size ID
-    mrc p15, 1, r0, c0, c0, 0
-    
-    push {r0-r3, lr}
-    bl _print_reg //0000 0000 0111 0000 0000 1111 1110 0000 0001 1010
-    pop {r0-r3, lr}
-   
-    ldr r3, =0x1ff
-    and r0, r3, r0, LSR #13 // r0 is num sets -1
-    
-    push {r0-r3, lr}
-    bl _print_reg //0000 0000 0111 0000 0000 1111 1110 0000 0001 1010
-    pop {r0-r3, lr}
-    
-    mov r1, #0
-way_loop:
-    mov r3, #0
-set_loop:
-    mov r2, r1, lsl #30
-    orr r2, r3, lsl #5           //r2 = set/way cache operation format.
-    mcr p15, 0, r2, c7, c6, 2   // invalidate the line described by r2
-    add r3, r3, #1              // increment counter
-    cmp r0, r3              // check if the last set is reached
-    bgt set_loop
-    add r1, r1, #1
-    cmp r1, #4
-    bne way_loop
-    
-    // invalidate tlb
-    mcr p15, 0, r1, c8, c7, 0
-    
-    // enable branch prediction
-    mov r1, #0
-    mrc p15, 0, r1, c1, c0, 0 // read control register
-    orr r1, r1, #(0x1 << 11)
-    mcr p15, 0,r1, c1, c0, 0
-    
-    push {r0-r3, lr}
-    bl _print_reg
-    pop {r0-r3, lr}
-    
-    
-    
-    
-    // enable L2 D-side prefetch
-    mrc p15, 0, r1, c1, c0, 1   // Read auxiliary control register
-    orr r1, r1, #(0x1 << 2)     // enable d side prefetc
-    mcr p15, 0, r1, c1, c0, 1   // write auxiliary control register
-    
-    
-    // DSB causes completion of all cache maintenance operations appearing in program
-    // order before the DSB instruction.
-    
-    DSB
-    
-    // An ISB instruction causes the effect of all branch predictor maintenance
-    // operations before the ISB instruction to be visible to all instructions
-    // after the ISB instruction.
-    
-    ISB
-    
-    //Initialize page table
-    
-    ldr  r0, =0b00000000000000000000110111100010
-    // r0 is the non-adress part of descriptor
-    ldr r1, =ttb_address
-    ldr r3, = 4095          // loop counter
-write_pte:
-    push {r0-r3, lr}
-    mov r0, r3
-    bl _print_reg
-    pop {r0-r3, lr}
-    orr r2, r0, r3, lsl #20     // or together address & default PTE bits
-    str r2, [r1, r3, lsl #20]   // write PTE to TTB
-    subs r3, r3, #1             // decrement loop counter
-    bne write_pte
-    
-    
-    bic r0, r0, #0b1100         // clear CB bits
-    orr r0, r0, #0b0100         // inner write-back, write allocate
-    bic r0, r0, #0b111000000000000  // clear tex bits
-    orr r0, r0, #0b101000000000000  // set tex as write-back, write allocate
-    orr r0, r0, #0b10000000000000000 // shareable.
-    str r0, [r1]
-    
-    //initialize mmu
-    mov r1, #0x0
-    mcr p15, 0, r1, c2, c0, 2   // write translation table base control register
-    ldr r1, =ttb_address 
-    mcr p15, 0, r1, c2, c0, 0   // write translation table base register 0
-    
-    ldr r1, = 0x55555555
-    mcr p15, 0, r1, c3, c0, 0   // write domain access control register
-    
-    
-    
-    push {r0-r3, lr}
-    ldr r0, =ttb_address
-    bl _print_reg
-    pop {r0-r3, lr}
-    
-    
-    
-    // enable mmu
-    mrc p15, 0, r1, c1, c0, 0   // read control register config data
-    orr r1, r1, #0x1            // set bit 0 that is mmu enable
-    mcr p15, 0, r1, c1, c0, 0   // write control register config data
-    
-    push {r0-r3, lr}
-    ldr r0, =ttb_address
-    bl _print_reg
-    pop {r0-r3, lr}
-    
-    mov pc, lr
-    
  

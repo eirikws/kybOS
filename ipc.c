@@ -10,7 +10,7 @@
 static ipc_msg_t* ipc_new_node(void* payload, uint32_t size){
     ipc_msg_t *newNode = malloc(sizeof(ipc_msg_t) + size);
     if (newNode == NULL){
-        uart_puts("Failed to allocate new priority_node!\r\n");
+        uart_puts("Failed to allocate new IPC priority_node!\r\n");
         return newNode;
     }
     memcpy( &(newNode->payload), payload, size);
@@ -60,7 +60,7 @@ static int ipc_msg_enqueue_priority(ipc_msg_t* node, uint32_t coid){
     int priority = pcb_get(get_current_running())->priority;
     //  check priority is within bounds
     if( priority < 0 || priority > NUM_PRIORITIES-1){ 
-        uart_puts("priority out of bounds\r\n");
+        uart_puts("IPC priority out of bounds\r\n");
         return -1;
     }
     //  if empty
@@ -104,17 +104,23 @@ int ipc_send(int coid, const void* smsg, int size){
 int ipc_receive(void* rmsg, int size){
     int success = 0;
     int sender;
+    uart_puts("entering ipc_receive\r\n");
     ipc_msg_t* recv_msg = malloc( sizeof(ipc_msg_t) + size);
     while(success == 0){
+        uart_puts("calling _SYSTEM_CALL IPC RECV\r\n");
         _SYSTEM_CALL(IPC_RECV, recv_msg, (void*)size, &success);
-        
+        uart_puts("after _SYSTEM_CALL IPC_RECV\r\n");
         if (success == 0){
+            uart_puts("calling _SYSTEM_CALL DISPATCH\r\n");
             _SYSTEM_CALL(DISPATCH,NULL,NULL,NULL);
+            uart_puts("after _SYSTEM_CALL DISPATCH\r\n");
         }
     }
+    uart_puts("calling memcpy\r\n");
     memcpy(rmsg, recv_msg->payload, size);
     sender = recv_msg->sender;
     free(recv_msg);
+    uart_puts("ipc_rcv end\r\n");
     return sender;
 }
 
@@ -135,6 +141,7 @@ void system_send(void* payload, uint32_t size, uint32_t coid){
 void system_receive(ipc_msg_t *recv_msg, uint32_t size, int* success){
     PCB_t* my_pcb = pcb_get( get_current_running() );
     ipc_msg_t* popped_msg = ipc_dequeue();
+    
     if ( popped_msg != NULL){
         memcpy(      (void*)recv_msg,
                      (void*)popped_msg,

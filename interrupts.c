@@ -48,9 +48,8 @@ void __attribute__((interrupt("UNDEF"))) undefined_instruction_vector(void){
 /*
     Software interrupt handler. This switches to supervisor mode
 */
-void __attribute__((interrupt("SWI"))) 
-            software_interrupt_vector(void* arg0, void* arg1, void* arg2, void* arg3){
-    //uart_puts("SWI handler! : ");
+void software_interrupt_vector_c(void* arg0, void* arg1, void* arg2, void* arg3){
+    uart_puts("SWI handler!\r\n");
     /*
     uart_putc((uint32_t)arg0);
     uart_puts("\r\n");
@@ -65,11 +64,8 @@ void __attribute__((interrupt("SWI")))
         case IPC_RECV:
         system_receive(arg1, (uint32_t)arg2, (int*)arg3);
         break;
-        case DISPATCH:
-        _generate_dispatch();
-        break;
     }
-    
+    uart_puts("returning from swi\r\n");
     return;
 }
 
@@ -136,4 +132,8 @@ void __attribute__((interrupt("FIQ"))) fast_interrupt_vector(void){
 void _ack_timer_irq(void){
     GetArmTimer()->IRQClear = 1;
     return;
+}
+
+int _get_dispatch_val(void){
+    return DISPATCH;
 }
