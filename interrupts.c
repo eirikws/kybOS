@@ -58,10 +58,12 @@ void software_interrupt_vector_c(void* arg0, void* arg1, void* arg2, void* arg3)
     */
     uint32_t size;
     switch( (system_call_t)arg0) {
-        case IPC_SEND:          
+        case IPC_SEND:    
+        uart_puts("swi ipc send\r\n");      
         system_send(arg1, (uint32_t)arg2, (uint32_t)arg3);
         break;
         case IPC_RECV:
+        uart_puts("swi ipc recv\r\n");  
         system_receive(arg1, (uint32_t)arg2, (int*)arg3);
         break;
     }

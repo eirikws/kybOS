@@ -95,32 +95,30 @@ void extern _SYSTEM_CALL(system_call_t arg0, void* arg1, void* arg2, void* arg3)
     send msg rmsg to coid
 */
 int ipc_send(int coid, const void* smsg, int size){
+    uart_puts("ipc_send start\r\n");
     _SYSTEM_CALL(IPC_SEND,(void*)smsg, (void*)size, (void*)coid);
     // generate dispatch
+    uart_puts("ipc send calling dispatch\r\n");
     _SYSTEM_CALL(DISPATCH, NULL, NULL, NULL);
+    uart_puts("ipc send dispatch return\r\n");
     return 1;
 }
 
 int ipc_receive(void* rmsg, int size){
     int success = 0;
     int sender;
-    uart_puts("entering ipc_receive\r\n");
     ipc_msg_t* recv_msg = malloc( sizeof(ipc_msg_t) + size);
     while(success == 0){
-        uart_puts("calling _SYSTEM_CALL IPC RECV\r\n");
         _SYSTEM_CALL(IPC_RECV, recv_msg, (void*)size, &success);
-        uart_puts("after _SYSTEM_CALL IPC_RECV\r\n");
         if (success == 0){
-            uart_puts("calling _SYSTEM_CALL DISPATCH\r\n");
+            uart_puts("ipc receive calling dispatch\r\n");
             _SYSTEM_CALL(DISPATCH,NULL,NULL,NULL);
-            uart_puts("after _SYSTEM_CALL DISPATCH\r\n");
+            uart_puts("ipc receive dispatch return\r\n");
         }
     }
-    uart_puts("calling memcpy\r\n");
     memcpy(rmsg, recv_msg->payload, size);
     sender = recv_msg->sender;
     free(recv_msg);
-    uart_puts("ipc_rcv end\r\n");
     return sender;
 }
 

@@ -28,6 +28,7 @@
 .equ    CPSR_THUMB,             0x20
 .equ    ttb_address,            (64*1024*1024-16*1024)
 .equ    TTB,                    (64*1024*1024-16*1024)
+.equ    STACK_SVR,              (64 * 1024 * 1024)
 /*
         Put the vector table in the ram at 0x8000.
         At startup the PC will start at 0x8000, which is the first
@@ -93,12 +94,7 @@ _reset_:
     msr cpsr_c, r0
 
     //  set the stack pointer at some point in RAM. this is the top(0x80000)!
-    mov r0, #(64 * 1024 * 1024)     // top of memory
-    sub r0, r0, #16*1024            // set some memory for tlb  
-    mov sp, r0 
-
-    
-
+    mov sp, #(STACK_SVR)     // top of memory
 
 
 
@@ -711,10 +707,12 @@ software_interrupt_vector:
     push {r0-r1, lr}
     mov r1, r0
     bl _get_dispatch_val
-    cmp r0, r1
+    cmp r0, r1                          // check if the call is for a dispatch
     popeq {r0-r1, lr}
     beq _generate_dispatch
     pop {r0-r1, lr}
+    
+    
     push {r0-r3, lr}
     bl software_interrupt_vector_c
     
@@ -743,7 +741,9 @@ _get_user_sp:
     mov pc, lr
 
 _SYSTEM_CALL:
+    push {r0-r3, lr}
     swi #0
+    pop {r0-r3, lr}
     mov pc, lr
 
 _get_cpsr:
