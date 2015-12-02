@@ -110,17 +110,14 @@ _inf_loop:
 
 interrupt_vector:
     sub lr, lr, #4
-    
     push {r0-r3, lr}
-    mov r0, lr
-    bl _print_reg
     
     bl GetIrqController
     ldr r0, [r0, #0x0] // offset to IRQbasic pending
    
     
     cmp r0, #1  // check if arm timer irq pending bit is set
-    pop {r0-r3, lr}
+    popne {r0-r3, lr}
     bne _prep_interrupt_vector  // if not equal, go to ordinary interrupt
     
     // if it is a timer interrupt, determine which mode it came from, 
@@ -128,7 +125,6 @@ interrupt_vector:
     bl _ack_timer_irq
     pop {r0-r3, lr}
     b dispatch_find_calling_mode
-        
 
 
 dispatch_find_calling_mode:
@@ -166,7 +162,7 @@ dispatch_prepare_user:
     push {r0}
     push {r1,r2, lr}
     
-    
+    /*
     mov r0, sp
     push {r0-r3, lr}
     bl _get_stack_top
@@ -258,7 +254,7 @@ dispatch_prepare_user:
     push {r0-r3, lr}
     bl _print_reg
     pop {r0-r3, lr}
-    
+    */
     
     
     
@@ -281,12 +277,13 @@ dispatch_prepare_svr:
     pop {r0}
     mrs r1, spsr
     mov r2, lr
+    
     mov r3, #(CPSR_MODE_SVR | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r3
     push {r0}
     push {r1,r2, lr}
 
-
+/*
     mov r0, sp
     push {r0-r3, lr}
     bl _get_stack_top
@@ -378,8 +375,7 @@ dispatch_prepare_svr:
     push {r0-r3, lr}
     bl _print_reg
     pop {r0-r3, lr}
-
-
+*/
     mov r0, sp  // save SP so we can use it as parameter in dispatcher
     mov r1, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r1
@@ -388,18 +384,12 @@ dispatch_prepare_svr:
     // When this label is called, a thread has been saved and the SP is in r0
 call_and_return_dispatch:
     // call dispatch with sp in r0
+    
     bl dispatch
     // dispatch returns with the new SP in r0
     mov r4, r0
     mov r3, sp
     mov sp, r4   // move process stack pointer into SP
-    
-    // debug
-    mov r0, sp
-    push {r0-r3, lr}
-    bl _print_reg
-    pop {r0-r3, lr}
-    // end debug
     
     pop {r1}    // pop cpsr
     push {r1}   // dont change size of stack
@@ -442,7 +432,7 @@ dispatch_return_user:
     msr cpsr_c, r1
     push {r0}
     
-    
+    /*
     mov r0, sp
     push {r0-r3, lr}
     bl _get_stack_top
@@ -534,7 +524,7 @@ dispatch_return_user:
     push {r0-r3, lr}
     bl _print_reg
     pop {r0-r3, lr}
-    
+    */
     
     ldm sp!, {r0-r12}
     
@@ -569,7 +559,7 @@ dispatch_return_svr:
     push {r0}
     
     
-    
+    /*
     mov r0, sp
     push {r0-r3, lr}
     bl _get_stack_top
@@ -659,15 +649,7 @@ dispatch_return_svr:
     bl _get_stack_top
     pop {r0-r3, lr}
     
-    
-    push {r0-r3, lr}
-    bl _print_reg
-    pop {r0-r3, lr}
-    
-    push {lr}
-    mrs r0, spsr
-    bl _print_reg
-    pop {lr}
+    */
     
     ldm sp!, {r0-r12}
     
@@ -715,9 +697,6 @@ software_interrupt_vector:
     
     push {r0-r3, lr}
     bl software_interrupt_vector_c
-    
-    mov r0, #0xff
-    bl _print_reg
     ldm	sp!, {r0-r3, pc}^
     
 

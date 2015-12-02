@@ -95,12 +95,12 @@ void extern _SYSTEM_CALL(system_call_t arg0, void* arg1, void* arg2, void* arg3)
     send msg rmsg to coid
 */
 int ipc_send(int coid, const void* smsg, int size){
-    uart_puts("ipc_send start\r\n");
+    //uart_puts("ipc_send start\r\n");
     _SYSTEM_CALL(IPC_SEND,(void*)smsg, (void*)size, (void*)coid);
     // generate dispatch
-    uart_puts("ipc send calling dispatch\r\n");
+    //uart_puts("ipc send calling dispatch\r\n");
     _SYSTEM_CALL(DISPATCH, NULL, NULL, NULL);
-    uart_puts("ipc send dispatch return\r\n");
+    //uart_puts("ipc send dispatch return\r\n");
     return 1;
 }
 
@@ -111,9 +111,9 @@ int ipc_receive(void* rmsg, int size){
     while(success == 0){
         _SYSTEM_CALL(IPC_RECV, recv_msg, (void*)size, &success);
         if (success == 0){
-            uart_puts("ipc receive calling dispatch\r\n");
+            //uart_puts("ipc receive calling dispatch\r\n");
             _SYSTEM_CALL(DISPATCH,NULL,NULL,NULL);
-            uart_puts("ipc receive dispatch return\r\n");
+            //uart_puts("ipc receive dispatch return\r\n");
         }
     }
     memcpy(rmsg, recv_msg->payload, size);

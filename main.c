@@ -54,7 +54,7 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     init_pri_array();
     uart_puts("starting mmu\r\n");
     mmu_init_table();
-    //mmu_init();
+    mmu_init();
     uart_puts("mmu started\r\n");
     
     //  enable LED pin as an output 

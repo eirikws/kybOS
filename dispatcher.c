@@ -151,9 +151,6 @@ void save_stack_ptr( uint32_t id, uint32_t stack_pointer){
 
 
 uint32_t dispatch(uint32_t stack_pointer){
-    static int i;
-    uart_put_uint32_t(i++, 10);
-    uart_puts("\r\n");
     PCB_t* pcb;
     int err = 0;
     if (current_running != -1){
@@ -165,14 +162,14 @@ uint32_t dispatch(uint32_t stack_pointer){
     }
     current_running = get_highest_priority();
     pcb = pcb_get(current_running);
-    
+    /*
     uart_puts("switching to process: ");
     uart_put_uint32_t(current_running, 10);
     uart_puts("\r\n");
     uart_puts("Loading stack pointer: ");
     uart_put_uint32_t(pcb->context_data.SP, 16);
     uart_puts("\r\n");
-    
+    */
     return pcb->context_data.SP;
 }
 
