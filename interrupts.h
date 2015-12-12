@@ -22,6 +22,7 @@ typedef enum{
     IPC_SEND,
     IPC_RECV,
     DISPATCH,
+    DUMMY,
 } system_call_t;
 
 

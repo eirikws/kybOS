@@ -66,6 +66,9 @@ void software_interrupt_vector_c(void* arg0, void* arg1, void* arg2, void* arg3)
         //uart_puts("swi ipc recv\r\n");  
         system_receive(arg1, (uint32_t)arg2, (int*)arg3);
         break;
+        case DUMMY:
+        uart_puts("handling Dummy\r\n");
+        break;
     }
     return;
 }

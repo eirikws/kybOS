@@ -12,12 +12,8 @@
 #include "prog1.h"
 #include "dispatcher.h"
 
-
-extern void _generate_swi(void* arg);
 extern void _enable_interrupts();
-extern void _mmu_test(void);
-extern uint32_t _get_user_sp();
-extern uint32_t _get_stack_pointer();
+void extern _SYSTEM_CALL(system_call_t arg0, void* arg1, void* arg2, void* arg3);
 
 void loop_forever_and_ever(void){
     int volatile i = 0;
@@ -33,7 +29,7 @@ void loop_forever_and_ever(void){
 void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     
     uart_init();
-    
+    _enable_interrupts();
     uart_puts("kernel start!\r\n");
     uart_puts("itoa test: ");
     uart_puts("     binary:");
@@ -57,10 +53,13 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     mmu_init();
     uart_puts("mmu started\r\n");
     
+    _SYSTEM_CALL(DUMMY,0,0,0);
+    
     //  enable LED pin as an output 
     GetGpio()->LED_GPFSEL |= LED_GPFBIT;
     /* Enable interrupts! */
-    _enable_interrupts();
+    
+    
 
     //_set_cpu_mode(CPSR_MODE_USER | CPSR_FIQ_INHIBIT);
     uart_puts("registering threads\r\n");
