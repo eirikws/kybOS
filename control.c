@@ -1,11 +1,9 @@
 
 #include <stdint.h>
 #include "control.h"
-#include "dispatcher.h"
-#include "pcb.h"
 #include "uart.h"
 
-char get_cpu_mode(void){
+char cpu_mode_print(void){
     int32_t cpsr = _get_cpsr();
     int32_t mode = cpsr & 0b11111;
     switch(mode){

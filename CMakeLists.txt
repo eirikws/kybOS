@@ -33,8 +33,8 @@ add_executable( kybOS
     pcb.h
     threading.c
     threading.h
-    dispatcher.c
-    dispatcher.h
+    scheduler.c
+    scheduler.h
     ipc.c
     ipc.h
     jtag.c

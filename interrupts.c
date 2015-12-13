@@ -9,7 +9,7 @@
 #include "interrupts.h"
 #include "uart.h"
 #include "control.h"
-#include "dispatcher.h"
+#include "scheduler.h"
 #include "ipc.h"
 #include "pcb.h"
 #define INTERRUPT_CONTROLLER_BASE   ( PERIPHERAL_BASE + 0xB200 )
@@ -49,25 +49,16 @@ void __attribute__((interrupt("UNDEF"))) undefined_instruction_vector(void){
     Software interrupt handler. This switches to supervisor mode
 */
 void software_interrupt_vector_c(void* arg0, void* arg1, void* arg2, void* arg3){
-    //uart_puts("SWI handler!\r\n");
-    /*
-    uart_putc((uint32_t)arg0);
-    uart_puts("\r\n");
-    get_cpu_mode();
-    uart_puts("SWI handler ends! \r\n");
-    */
     uint32_t size;
     switch( (system_call_t)arg0) {
-        case IPC_SEND:    
-        //uart_puts("swi ipc send\r\n");      
-        system_send(arg1, (uint32_t)arg2, (uint32_t)arg3);
+        case IPC_SEND: 
+        system_send(arg1, (uint32_t)arg2, *(process_id_t*)arg3);
         break;
         case IPC_RECV:
-        //uart_puts("swi ipc recv\r\n");  
         system_receive(arg1, (uint32_t)arg2, (int*)arg3);
         break;
         case DUMMY:
-        uart_puts("handling Dummy\r\n");
+        uart_puts("DUMMY CALL!!!\r\n");
         break;
     }
     return;
@@ -126,18 +117,25 @@ void interrupt_vector_c(void){
 }
 
 /*
+    called everytime there is a timer interrupt, and
+    when there is a yield system call
+*/
+uint32_t timer_handler_c(uint32_t stack_pointer) {
+    // we want to call the scheduler, which will return
+    // with the correct stack pointer of the process we switch to
+    // save current stack pointer in PCB
+    save_stack_ptr(get_current_running(), stack_pointer);
+    process_id_t new_process = schedule();
+    return pcb_get(new_process)->context_data.SP;
+}
+
+/*
     Fast irq handler
 */
 void __attribute__((interrupt("FIQ"))) fast_interrupt_vector(void){
     uart_puts("FIQ\r\n");
 }
 
-
-void _ack_timer_irq(void){
-    GetArmTimer()->IRQClear = 1;
-    return;
-}
-
-int _get_dispatch_val(void){
-    return DISPATCH;
+int _get_yield_val(void){
+    return YIELD;
 }

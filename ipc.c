@@ -4,7 +4,7 @@
 #include <string.h>
 #include "interrupts.h"
 #include "ipc.h"
-#include "dispatcher.h"
+#include "scheduler.h"
 #include "pcb.h"
 
 static ipc_msg_t* ipc_new_node(void* payload, uint32_t size){
@@ -28,6 +28,7 @@ static ipc_msg_t* msg_priority_pop(int priority){
     
     else if ( my_pcb->msg_queue[priority].head == NULL){ return NULL;}
     // if one item
+    
     else if ( my_pcb->msg_queue[priority].head == my_pcb->msg_queue[priority].tail){
         ipc_msg_t* tmp = my_pcb->msg_queue[priority].head;
         my_pcb->msg_queue[priority].head = NULL;
@@ -55,7 +56,7 @@ static ipc_msg_t* ipc_dequeue(void){
     return NULL;
 }
 
-static int ipc_msg_enqueue_priority(ipc_msg_t* node, uint32_t coid){
+static int ipc_msg_enqueue_priority(ipc_msg_t* node, process_id_t coid){
     PCB_t* coid_pcb = pcb_get(coid);
     int priority = pcb_get(get_current_running())->priority;
     //  check priority is within bounds
@@ -77,9 +78,8 @@ static int ipc_msg_enqueue_priority(ipc_msg_t* node, uint32_t coid){
     }
 }
 
-int ipc_msg_enqueue(void* payload, uint32_t size,uint32_t coid){
+int ipc_msg_enqueue(void* payload, uint32_t size, process_id_t coid){
     ipc_msg_t* node =  ipc_new_node(payload, size);
-    
     if (pcb_get(coid) == NULL){
         uart_puts("ipc msg enqueue coid_pcb == NULL     coid == ");
         uart_put_uint32_t(coid, 10);
@@ -94,26 +94,20 @@ void extern _SYSTEM_CALL(system_call_t arg0, void* arg1, void* arg2, void* arg3)
 /*
     send msg rmsg to coid
 */
-int ipc_send(int coid, const void* smsg, int size){
-    //uart_puts("ipc_send start\r\n");
-    _SYSTEM_CALL(IPC_SEND,(void*)smsg, (void*)size, (void*)coid);
-    // generate dispatch
-    //uart_puts("ipc send calling dispatch\r\n");
-    _SYSTEM_CALL(DISPATCH, NULL, NULL, NULL);
-    //uart_puts("ipc send dispatch return\r\n");
+int ipc_send(process_id_t coid, const void* smsg, int size){
+    _SYSTEM_CALL(IPC_SEND,(void*)smsg, (void*)size, (void*)&coid);
+    _SYSTEM_CALL(YIELD, NULL, NULL, NULL);
     return 1;
 }
 
-int ipc_receive(void* rmsg, int size){
+process_id_t ipc_receive(void* rmsg, int size){
     int success = 0;
-    int sender;
+    process_id_t sender;
     ipc_msg_t* recv_msg = malloc( sizeof(ipc_msg_t) + size);
     while(success == 0){
         _SYSTEM_CALL(IPC_RECV, recv_msg, (void*)size, &success);
         if (success == 0){
-            //uart_puts("ipc receive calling dispatch\r\n");
-            _SYSTEM_CALL(DISPATCH,NULL,NULL,NULL);
-            //uart_puts("ipc receive dispatch return\r\n");
+            _SYSTEM_CALL(YIELD,NULL,NULL,NULL);
         }
     }
     memcpy(rmsg, recv_msg->payload, size);
@@ -122,7 +116,7 @@ int ipc_receive(void* rmsg, int size){
     return sender;
 }
 
-void system_send(void* payload, uint32_t size, uint32_t coid){
+void system_send(void* payload, uint32_t size, process_id_t coid){
     //  setup for IPC
         // send message
         // wake up receiving thread
@@ -131,7 +125,7 @@ void system_send(void* payload, uint32_t size, uint32_t coid){
     pcb_get(get_current_running())->state = BLOCKED;
     if (pcb_get(coid)->state == BLOCKED){
         pcb_get(coid)->state = READY;
-        dispatch_enqueue(coid);
+        scheduler_enqueue(coid);
     }
     return;
 }
@@ -139,14 +133,13 @@ void system_send(void* payload, uint32_t size, uint32_t coid){
 void system_receive(ipc_msg_t *recv_msg, uint32_t size, int* success){
     PCB_t* my_pcb = pcb_get( get_current_running() );
     ipc_msg_t* popped_msg = ipc_dequeue();
-    
     if ( popped_msg != NULL){
         memcpy(      (void*)recv_msg,
                      (void*)popped_msg,
                      sizeof(ipc_msg_t) + size);
         free(popped_msg);
         pcb_get(recv_msg->sender)->state=READY;
-        dispatch_enqueue(recv_msg->sender);
+        scheduler_enqueue(recv_msg->sender);
         *success = 1;
     }
     else{

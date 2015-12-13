@@ -11,7 +11,7 @@
 .global _init_thr_stack
 .global _push_stack_pointer
 .global _get_user_sp
-.global _generate_dispatch
+.global _generate_yield
 
 
 //  STATUS/MODE REGISTER
@@ -93,8 +93,8 @@ _reset_:
     mov r0, #(CPSR_MODE_SVR | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r0
 
-    //  set the stack pointer at some point in RAM. this is the top(0x80000)!
-    mov sp, #(STACK_SVR)     // top of memory
+    //  set the stack pointer at some point in RAM.
+    mov sp, #(STACK_SVR)
 
 
 
@@ -121,32 +121,32 @@ interrupt_vector:
     bne _prep_interrupt_vector  // if not equal, go to ordinary interrupt
     
     // if it is a timer interrupt, determine which mode it came from, 
-    // and branch to appropriate handlers
-    bl _ack_timer_irq
+    // and branch to timer handlers
+    bl arm_timer_irq_ack
     pop {r0-r3, lr}
-    b dispatch_find_calling_mode
+    b timer_find_calling_mode
 
 
-dispatch_find_calling_mode:
+timer_find_calling_mode:
     push {r0}
     mrs r0, spsr
     and r0, r0, #(CPSR_MODE_FILTER)
     cmp r0, #(CPSR_MODE_USER)
     popeq {r0}
-    beq dispatch_prepare_user
+    beq timer_prepare_user
     
     //  have no code that goes here and is interruptable....but might be in the future!
     
     cmp r0, #(CPSR_MODE_SYSTEM)
     popeq {r0}
-    beq dispatch_prepare_user   // this should be identical to user ;)
+    beq timer_prepare_user   // this should be identical to user ;)
     
     cmp r0, #(CPSR_MODE_SVR)
     popeq {r0}
-    beq dispatch_prepare_svr
+    beq timer_prepare_svr
     
 
-dispatch_prepare_user:
+timer_prepare_user:
     // save r0-r12, lr, pc, cpsr on the stack, in that sequence
     push {r0}
     mov r0, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
@@ -161,111 +161,16 @@ dispatch_prepare_user:
     msr cpsr_c, r3
     push {r0}
     push {r1,r2, lr}
+   
     
-    /*
-    mov r0, sp
-    push {r0-r3, lr}
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #4
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #8
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #12
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #16
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #20
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #24
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #28
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #32
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #36
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #40
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #44
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #48
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #52
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #56
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #60
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #64
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #68
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #72
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #76
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #80
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #84
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    bl _print_reg
-    pop {r0-r3, lr}
-    */
-    
-    
-    
-    mov r0, sp // save SP so we can use it as parameter in dispatcher
+    mov r0, sp // save SP so we can use it as parameter in the handler
     
     mov r1, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r1
-    b call_and_return_dispatch
+    b call_and_return_timer_handler
 
 
-dispatch_prepare_svr:
+timer_prepare_svr:
     //pop {r0-r3, lr}
     
     push {r0}
@@ -376,17 +281,17 @@ dispatch_prepare_svr:
     bl _print_reg
     pop {r0-r3, lr}
 */
-    mov r0, sp  // save SP so we can use it as parameter in dispatcher
+    mov r0, sp  // save SP so we can use it as parameter in the handler
     mov r1, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r1
-    b call_and_return_dispatch
+    b call_and_return_timer_handler
 
     // When this label is called, a thread has been saved and the SP is in r0
-call_and_return_dispatch:
-    // call dispatch with sp in r0
+call_and_return_timer_handler:
+    // call timer_handler with sp in r0
     
-    bl dispatch
-    // dispatch returns with the new SP in r0
+    bl timer_handler_c
+    // handler returns with the new SP in r0
     mov r4, r0
     mov r3, sp
     mov sp, r4   // move process stack pointer into SP
@@ -399,13 +304,13 @@ call_and_return_dispatch:
     // figure out what mode we should build the return stack for
     and r0, r1, #CPSR_MODE_FILTER
     cmp r0, #(CPSR_MODE_USER)
-    beq dispatch_return_user
+    beq timer_return_user
     
     and r0, r1, #CPSR_MODE_FILTER
     cmp r0, #(CPSR_MODE_SVR)
-    beq dispatch_return_svr
+    beq timer_return_svr
 
-dispatch_return_user:
+timer_return_user:
     // build the return stack
     mov r0, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r0
@@ -531,7 +436,7 @@ dispatch_return_user:
     ldm sp!, {pc}^
     
 
-dispatch_return_svr:
+timer_return_svr:
     // build the return stack
     mov r0, #(CPSR_MODE_SVR | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r0
@@ -662,10 +567,10 @@ _prep_interrupt_vector:
     ldm sp!, {r0-r3, pc}^
 
 
-    //  Called when a user thread wants to generate a dispatch
+    //  Called when a user thread wants to generate a reschedule
     //  with a swi call. This branch is called in SVR mode.
     //  mush move SPSR and LR to IRQ mode
-_generate_dispatch:
+_generate_timer_call:
     push {r0-r3}
     mrs r0, spsr
     mov r1, lr
@@ -682,16 +587,16 @@ _generate_dispatch:
     msr cpsr_c, r2
     mov r2, r3
     pop {r3}
-    b dispatch_find_calling_mode
+    b timer_find_calling_mode
 
     // r0, contains the value of SWI call. 
 software_interrupt_vector:
     push {r0-r1, lr}
     mov r1, r0
-    bl _get_dispatch_val
-    cmp r0, r1                          // check if the call is for a dispatch
+    bl _get_yield_val
+    cmp r0, r1           // check if the call is for a yield
     popeq {r0-r1, lr}
-    beq _generate_dispatch
+    beq _generate_timer_call
     pop {r0-r1, lr}
     
     

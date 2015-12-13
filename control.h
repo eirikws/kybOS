@@ -1,11 +1,9 @@
 #ifndef CONTROL_H
 #define CONTROL_H
 
-char get_cpu_mode(void);
+char cpu_mode_print(void);
 extern void _set_cpu_mode(uint32_t mode);
 extern uint32_t _get_cpsr(void);
-void _save_spsr(uint32_t spsr );
-uint32_t _restore_spsr(void);
 
 
 enum{

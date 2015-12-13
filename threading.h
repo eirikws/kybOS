@@ -2,9 +2,15 @@
 #define THREADING_H
 
 #include <stdint.h>
+#include "pcb.h"
 
-int threading_init(void);
-int thread_start( uint32_t id, void* arg);
-int thread_register(void (* f)(void), size_t priority,size_t stack_space, uint32_t id);
+/*
+    initialize
+*/
+int thread_register(void (*f)(void), size_t priority,size_t stack_space, process_id_t id);
 
+/*
+    start it
+*/
+int thread_start( process_id_t id, void* arg);
 #endif

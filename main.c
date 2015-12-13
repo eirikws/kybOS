@@ -2,15 +2,15 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "pcb.h"
 #include "gpio.h"
 #include "armtimer.h"
 #include "interrupts.h"
 #include "uart.h"
 #include "control.h"
-#include "pcb.h"
+
 #include "threading.h"
 #include "prog1.h"
-#include "dispatcher.h"
 
 extern void _enable_interrupts();
 void extern _SYSTEM_CALL(system_call_t arg0, void* arg1, void* arg2, void* arg3);
@@ -19,9 +19,7 @@ void loop_forever_and_ever(void){
     int volatile i = 0;
     while(1){
         i++;   // do nothing
-        if (i % 1000 == 0){
-            uart_puts("Doing NOTHING, MUAHAHHAHAHAHAHAHAHAHAHHAHAHAHAHAHAHAHAHAHAHAHAHA\r\n");
-        }
+        if (i % 1000 == 0){}
     }
 }
 
@@ -39,8 +37,6 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     uart_puts("     hexadecimal:");
     uart_put_uint32_t(0xFFFFFFFF, 16);
     uart_puts("\r\n");
-    
-    
     
     jtag_enable();
     
@@ -64,16 +60,19 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     //_set_cpu_mode(CPSR_MODE_USER | CPSR_FIQ_INHIBIT);
     uart_puts("registering threads\r\n");
     //  registering first threads!
-    thread_register( prog2, 10,1000, 2);
-    thread_register( prog1, 10,1000, 1);
-    thread_register( prog3, 1,1000, 3);
+    thread_register( prog2, 10,1000, (process_id_t){2});
+    thread_register( prog1, 10,1000, (process_id_t){1});
+    thread_register( prog3, 1,1000, (process_id_t){3});
     uart_puts("starting threads\r\n");
+    pcb_print();
     //  starting them
-    thread_start( 1, 0);
-    thread_start( 2, 0);
-    thread_start( 3, 0);
-    threading_init();
-    
+    thread_start( (process_id_t){1}, 0);
+    thread_start( (process_id_t){2}, 0);
+    thread_start( (process_id_t){3}, 0);
+    uart_puts("threads_started. starting timer irqs\r\n");
+    arm_timer_set_frq(20);
+    arm_timer_init();
+    _SYSTEM_CALL(YIELD,0,0,0);
     
      /* Never exit as there is no OS to exit to! */
     loop_forever_and_ever();

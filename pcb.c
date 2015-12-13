@@ -10,7 +10,20 @@
 static PCB_t *head = NULL;
 static PCB_t *tail = NULL;
 
+void save_stack_ptr( process_id_t id, uint32_t stack_pointer){
+    PCB_t* pcb = pcb_get(id);
+    if (pcb == NULL){
+        uart_puts("save stack ptr process not found\r\n");
+        return;
+    }
+    pcb->context_data.SP = stack_pointer;
+    return;
+}
 
+int pcb_id_compare(process_id_t id1, process_id_t id2){
+    if (id1.id_number == id2.id_number){ return 1; }
+    return 0;
+}
 
 //Creates a new Node and returns pointer to it. 
 static PCB_t* pcb_new(PCB_t pcb) {
@@ -40,11 +53,13 @@ int pcb_insert(PCB_t pcb) {
     return 1;
 }
 
-PCB_t* pcb_get(uint32_t id){
+PCB_t* pcb_get(process_id_t id){
     if (head == NULL) {return NULL;}
     PCB_t* ite = head;
-    while( id != ite->id){
-        if (ite->next == NULL){ return NULL;}
+    while( !pcb_id_compare(id, ite->id)){
+        if (ite->next == NULL){ 
+            return NULL;
+        }
         ite = ite->next;
     }
     return ite;
@@ -54,18 +69,18 @@ void pcb_print(void){
     PCB_t* ite = head;
     uart_puts("PCB list contains: ");
     while( ite != NULL){
-        uart_put_uint32_t(ite->id, 10);
+        uart_put_uint32_t(ite->id.id_number, 10);
         uart_puts(", ");
         ite = ite->next;
     }
     uart_puts("\r\n");
 }
 
-int pcb_remove(uint32_t id){
+int pcb_remove(process_id_t id){
     if (head == NULL) {return -1;} // is empty
     PCB_t* ite = head;
     PCB_t* ite2 = head;
-    while( id != ite->id){   
+    while( !pcb_id_compare(id, ite->id)){
         if (ite->next == NULL){ return -1;}
         ite = ite->next;
     }
