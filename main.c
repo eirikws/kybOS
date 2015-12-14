@@ -8,7 +8,6 @@
 #include "interrupts.h"
 #include "uart.h"
 #include "control.h"
-
 #include "threading.h"
 #include "prog1.h"
 
@@ -40,7 +39,7 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     
     jtag_enable();
     
-    delay(10000000);
+    //delay(10000000);
     
     
     init_pri_array();
@@ -60,9 +59,9 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     //_set_cpu_mode(CPSR_MODE_USER | CPSR_FIQ_INHIBIT);
     uart_puts("registering threads\r\n");
     //  registering first threads!
-    thread_register( prog2, 10,1000, (process_id_t){2});
-    thread_register( prog1, 10,1000, (process_id_t){1});
-    thread_register( prog3, 1,1000, (process_id_t){3});
+    thread_register( prog2, 10,1000, (process_id_t){2}, CPSR_MODE_USER);
+    thread_register( prog1, 10,1000, (process_id_t){1}, CPSR_MODE_USER);
+    thread_register( prog3, 1 ,1000, (process_id_t){3}, CPSR_MODE_USER);
     uart_puts("starting threads\r\n");
     pcb_print();
     //  starting them
@@ -70,7 +69,7 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     thread_start( (process_id_t){2}, 0);
     thread_start( (process_id_t){3}, 0);
     uart_puts("threads_started. starting timer irqs\r\n");
-    arm_timer_set_frq(20);
+    arm_timer_set_frq(1);
     arm_timer_init();
     _SYSTEM_CALL(YIELD,0,0,0);
     

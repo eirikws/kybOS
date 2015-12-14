@@ -94,7 +94,6 @@ void interrupt_vector_c(void){
         GetGpio()->LED_GPCLR = (1 << LED_GPIO_BIT);
         lit = 1;
     }
-    
 
     
     if (GetIrqController()->IRQ_pending_2 & UART_IRQ){

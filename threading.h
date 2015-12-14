@@ -3,11 +3,13 @@
 
 #include <stdint.h>
 #include "pcb.h"
+#include "control.h"
 
 /*
     initialize
 */
-int thread_register(void (*f)(void), size_t priority,size_t stack_space, process_id_t id);
+int thread_register(void (*f)(void), size_t priority,size_t stack_space,
+                                     process_id_t id, cpu_mode_t mode);
 
 /*
     start it

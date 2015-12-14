@@ -4,6 +4,7 @@
 #include "interrupts.h"
 
 #define ARMTIMER_BASE               ( PERIPHERAL_BASE + 0xB400 )
+#define SYSTEM_CLOCK                (1 << 10 )
 
 static arm_timer_t* ArmTimer = (arm_timer_t*)ARMTIMER_BASE;
 
@@ -19,10 +20,9 @@ void arm_timer_irq_ack(void){
 void arm_timer_set_frq(int freq){   
     /* Setup the system timer interrupt */
     /* Timer frequency = Clk/256 * LOAD */
-    /* Clk = 3000000?, 7 000 000 in config.txt , baud rate = 115200*/
-    arm_timer_get()->Load = 0x2000;
-    /* Setup the ARM Timer */
-    
+    /* Clk = 1 GHz (set in config.txt) */
+    /* Load = frquency * 256 / clk  */
+    arm_timer_get()->Load = ( SYSTEM_CLOCK / 256) / freq;
 }
 
 void arm_timer_init(void){

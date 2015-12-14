@@ -8,7 +8,8 @@
 
 extern uint32_t _init_thr_stack(uint32_t sp, uint32_t function, uint32_t cpsr);
 
-int thread_register(void (* f)(void), size_t priority,size_t stack_space, process_id_t id){
+int thread_register(void (* f)(void), size_t priority,size_t stack_space,
+                                     process_id_t id, cpu_mode_t mode){
     // make process controll block
     PCB_t pcb = {   .id = id, .state = READY, .priority = priority};
     // allocate stack pointer and space
@@ -23,7 +24,7 @@ int thread_register(void (* f)(void), size_t priority,size_t stack_space, proces
     //  and put the link register in there
     pcb.context_data.SP = _init_thr_stack(  pcb.context_data.SP,
                                             (uint32_t)f,
-                                            CPSR_MODE_USER);
+                                            mode);
     pcb_insert(pcb);
     return 1;
 }

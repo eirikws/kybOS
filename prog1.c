@@ -13,7 +13,7 @@ void prog1(void){
     uart_puts("at start of prog 1\r\n");
     while(1){
         y++;
-        if (y%1000000 == 0 ){
+        if (y%10000000 == 0 ){
             uart_puts("1 sending x:");
             uart_put_uint32_t(++x, 10);
             uart_puts("\r\n");
