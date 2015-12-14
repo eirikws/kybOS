@@ -3,7 +3,7 @@
 
 void jtag_enable(void){
     // set gpio4 to alt 5
-    gpio_t *gpio = GetGpio();
+    gpio_t *gpio = get_gpio();
     gpio->GPFSEL0 &= ~(7 << 12);    // zero out gpio4
     gpio->GPFSEL0 |= 2<< 12;    //gpio4 to alt5 = ARM_TDI
     

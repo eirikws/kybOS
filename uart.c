@@ -1,5 +1,4 @@
 #include <string.h>
-#include <_ansi.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include "base.h"
@@ -35,18 +34,18 @@ void delay(int32_t count){
 */
 void uart_init( void ){
 	//	turn everything off for starters
-	GetUartController()->CR = 0x00000000;
+	uart_get()->CR = 0x00000000;
 	//	Control signal to disable pull up/down and delay for 150 clock cycles
-    GetGpio()->GPPUD = PULL_UPDOWN_DISABLE;
+    get_gpio()->GPPUD = PULL_UPDOWN_DISABLE;
     delay(150);
 	//	disable pull up/down for uart pins and delay
-	GetGpio()->GPPUDCLK0 = UART_PINS;
+	get_gpio()->GPPUDCLK0 = UART_PINS;
     delay(150);
     //  remove control signal and clocking
-    GetGpio()->GPPUD = 0;
-    GetGpio()->GPPUDCLK0 = 0;
+    get_gpio()->GPPUD = 0;
+    get_gpio()->GPPUDCLK0 = 0;
     //  clear impending interrupts
-    GetUartController()->ICR = 0x7ff;
+    uart_get()->ICR = 0x7ff;
     //  set the baud rate:
     //  divider = uart_clock/(16 * baud)
     //  fraction = ( fraction_part * 64 ) + 0.5
@@ -54,35 +53,35 @@ void uart_init( void ){
     //
     //  Divider = 3000000 / (16 * 115200) = 1.627 ~ 1
     //  fraction = (0.627 * 64) + 0.5 = 40.6 ~ 40
-    GetUartController()->IBRD = 1;
-    GetUartController()->FBRD = 40;
+    uart_get()->IBRD = 1;
+    uart_get()->FBRD = 40;
     // cofigure UART:
-    GetUartController()->LCRH =    WORD_LEN_8BIT | FIFO_DISABLE;
+    uart_get()->LCRH =    WORD_LEN_8BIT | FIFO_DISABLE;
 
     //  set receive interrupt fifo level to 1/8 FIFO level
-    GetUartController()->IFLS |= RECEIVE_IRQ_FIFO_18;
+    uart_get()->IFLS |= RECEIVE_IRQ_FIFO_18;
     
     //  mask interrupts
-    GetUartController()->IMSC   |= RECEIVE_MASK_BIT;
+    uart_get()->IMSC   |= RECEIVE_MASK_BIT;
 
     //  restart uart again
     GetIrqController()->Enable_IRQs_2 |= UART_IRQ;
-    GetUartController()->CR = UART_ENABLE | TRANSMIT_ENABLE | RECEIVE_ENABLE;
+    uart_get()->CR = UART_ENABLE | TRANSMIT_ENABLE | RECEIVE_ENABLE;
 }
 
-uart_controller_t* GetUartController( void ){
+uart_controller_t* uart_get( void ){
     return UARTController;
 }
 
 void uart_putc(unsigned char byte){
-    while( GetUartController()->FR & TRANSMIT_FIFO_FULL ){}
-    GetUartController()->DR = byte;
+    while( uart_get()->FR & TRANSMIT_FIFO_FULL ){}
+    uart_get()->DR = byte;
     return;
 }
 
 unsigned char uart_getc(){
-    while ( GetUartController()->FR & RECEIVE_FIFO_EMPTY){ }
-    return GetUartController()->DR;
+    while ( uart_get()->FR & RECEIVE_FIFO_EMPTY){ }
+    return uart_get()->DR;
 }
 
 
@@ -98,42 +97,7 @@ void uart_puts(const char* str){
     uart_write((const unsigned char*)str, strlen(str));
     return;
 }
-/*
-void reverse(char str[], int length){
-    int start = 0;
-    int end = length -1;
-    char temp;
-    char temp2;
-    while (start < end){
-        //swap(*(str+start), *(str+end));
-        *(str+start) =  *(str+start) ^ *(str+end);
-        *(str+end) =  *(str+start) ^ *(str+end);
-        *(str+start) =  *(str+end) ^ *(str+start);
-        start++;
-        end--;
-    }
-}
 
-
-char* uart_itoa(int num, char* str, int base){
-    int i = 0;
-    if (num == 0){
-        str[i++] = '0';
-        str[i] = '\0';
-        return str;
-    }
-    // Process individual digits
-    while (num != 0){
-        int rem = num % base;
-        str[i++] = (rem > 9)? (rem-10) + 'a' : rem + '0';
-        num = num/base;
-    }
-    str[i] = '\0'; // Append string terminator
-    // Reverse the string
-    reverse(str, i);
-    return str;
-}
-*/
 char* uart_itoa(int value, char* result, int base){
     // check that the base if valid 
     if ( base < 2 || base > 36 ) {

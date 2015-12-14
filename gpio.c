@@ -9,12 +9,12 @@
 
 static gpio_t* Gpio = (gpio_t*)GPIO_BASE;
 
-gpio_t* GetGpio(void)
+gpio_t* get_gpio(void)
 {
     return Gpio;
 }
 
-void GpioInit(void)
+void gpio_init(void)
 {
 
 }

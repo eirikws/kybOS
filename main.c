@@ -51,7 +51,7 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     _SYSTEM_CALL(DUMMY,0,0,0);
     
     //  enable LED pin as an output 
-    GetGpio()->LED_GPFSEL |= LED_GPFBIT;
+    get_gpio()->LED_GPFSEL |= LED_GPFBIT;
     /* Enable interrupts! */
     
     

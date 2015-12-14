@@ -136,7 +136,7 @@ void uart_init( void );
 void uart_puts(const char* str);
 unsigned char uart_getc(void);
 void uart_putc(unsigned char byte);
-uart_controller_t* GetUartController( void );
+uart_controller_t* uart_get( void );
 void uart_put_uint32_t(uint32_t,int base);
 void print_alot(void);
 

@@ -88,22 +88,22 @@ void interrupt_vector_c(void){
     char c;
     static int lit = 0;
     if( lit ){
-        GetGpio()->LED_GPSET = (1 << LED_GPIO_BIT);
+        get_gpio()->LED_GPSET = (1 << LED_GPIO_BIT);
         lit = 0;
     } else {
-        GetGpio()->LED_GPCLR = (1 << LED_GPIO_BIT);
+        get_gpio()->LED_GPCLR = (1 << LED_GPIO_BIT);
         lit = 1;
     }
 
     
     if (GetIrqController()->IRQ_pending_2 & UART_IRQ){
     
-        GetUartController()->ICR = RECEIVE_CLEAR;
+        uart_get()->ICR = RECEIVE_CLEAR;
         c = uart_getc();
         uart_puts("interrupt\r\n");
     /*
         // do uart stuff
-        GetUartController()->ICR = RECEIVE_CLEAR;
+        uart_get()->ICR = RECEIVE_CLEAR;
         c = uart_getc();
         if (c == '\r'){
             uart_putc('\n');
