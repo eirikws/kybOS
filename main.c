@@ -1,4 +1,3 @@
-
 #include <string.h>
 #include <stdlib.h>
 
@@ -45,7 +44,8 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     init_pri_array();
     uart_puts("starting mmu\r\n");
     mmu_init_table();
-    mmu_init();
+    mmu_configure();
+    cpu_control_config();
     uart_puts("mmu started\r\n");
     
     _SYSTEM_CALL(DUMMY,0,0,0);
@@ -54,9 +54,6 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     get_gpio()->LED_GPFSEL |= LED_GPFBIT;
     /* Enable interrupts! */
     
-    
-
-    //_set_cpu_mode(CPSR_MODE_USER | CPSR_FIQ_INHIBIT);
     uart_puts("registering threads\r\n");
     //  registering first threads!
     thread_register( prog2, 10,1000, (process_id_t){2}, CPSR_MODE_USER);
@@ -76,6 +73,3 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
      /* Never exit as there is no OS to exit to! */
     loop_forever_and_ever();
 }
-
-
-

@@ -13,9 +13,27 @@ typedef enum{
     CPSR_IRQ_INHIBIT =      0x80,
     CPSR_FIQ_INHIBIT =      0x40,
 } cpu_mode_t;
+/*  
+ *  configure the SCTLR such that the cpu behaves as wanted
+ *  Most important is to turn on the MMU, caches, cache placement strategy,
+ *  set the location of interrupt vectors to low, enable swp and swpb, 
+ *  enable intruction and data barriers and alignment checks.
+ */
+void cpu_control_config(void);
 
+/*  
+ *  get the current CPU mode
+*/
 char cpu_mode_print(void);
+
+/*
+ *  set the cpu mode to mode
+ */
 extern void _set_cpu_mode(cpu_mode_t mode);
+
+/*
+ * get the value of cpsr register
+*/
 extern cpu_mode_t _get_cpsr(void);
 
 

@@ -603,7 +603,13 @@ software_interrupt_vector:
     push {r0-r3, lr}
     bl software_interrupt_vector_c
     ldm	sp!, {r0-r3, pc}^
-    
+
+data_abort_vector:
+    sub lr, lr, #8
+    push {r0, r1, r2, r3, ip, lr}
+    mov r0, lr
+    bl data_abort_vector_c
+    ldm sp!, {r0-r3, ip, pc}^
 
     //  used in Cstubs code. SP is returned in r0.
 _get_stack_pointer:

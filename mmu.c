@@ -152,7 +152,7 @@ void mmu_init_table(void) {
 #define MMU_DISABLE                                     (0 << 0)
 
 
-void mmu_init(void) {
+void mmu_configure(void) {
 	// set SMP bit in ACTLR. MUST be done before the MMU is enabled.
 	uint32_t auxctrl;
 	asm volatile ("mrc p15, 0, %0, c1, c0,  1" : "=r" (auxctrl));
@@ -182,24 +182,12 @@ void mmu_init(void) {
 	// configure SCTLR, the system control register
 	// enabling the caches and branch prediction will result in a significant
 	// performance increase.
-	uint32_t mode;
-	
-	mode =      MMU_ENABLE
-	          | ALIGNMENT_CHECK_ENABLE
-	          | CACHE_DATA_ENABLE
-	          | BARRIERS_CP15_ENABLE
-	          | SWP_SWPB_ENABLE
-	          | BRANCH_PREDICTION_ENABLE
-	          | CACHE_INSTRUCTION_ENABLE
-	          | VECTORS_LOW
-	          | INTERRUPT_VECTORS_STD
-	          | CACHE_PLACEMENT_STRATEGY_PREDICTABLE
-	          | HARDWARE_ACCESS_FLAG_DISABLE
-	          | INTERRUPT_VECTORS_STD
-	          | EXCEPTION_ENDIANNESS_LITTLE
-	          | TEX_REMAP_DISABLE
-	          | ACCESS_FLAG_DISABLE
-	          | THUMB_EXCEPTION_DISABLE ;
-	          
-	asm volatile ("mcr p15, 0, %0, c1, c0, 0" :: "r" (mode) : "memory");
+}
+
+
+    // must be section aligned
+void remap(uint32_t virtual, uint32_t physical){
+    // TODO
+
+
 }

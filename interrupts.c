@@ -41,7 +41,12 @@ void __attribute__((interrupt("ABORT"))) reset_vector(void){
     Undefined interrupt handler
 */
 void __attribute__((interrupt("UNDEF"))) undefined_instruction_vector(void){
-    uart_puts("undefined mode!\r\n");
+    uint32_t origin;
+    asm volatile ("mov %[out], lr" : [out] "=r" (origin) ::);
+    uart_puts("undefined mode from: ");
+    uart_put_uint32_t(origin , 16);
+    uart_puts("\r\n");
+    
 }
 
 
@@ -76,8 +81,10 @@ void __attribute__((interrupt("ABORT"))) prefetch_abort_vector(void){
 /*
     Data abort interrupt handler
 */
-void __attribute__((interrupt("ABORT"))) data_abort_vector(void){
-    uart_puts("data abort\r\n");
+void data_abort_vector_c(uint32_t origin){
+    uart_puts("data abort from: ");
+    uart_put_uint32_t(origin , 16);
+    uart_puts("\r\n");
 }
 
 
