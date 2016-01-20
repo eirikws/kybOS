@@ -3,46 +3,6 @@
 #include "mmu.h"
 #include "barrier.h"
 
-// paging bits
-// page: SECTION bits
-#define SECTION_BASE_ADDRESS_OFFSET      20
-#define SECTION_NS                      19
-#define SECTION_nG                      17
-#define SECTION_S                       16
-#define SECTION_AP2                     15
-#define SECTION_TEX                     12
-#define SECTION_AP01                    10
-#define SECTION_DOMAIN                  5
-#define SECTION_XN                      4
-#define SECTION_C                       3
-#define SECTION_B                       2
-#define section_PXN                     0
-
-// page: SECTION bit values
-#define SECTION_NON_SECURE              (0 << SECTION_NS)
-#define SECTION_SECURE                  (1 << SECTION_NS)
-#define SECTION_NON_GLOBAL              (1 << SECTION_nG)
-#define SECTION_GLOBAL                  (0 << SECTION_nG)
-#define SECTION_SHAREABLE               (1 << SECTION_S)
-#define SECTION_NON_SHAREABLE            (0 << SECTION_S)
-#define SECTION_ACCESS_PL1_NONE_PL0_NONE    ((0 << SECTION_AP01) | (0 << SECTION_AP2))
-#define SECTION_ACCESS_PL1_RW_PL0_NONE      ((1 << SECTION_AP01) | (0 << SECTION_AP2))
-#define SECTION_ACCESS_PL1_RW_PL0_RO        ((2 << SECTION_AP01) | (0 << SECTION_AP2))
-#define SECTION_ACCESS_PL1_RW_PL0_RW        ((3 << SECTION_AP01) | (0 << SECTION_AP2))
-#define SECTION_ACCESS_PL1_RO_PL0_NONE      ((1 << SECTION_AP01) | (1 << SECTION_AP2))
-#define SECTION_ACCESS_PL1_RO_PL0_RO        ((3 << SECTION_AP01) | (1 << SECTION_AP2))
-#define SECTION_EXECUTE_NEVER               (1 << SECTION_XN)
-#define SECTION_EXECUTE_ENABLE              (0 << SECTION_XN)
-#define SET_FORMAT_SECTION                  ((2 << 0) << (0 << 18))
-
-// page: Memory attributes
-#define SECTION_STRONGLY_ORDERED    ((0 << SECTION_TEX) | (0 << SECTION_C) | (0 << SECTION_B))
-#define SECTION_DEVICE_SHAREABLE         ((0 << SECTION_TEX) | (0 << SECTION_C) | (1 << SECTION_B))
-#define SECTION_OUT_IN_WR_THROUGH__NO_WRITE_ALOC  ((0 << SECTION_TEX) | (1 << SECTION_C) | (0 << SECTION_B))
-#define SECTION_OUT_IN_WR_BACK__NO_WRITE_ALOC   ((0 << SECTION_TEX) | (1 << SECTION_C) | (1 << SECTION_B))
-#define SECTION_OUT_INN_NON_CACHABLE    ((1 << SECTION_TEX) | (0 << SECTION_C) | (0 << SECTION_B))
-#define SECTION_OUT_INN_WRITE_BACK__WRITE_ALOC    ((1 << SECTION_TEX) | (1 << SECTION_C) | (1 << SECTION_B))
-#define SECTION_DEVICE_NON_SHAREABLE    ((2 << SECTION_TEX) | (0 << SECTION_C) | (0 << SECTION_B))
 
 
 static volatile __attribute__ ((aligned (0x4000))) uint32_t page_table[4096];
@@ -117,39 +77,6 @@ void mmu_init_table(void) {
 #define TTB_INNER_WRITE_THROUGH_CACHEABLE               (0 << 0 | 1 << 6)
 #define TTB_INNER_WRITE_BACK__NO_WRITE_ALLOC_CACHEABLE  (1 << 1 | 1 << 6)
 
-// SCTLR bits
-#define THUMB_EXCEPTION_ENABLE                          (1 << 30)
-#define THUMB_EXCEPTION_DISABLE                         (0 << 30)
-#define ACCESS_FLAG_ENABLE                              (1 << 29)
-#define ACCESS_FLAG_DISABLE                             (0 << 29)
-#define TEX_REMAP_ENABLE                                (1 << 28)
-#define TEX_REMAP_DISABLE                               (0 << 28)
-#define NON_MASKABLE_FIQ_SUPPORT_OFFSET                 27
-#define EXCEPTION_ENDIANNESS_LITTLE                     (0 << 26)
-#define EXCEPTION_ENDIANNESS_BIT                        (1 << 26)
-#define INTERRUPT_VECTORS_USR_MADE                      (1 << 25)
-#define INTERRUPT_VECTORS_STD                           (0 << 25)
-#define FIQ_CONFIG_ENABLE_OFFSET                        21
-#define HARDWARE_ACCESS_FLAG_ENABLE                     (1 << 17)
-#define HARDWARE_ACCESS_FLAG_DISABLE                    (0 << 17)
-#define CACHE_PLACEMENT_STRATEGY_NORMAL                 (1 << 14)
-#define CACHE_PLACEMENT_STRATEGY_PREDICTABLE            (0 << 14)
-#define VECTORS_HIGH                                    (1 << 13)
-#define VECTORS_LOW                                     (0 << 13)
-#define CACHE_INSTRUCTION_ENABLE                        (1 << 12)
-#define CACHE_INSTRUCTION_DISABLE                       (0 << 12)
-#define BRANCH_PREDICTION_ENABLE                        (1 << 11)
-#define BRANCH_PREDICTION_DISABLE                       (0 << 11)
-#define SWP_SWPB_ENABLE                                 (1 << 10)
-#define SWP_SWPB_DISABLE                                (0 << 10)
-#define BARRIERS_CP15_ENABLE                            (1 << 5)
-#define BARRIERS_CP15_DISABLE                           (0 << 5)
-#define CACHE_DATA_ENABLE                               (1 << 2)
-#define CACHE_DATA_DISABLE                              (0 << 2)
-#define ALIGNMENT_CHECK_ENABLE                          (1 << 1)
-#define ALIGNMENT_CHECK_DISABLE                         (0 << 1)
-#define MMU_ENABLE                                      (1 << 0)
-#define MMU_DISABLE                                     (0 << 0)
 
 
 void mmu_configure(void) {
@@ -176,18 +103,23 @@ void mmu_configure(void) {
 	asm volatile ("mcr p15, 0, %0, c2, c0, 0"
 		      :: "r" (ttb_descr));
 	barrier_instruction();
-
-	//                 0b1100 0101 0000 1000 0111 1000
-	
-	// configure SCTLR, the system control register
-	// enabling the caches and branch prediction will result in a significant
-	// performance increase.
 }
 
-
-    // must be section aligned
-void remap(uint32_t virtual, uint32_t physical){
-    // TODO
-
-
+    // This follows the break-before-make method described in 
+    // B3 virtual Memory System Architecture (VMSA) 
+    // B3.10 TLB maintenance requirements 
+    // inn the arm architecture reference manual Armv7-A armv7-R
+void mmu_remap_section(uint32_t virt, uint32_t physical, uint32_t config_flags){
+    // 1. invalidate old translation table entry.
+    page_table[virt >> SECTION_BASE_ADDRESS_OFFSET] = 0;
+    // 2. execute dsb.
+    barrier_data_sync();
+    // 3. invalidate the translation table with a broadcast TLB invalidation instruction.
+    // Invlaidate unified TLB by writing to TLBIALL
+    asm volatile ("mcr p15, 0, %0, c8, c5, 0" :: "r" (0));
+    // 4. write new entry.
+    page_table[virt >> SECTION_BASE_ADDRESS_OFFSET] = config_flags
+                  | (physical >> SECTION_BASE_ADDRESS_OFFSET) << SECTION_BASE_ADDRESS_OFFSET;
+    // 5. data barrier
+    barrier_data_sync();
 }

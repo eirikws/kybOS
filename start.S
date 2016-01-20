@@ -26,8 +26,6 @@
 .equ    CPSR_IRQ_INHIBIT,       0x80
 .equ    CPSR_FIQ_INHIBIT,       0x40
 .equ    CPSR_THUMB,             0x20
-.equ    ttb_address,            (64*1024*1024-16*1024)
-.equ    TTB,                    (64*1024*1024-16*1024)
 .equ    STACK_SVR,              (64 * 1024 * 1024)
 /*
         Put the vector table in the ram at 0x8000.
