@@ -174,7 +174,7 @@ process_id_t schedule(void){
     process_id_t retval = pop_highest_priority();
     previous_running_process = current_running_process;
     current_running_process = retval;
-    return retval;
+    return 1;
 }
 
 // save old sp, return new sp, do MMU things
