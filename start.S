@@ -27,6 +27,11 @@
 .equ    CPSR_FIQ_INHIBIT,       0x40
 .equ    CPSR_THUMB,             0x20
 .equ    STACK_SVR,              (64 * 1024 * 1024)
+.equ    STACK_UNDEF,            (61 * 1024 * 1024)
+.equ    STACK_IRQ,              (63 * 1024 * 1024)
+.equ    STACK_ABORT,            (60 * 1024 * 1024)
+
+
 /*
         Put the vector table in the ram at 0x8000.
         At startup the PC will start at 0x8000, which is the first
@@ -69,17 +74,17 @@ _reset_:
     //  setup the stack pointer for the interrupt mode
     mov r0, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r0
-    mov sp, #(63 * 1024 * 1024)
+    mov sp, #(STACK_IRQ)
     
     // setup Undefined
     mov r0, #(CPSR_MODE_UNDEFINED | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r0
-    mov sp, #(61 * 1024 * 1024)
+    mov sp, #(STACK_UNDEF)
     
     //setup Abort
     mov r0, #(CPSR_MODE_ABORT | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r0
-    mov sp, #(60 * 1024 * 1024)
+    mov sp, #(STACK_ABORT)
     
     //  setup the user/system stack pointer. These modes share registers.
     //  switch to system mode because the we are able to switch back!
@@ -94,8 +99,6 @@ _reset_:
     //  set the stack pointer at some point in RAM.
     mov sp, #(STACK_SVR)
 
-
-
     //  Setup the c runtime
     bl      _cstartup
 
@@ -105,13 +108,12 @@ _inf_loop:
     
     // save and restore all registers on the user stack of active thread
 
-
+/*
 interrupt_vector:
     sub lr, lr, #4
     push {r0-r3, lr}
     
-    bl GetIrqController
-    ldr r0, [r0, #0x0] // offset to IRQbasic pending
+    bl GetIrqController ldr r0, [r0, #0x0] // offset to IRQbasic pending
    
     
     cmp r0, #1  // check if arm timer irq pending bit is set
@@ -123,28 +125,30 @@ interrupt_vector:
     bl arm_timer_irq_ack
     pop {r0-r3, lr}
     b timer_find_calling_mode
+*/
+.data
+.balign 4
+stack_pointer:
+    .word 0
 
+.text
+interrupt_vector:
+    sub lr, lr, #4
+    push {r0-r3, ip, lr}
+    bl interrupt_vector_c   // returns with 1 in r0 if to perform context switch
+    cmp r0, #0          // if r0 is zero, do not perform context switch
+    ldmeq sp!, {r0-r4, ip, pc}^
+    // if not, branch to context switch with correct mode
+find_origin_context_switch:
+    mrs r1, spsr
+    and r1, r1, #(CPSR_MODE_FILTER)
+    cmp r1, #(CPSR_MODE_USER)
+    popeq {r0-r3, ip, lr}
+    beq build_context_stack_user    // perform context switch from user
+    pop {r0-r3, ip, lr}
+    b build_context_stack_svr    //else from supervisor
 
-timer_find_calling_mode:
-    push {r0}
-    mrs r0, spsr
-    and r0, r0, #(CPSR_MODE_FILTER)
-    cmp r0, #(CPSR_MODE_USER)
-    popeq {r0}
-    beq timer_prepare_user
-    
-    //  have no code that goes here and is interruptable....but might be in the future!
-    
-    cmp r0, #(CPSR_MODE_SYSTEM)
-    popeq {r0}
-    beq timer_prepare_user   // this should be identical to user ;)
-    
-    cmp r0, #(CPSR_MODE_SVR)
-    popeq {r0}
-    beq timer_prepare_svr
-    
-
-timer_prepare_user:
+build_context_stack_user:
     // save r0-r12, lr, pc, cpsr on the stack, in that sequence
     push {r0}
     mov r0, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
@@ -159,18 +163,15 @@ timer_prepare_user:
     msr cpsr_c, r3
     push {r0}
     push {r1,r2, lr}
-   
-    
+     
     mov r0, sp // save SP so we can use it as parameter in the handler
     
     mov r1, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r1
-    b call_and_return_timer_handler
-
-
-timer_prepare_svr:
-    //pop {r0-r3, lr}
     
+    b update_stack    
+
+build_context_stack_svr:
     push {r0}
     mov r0, #(CPSR_MODE_SVR | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r0
@@ -186,129 +187,29 @@ timer_prepare_svr:
     push {r0}
     push {r1,r2, lr}
 
-/*
-    mov r0, sp
-    push {r0-r3, lr}
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #4
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #8
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #12
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #16
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #20
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #24
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #28
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #32
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #36
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #40
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #44
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #48
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #52
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #56
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #60
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #64
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #68
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #72
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #76
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #80
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #84
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    bl _print_reg
-    pop {r0-r3, lr}
-*/
     mov r0, sp  // save SP so we can use it as parameter in the handler
     mov r1, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r1
-    b call_and_return_timer_handler
+    b update_stack
 
-    // When this label is called, a thread has been saved and the SP is in r0
-call_and_return_timer_handler:
-    // call timer_handler with sp in r0
+update_stack:
+    mov r0, sp
+    bl context_switch_c // givecontext_switchent, returns with a new sp
+
+    mov r1, sp  // irq mode sp
+    mov sp, r0  // target sp
     
-    bl timer_handler_c
-    // handler returns with the new SP in r0
-    mov r4, r0
-    mov r3, sp
-    mov sp, r4   // move process stack pointer into SP
-    
-    pop {r1}    // pop cpsr
-    push {r1}   // dont change size of stack
-    
-    mov sp, r3  // move IRQ mode stack pointer back into SP
-    
-    // figure out what mode we should build the return stack for
-    and r0, r1, #CPSR_MODE_FILTER
+// determine target mode by pop the cpsr
+    pop {r0}
+    push {r0}
+    mov sp, r1  // move irq sp back
+    and r0, r0, #(CPSR_MODE_FILTER)
     cmp r0, #(CPSR_MODE_USER)
-    beq timer_return_user
-    
-    and r0, r1, #CPSR_MODE_FILTER
+    beq pop_return_stack_user
     cmp r0, #(CPSR_MODE_SVR)
-    beq timer_return_svr
+    beq pop_return_stack_svr
 
-timer_return_user:
+pop_return_stack_user:
     // build the return stack
     mov r0, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r0
@@ -335,106 +236,11 @@ timer_return_user:
     msr cpsr_c, r1
     push {r0}
     
-    /*
-    mov r0, sp
-    push {r0-r3, lr}
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #4
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #8
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #12
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #16
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #20
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #24
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #28
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #32
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #36
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #40
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #44
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #48
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #52
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #56
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #60
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #64
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #68
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #72
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #76
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #80
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #84
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    bl _print_reg
-    pop {r0-r3, lr}
-    */
-    
     ldm sp!, {r0-r12}
-    
     ldm sp!, {pc}^
     
 
-timer_return_svr:
+pop_return_stack_svr:
     // build the return stack
     mov r0, #(CPSR_MODE_SVR | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r0
@@ -461,114 +267,13 @@ timer_return_svr:
     msr cpsr_c, r1
     push {r0}
     
-    
-    /*
-    mov r0, sp
-    push {r0-r3, lr}
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #4
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #8
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #12
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #16
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #20
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #24
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #28
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #32
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #36
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #40
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #44
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #48
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #52
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #56
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #60
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #64
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #68
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #72
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #76
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #80
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    push {r0-r3, lr}
-    add r0, r0, #84
-    bl _get_stack_top
-    pop {r0-r3, lr}
-    
-    */
-    
     ldm sp!, {r0-r12}
-    
     ldm sp!, {pc}^
     
-
-_prep_interrupt_vector:
-    push {r0-r3}
-    bl interrupt_vector_c
-    ldm sp!, {r0-r3, pc}^
-
-
     //  Called when a user thread wants to generate a reschedule
     //  with a swi call. This branch is called in SVR mode.
-    //  mush move SPSR and LR to IRQ mode
-_generate_timer_call:
+    //  must move SPSR and LR to IRQ mode
+_generate_context_switch:
     push {r0-r3}
     mrs r0, spsr
     mov r1, lr
@@ -585,22 +290,27 @@ _generate_timer_call:
     msr cpsr_c, r2
     mov r2, r3
     pop {r3}
-    b timer_find_calling_mode
+    b find_origin_context_switch
 
-    // r0, contains the value of SWI call. 
+
+        // r0-r3 contains values of swi call. 
 software_interrupt_vector:
-    push {r0-r1, lr}
-    mov r1, r0
-    bl _get_yield_val
-    cmp r0, r1           // check if the call is for a yield
-    popeq {r0-r1, lr}
-    beq _generate_timer_call
-    pop {r0-r1, lr}
-    
-    
+    mov sp, #(STACK_SVR)
     push {r0-r3, lr}
+    mov r1, r0  // mov swi arg 
+    bl _get_yield_val
+    cmp r0, r1
+    pop {r0-r3, lr}
+    beq swi_with_context_switch
+    // not yield
+    push {r0-r3, ip, lr}
     bl software_interrupt_vector_c
-    ldm	sp!, {r0-r3, pc}^
+    ldm sp!, {r0-r3, ip, pc}^
+swi_with_context_switch:
+    bl software_interrupt_vector_c
+    b _generate_context_switch
+
+
 
 data_abort_vector:
     sub lr, lr, #8

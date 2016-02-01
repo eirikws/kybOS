@@ -12,6 +12,7 @@
 #include "scheduler.h"
 #include "ipc.h"
 #include "pcb.h"
+#include "time.h"
 #define INTERRUPT_CONTROLLER_BASE   ( PERIPHERAL_BASE + 0xB200 )
 
 
@@ -25,7 +26,7 @@ static irq_controller_t* IRQController =
 /*
      Return the IRQ Controller register set
 */
-irq_controller_t* GetIrqController( void ){
+irq_controller_t* irq_controller_get( void ){
     return IRQController;
 }
 
@@ -65,6 +66,8 @@ void software_interrupt_vector_c(void* arg0, void* arg1, void* arg2, void* arg3)
         case DUMMY:
         uart_puts("DUMMY CALL!!!\r\n");
         break;
+        case YIELD:
+        uart_puts("yield!\r\n");
     }
     return;
 }
@@ -91,7 +94,8 @@ void data_abort_vector_c(uint32_t origin){
 /*
     IRQ handler
 */
-void interrupt_vector_c(void){
+uint32_t interrupt_vector_c(void){
+   /****************************************   OLD
     char c;
     static int lit = 0;
     if( lit ){
@@ -108,7 +112,7 @@ void interrupt_vector_c(void){
         uart_get()->ICR = RECEIVE_CLEAR;
         c = uart_getc();
         uart_puts("interrupt\r\n");
-    /*
+    
         // do uart stuff
         uart_get()->ICR = RECEIVE_CLEAR;
         c = uart_getc();
@@ -116,16 +120,31 @@ void interrupt_vector_c(void){
             uart_putc('\n');
             uart_putc(c);
         }else{   uart_putc(c);}
-    */
-    }
     
-    return;
+    }   OLD       ***********************/
+
+//  find irq source
+
+
+    irq_controller_t irq_flags = irq_controller_get();
+    //  timer
+    if( irq_flags->IRQ_basic_pending & ARM_TIMER_IRQ ){
+        // Do all timer things
+        return time_handler();
+    }
+    // uart
+    if ( irq_flags->IRQ_PENDING_2 & UART_IRQ){
+        // Do all uart things
+        return uart_handler();
+    }
+    return 0;
 }
 
 /*
     called everytime there is a timer interrupt, and
     when there is a yield system call
 */
+/*
 uint32_t timer_handler_c(uint32_t stack_pointer) {
     // we want to call the scheduler, which will return
     // with the correct stack pointer of the process we switch to
@@ -133,7 +152,7 @@ uint32_t timer_handler_c(uint32_t stack_pointer) {
     save_stack_ptr(get_current_running(), stack_pointer);
     process_id_t new_process = schedule();
     return pcb_get(new_process)->context_data.SP;
-}
+}*/
 
 /*
     Fast irq handler

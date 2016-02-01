@@ -14,14 +14,14 @@ static ipc_msg_t* ipc_new_node(void* payload, uint32_t size){
         return newNode;
     }
     memcpy( &(newNode->payload), payload, size);
-    newNode->sender = get_current_running();
+    newNode->sender = get_current_running_process();
     newNode->next = NULL;
     newNode->prev = NULL;
     return newNode;
 }
 
 static ipc_msg_t* msg_priority_pop(int priority){
-    PCB_t* my_pcb = pcb_get( get_current_running() );
+    PCB_t* my_pcb = pcb_get( get_current_running_process() );
     //  check priority is within bounds
     if (priority < 0 || priority > NUM_PRIORITIES){ return NULL;}
     //  if empty
@@ -58,7 +58,7 @@ static ipc_msg_t* ipc_dequeue(void){
 
 static int ipc_msg_enqueue_priority(ipc_msg_t* node, process_id_t coid){
     PCB_t* coid_pcb = pcb_get(coid);
-    int priority = pcb_get(get_current_running())->priority;
+    int priority = pcb_get( get_current_running_process() )->priority;
     //  check priority is within bounds
     if( priority < 0 || priority > NUM_PRIORITIES-1){ 
         uart_puts("IPC priority out of bounds\r\n");
@@ -122,7 +122,7 @@ void system_send(void* payload, uint32_t size, process_id_t coid){
         // wake up receiving thread
         // block the sending thread            
     ipc_msg_enqueue(payload, size, coid);
-    pcb_get(get_current_running())->state = BLOCKED;
+    pcb_get( get_current_running_process() )->state = BLOCKED;
     if (pcb_get(coid)->state == BLOCKED){
         pcb_get(coid)->state = READY;
         scheduler_enqueue(coid);
@@ -131,7 +131,7 @@ void system_send(void* payload, uint32_t size, process_id_t coid){
 }
 
 void system_receive(ipc_msg_t *recv_msg, uint32_t size, int* success){
-    PCB_t* my_pcb = pcb_get( get_current_running() );
+    PCB_t* my_pcb = pcb_get( get_current_running_process() );
     ipc_msg_t* popped_msg = ipc_dequeue();
     if ( popped_msg != NULL){
         memcpy(      (void*)recv_msg,

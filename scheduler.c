@@ -16,7 +16,8 @@ typedef struct priority_list{
 } priority_list_t;
 
 static priority_list_t priority_array[NUM_PRIORITIES];
-static process_id_t current_running = {-1};
+static process_id_t current_running_process = {-1};
+static process_id_t previous_running_process;
 
 void init_pri_array(void){
     int i;
@@ -142,22 +143,46 @@ int scheduler_enqueue(process_id_t id){
     }
     return retval;
 }
+/*
+process_id_t schedule(void){
+    // implement some kind of policy
+    // this always selects the highest priority
+    // and round robin on those with equal priority
+    int err = 0;
+    if (!pcb_id_compare( current_running_process, (process_id_t){-1})){
+        err = scheduler_enqueue(current_running_process);
+        if (err == -1){
+            uart_puts("ERROR: Scheduler enqueuing error\r\n");
+        }
+    }
+    process_id_t retval = pop_highest_priority();
+    current_running_process = retval;
+    return retval;
+}*/
 
 process_id_t schedule(void){
     // implement some kind of policy
     // this always selects the highest priority
     // and round robin on those with equal priority
     int err = 0;
-    if (!pcb_id_compare( current_running, (process_id_t){-1})){
-        err = scheduler_enqueue(current_running);
+    if (!pcb_id_compare( current_running_process, (process_id_t){-1})){
+        err = scheduler_enqueue(current_running_process);
         if (err == -1){
             uart_puts("ERROR: Scheduler enqueuing error\r\n");
         }
     }
     process_id_t retval = pop_highest_priority();
-    current_running = retval;
+    previous_running_process = current_running_process;
+    current_running_process = retval;
     return retval;
 }
+
+// save old sp, return new sp, do MMU things
+uint32_t context_switch_c(uint32_t old_sp){
+    pcb_get(previous_running_process)->context_data.SP = old_sp;
+    return pcb_get(current_running_process)->context_data.SP;
+}
+
 
 void _print_reg(uint32_t reg){
     uart_puts("print reg: ");
@@ -172,9 +197,6 @@ void _get_stack_top(uint32_t* top){
     uart_puts("\r\n");
 }
 
-process_id_t get_current_running(void){
-    return current_running;
+process_id_t get_current_running_process(void){
+    return current_running_process;
 }
-
-
-
