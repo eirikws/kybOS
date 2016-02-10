@@ -160,7 +160,7 @@ process_id_t schedule(void){
     return retval;
 }*/
 
-process_id_t schedule(void){
+void reschedule(void){
     // implement some kind of policy
     // this always selects the highest priority
     // and round robin on those with equal priority
@@ -174,13 +174,30 @@ process_id_t schedule(void){
     process_id_t retval = pop_highest_priority();
     previous_running_process = current_running_process;
     current_running_process = retval;
-    return 1;
+    return;
 }
 
 // save old sp, return new sp, do MMU things
 uint32_t context_switch_c(uint32_t old_sp){
-    pcb_get(previous_running_process)->context_data.SP = old_sp;
-    return pcb_get(current_running_process)->context_data.SP;
+    PCB_t* pcb = pcb_get( previous_running_process);
+    if (pcb == NULL){
+        uart_puts("KERN Error: Save process context_switch_c\r\n");
+    } else {
+        // if no errors, save old sp
+        pcb_get(previous_running_process)->context_data.SP = old_sp;
+    }
+
+    // load new sp
+    pcb = pcb_get( current_running_process);
+    if (pcb == NULL){
+        uart_puts("KERN Error: Load process context_switch_c\r\n");
+        //  if cant load a process stack pointer, return with...
+        //  IDK, zero I guess. Something something something...
+        return 0;
+    } else {
+        // if no errors, return the stack pointer!
+        return pcb_get(current_running_process)->context_data.SP;
+    }
 }
 
 

@@ -30,7 +30,7 @@
 .equ    STACK_UNDEF,            (61 * 1024 * 1024)
 .equ    STACK_IRQ,              (63 * 1024 * 1024)
 .equ    STACK_ABORT,            (60 * 1024 * 1024)
-
+.equ    STACK_INIT,             (59 * 1024 * 1024)
 
 /*
         Put the vector table in the ram at 0x8000.
@@ -92,12 +92,12 @@ _reset_:
     msr cpsr_c, r0
     mov sp, #(62 * 1024 * 1024)
     //  switch back to supervisor mode and set the stack pointer
-    //  towards the end of RAM. The stack will work down, and the heap up.
+    //  to init stack. The stack will work down, and the heap up.
     mov r0, #(CPSR_MODE_SVR | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r0
 
     //  set the stack pointer at some point in RAM.
-    mov sp, #(STACK_SVR)
+    mov sp, #(STACK_INIT)
 
     //  Setup the c runtime
     bl      _cstartup
@@ -106,47 +106,28 @@ _reset_:
 _inf_loop:
     b       _inf_loop
     
-    // save and restore all registers on the user stack of active thread
 
-/*
-interrupt_vector:
-    sub lr, lr, #4
-    push {r0-r3, lr}
-    
-    bl GetIrqController ldr r0, [r0, #0x0] // offset to IRQbasic pending
-   
-    
-    cmp r0, #1  // check if arm timer irq pending bit is set
-    popne {r0-r3, lr}
-    bne _prep_interrupt_vector  // if not equal, go to ordinary interrupt
-    
-    // if it is a timer interrupt, determine which mode it came from, 
-    // and branch to timer handlers
-    bl arm_timer_irq_ack
-    pop {r0-r3, lr}
-    b timer_find_calling_mode
-*/
-.data
-.balign 4
-stack_pointer:
-    .word 0
-
-.text
 interrupt_vector:
     sub lr, lr, #4
     push {r0-r3, ip, lr}
     bl interrupt_vector_c   // returns with 1 in r0 if to perform context switch
     cmp r0, #0          // if r0 is zero, do not perform context switch
-    ldmeq sp!, {r0-r4, ip, pc}^
+    ldmeq sp!, {r0-r3, ip, pc}^
     // if not, branch to context switch with correct mode
-find_origin_context_switch:
-    mrs r1, spsr
-    and r1, r1, #(CPSR_MODE_FILTER)
-    cmp r1, #(CPSR_MODE_USER)
-    popeq {r0-r3, ip, lr}
-    beq build_context_stack_user    // perform context switch from user
     pop {r0-r3, ip, lr}
-    b build_context_stack_svr    //else from supervisor
+find_origin_context_switch:
+    push {r0}
+    mrs r0, spsr
+    and r0, r0, #(CPSR_MODE_FILTER)
+    cmp r0, #(CPSR_MODE_USER)
+    popeq {r0}
+    beq build_context_stack_user    // perform context switch from user
+    cmp r0, #(CPSR_MODE_SVR)
+    popeq {r0}
+    bne build_context_stack_svr    //else from supervisor
+    // add more as needed. at this point of time interrupts
+    // are only enabled in svr and usr mode  
+
 
 build_context_stack_user:
     // save r0-r12, lr, pc, cpsr on the stack, in that sequence
@@ -193,11 +174,11 @@ build_context_stack_svr:
     b update_stack
 
 update_stack:
-    mov r0, sp
     bl context_switch_c // givecontext_switchent, returns with a new sp
 
     mov r1, sp  // irq mode sp
     mov sp, r0  // target sp
+    mov r4, r0  // store target sp in r4
     
 // determine target mode by pop the cpsr
     pop {r0}
@@ -213,10 +194,8 @@ pop_return_stack_user:
     // build the return stack
     mov r0, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r0
-    
     mov sp, r4
     pop {r0-r2}     // spsr, pc, lr
-    
     mov lr, r2
     mov r3, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r3
@@ -235,9 +214,7 @@ pop_return_stack_user:
     mov r1, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r1
     push {r0}
-    
-    ldm sp!, {r0-r12}
-    ldm sp!, {pc}^
+    ldm sp!, {r0-r12, pc}^
     
 
 pop_return_stack_svr:
@@ -246,7 +223,7 @@ pop_return_stack_svr:
     msr cpsr_c, r0
     
     mov sp, r4
-    pop {r0-r2}// spsr, pc, lr
+    pop {r0-r2} // spsr, pc, lr
     
     mov lr, r2
     mov r3, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
@@ -266,15 +243,14 @@ pop_return_stack_svr:
     mov r1, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r1
     push {r0}
-    
-    ldm sp!, {r0-r12}
-    ldm sp!, {pc}^
+
+    ldm sp!, {r0-r12, pc}^
     
     //  Called when a user thread wants to generate a reschedule
     //  with a swi call. This branch is called in SVR mode.
     //  must move SPSR and LR to IRQ mode
-_generate_context_switch:
-    push {r0-r3}
+software_context_switch:
+    push {r0-r2}
     mrs r0, spsr
     mov r1, lr
     mov r2, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
@@ -285,37 +261,56 @@ _generate_context_switch:
     mov r2, #(CPSR_MODE_SVR | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r2
     pop {r0-r2}
-    mov r3, r2
-    mov r2, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
-    msr cpsr_c, r2
-    mov r2, r3
+    mov r3, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
+    msr cpsr_c, r3
     pop {r3}
     b find_origin_context_switch
 
-
-        // r0-r3 contains values of swi call. 
 software_interrupt_vector:
+    // use OS svr stack
+    push {r4}   // store r4 for extra space
+    mov r4, sp  // store current process stack in r4
     mov sp, #(STACK_SVR)
-    push {r0-r3, lr}
-    mov r1, r0  // mov swi arg 
-    bl _get_yield_val
-    cmp r0, r1
-    pop {r0-r3, lr}
-    beq swi_with_context_switch
-    // not yield
-    push {r0-r3, ip, lr}
-    bl software_interrupt_vector_c
-    ldm sp!, {r0-r3, ip, pc}^
-swi_with_context_switch:
-    bl software_interrupt_vector_c
-    b _generate_context_switch
 
+    // call the software interrupt vector in c
+    push {ip, lr}
+    bl software_interrupt_vector_c
+    pop {ip, lr}
+    mov sp, r4  // move current process stack back into sp
+    pop {r4}    // retrieve r4 that was stored earlier
+    // there is now zero stack used
+    // check if to context switch
+    // software_interrupt_vector_c returns with 1 or 0.
+    // 1 means to context swith!
+    cmp r0, #0
+    bne software_context_switch
+    // if not, return
+    push {lr}
+    ldm sp!,{pc}^
+
+
+prefetch_abort_vector:
+    sub lr, lr, #4
+    push {r0-r3, ip, lr}
+    mov r0, lr
+    mrs r3, cpsr
+    mrs r2, spsr
+    msr cpsr_c, r2 
+    mov r1, sp
+    msr cpsr_c, r3
+    bl prefetch_abort_vector_c
+    ldm sp!, {r0-r3, ip, pc}^
 
 
 data_abort_vector:
     sub lr, lr, #8
     push {r0, r1, r2, r3, ip, lr}
     mov r0, lr
+    mrs r3, cpsr
+    mrs r2, spsr
+    msr cpsr_c, r2 
+    mov r1, sp
+    msr cpsr_c, r3
     bl data_abort_vector_c
     ldm sp!, {r0-r3, ip, pc}^
 
@@ -339,10 +334,9 @@ _get_user_sp:
     mov pc, lr
 
 _SYSTEM_CALL:
-    push {r0-r3, lr}
+    push {ip, lr}
     swi #0
-    pop {r0-r3, lr}
-    mov pc, lr
+    pop {ip, pc}
 
 _get_cpsr:
     mrs r0, cpsr
@@ -408,7 +402,3 @@ _enable_interrupts:
     bic     r0, r0, #0x80
     msr     cpsr_c, r0
     mov     pc, lr
-
-
-
- 

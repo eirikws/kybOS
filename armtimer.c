@@ -27,7 +27,7 @@ void arm_timer_set_frq(int freq){
 
 void arm_timer_init(void){
     //  enable the timer interrupt IRQ
-    GetIrqController()->Enable_Basic_IRQs |= ARM_TIMER_IRQ;
+    irq_controller_get()->Enable_Basic_IRQs |= ARM_TIMER_IRQ;
     
     arm_timer_get()->Control =
             ARMTIMER_CTRL_23BIT |

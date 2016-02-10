@@ -41,7 +41,9 @@ add_executable( kybOS
     jtag.h
     mmu.c
     mmu.h
-    barrier.h)
+    barrier.h
+    time.c
+    time.h)
 
 add_custom_command(
     TARGET kybOS POST_BUILD

@@ -52,22 +52,31 @@ void __attribute__((interrupt("UNDEF"))) undefined_instruction_vector(void){
 
 
 /*
-    Software interrupt handler. This switches to supervisor mode
+    Software interrupt handler.
+    return 1 for context switch
+    return 0 for no context switch
 */
-void software_interrupt_vector_c(void* arg0, void* arg1, void* arg2, void* arg3){
+uint32_t software_interrupt_vector_c(void* arg0, void* arg1, void* arg2, void* arg3){
     uint32_t size;
     switch( (system_call_t)arg0) {
         case IPC_SEND: 
         system_send(arg1, (uint32_t)arg2, *(process_id_t*)arg3);
+        reschedule();
+        return 1;
         break;
         case IPC_RECV:
-        system_receive(arg1, (uint32_t)arg2, (int*)arg3);
+        system_receive(arg1, (uint32_t)arg2);
+        reschedule();
+        return 1;
         break;
         case DUMMY:
         uart_puts("DUMMY CALL!!!\r\n");
+        return 0;
         break;
         case YIELD:
-        uart_puts("yield!\r\n");
+        reschedule();
+        return 1;
+        break;
     }
     return;
 }
@@ -76,17 +85,23 @@ void software_interrupt_vector_c(void* arg0, void* arg1, void* arg2, void* arg3)
 /*
     Pefetch abort interrupt handler
 */
-void __attribute__((interrupt("ABORT"))) prefetch_abort_vector(void){
-    uart_puts("prefetch abort\r\n");
+void prefetch_abort_vector_c( uint32_t origin, uint32_t stack ){
+    uart_puts("prefetch abort from: ");
+    uart_put_uint32_t(origin, 16);
+    uart_puts(" with stack: ");
+    uart_put_uint32_t(stack, 16);
+    uart_puts("\r\n");
 }
 
 
 /*
     Data abort interrupt handler
 */
-void data_abort_vector_c(uint32_t origin){
+void data_abort_vector_c( uint32_t origin, uint32_t stack ){
     uart_puts("data abort from: ");
     uart_put_uint32_t(origin , 16);
+    uart_puts(" with stack: ");
+    uart_put_uint32_t(stack, 16);
     uart_puts("\r\n");
 }
 
@@ -126,14 +141,14 @@ uint32_t interrupt_vector_c(void){
 //  find irq source
 
 
-    irq_controller_t irq_flags = irq_controller_get();
+    irq_controller_t *irq_flags = irq_controller_get();
     //  timer
     if( irq_flags->IRQ_basic_pending & ARM_TIMER_IRQ ){
         // Do all timer things
         return time_handler();
     }
     // uart
-    if ( irq_flags->IRQ_PENDING_2 & UART_IRQ){
+    if ( irq_flags->IRQ_pending_2 & UART_IRQ){
         // Do all uart things
         return uart_handler();
     }

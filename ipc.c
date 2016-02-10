@@ -96,20 +96,14 @@ void extern _SYSTEM_CALL(system_call_t arg0, void* arg1, void* arg2, void* arg3)
 */
 int ipc_send(process_id_t coid, const void* smsg, int size){
     _SYSTEM_CALL(IPC_SEND,(void*)smsg, (void*)size, (void*)&coid);
-    _SYSTEM_CALL(YIELD, NULL, NULL, NULL);
+   // _SYSTEM_CALL(YIELD, NULL, NULL, NULL);
     return 1;
 }
 
 process_id_t ipc_receive(void* rmsg, int size){
-    int success = 0;
     process_id_t sender;
     ipc_msg_t* recv_msg = malloc( sizeof(ipc_msg_t) + size);
-    while(success == 0){
-        _SYSTEM_CALL(IPC_RECV, recv_msg, (void*)size, &success);
-        if (success == 0){
-            _SYSTEM_CALL(YIELD,NULL,NULL,NULL);
-        }
-    }
+    _SYSTEM_CALL(IPC_RECV, recv_msg, (void*)size, 0);
     memcpy(rmsg, recv_msg->payload, size);
     sender = recv_msg->sender;
     free(recv_msg);
@@ -130,7 +124,7 @@ void system_send(void* payload, uint32_t size, process_id_t coid){
     return;
 }
 
-void system_receive(ipc_msg_t *recv_msg, uint32_t size, int* success){
+void system_receive(ipc_msg_t *recv_msg, uint32_t size){
     PCB_t* my_pcb = pcb_get( get_current_running_process() );
     ipc_msg_t* popped_msg = ipc_dequeue();
     if ( popped_msg != NULL){
@@ -140,12 +134,10 @@ void system_receive(ipc_msg_t *recv_msg, uint32_t size, int* success){
         free(popped_msg);
         pcb_get(recv_msg->sender)->state=READY;
         scheduler_enqueue(recv_msg->sender);
-        *success = 1;
     }
     else{
         my_pcb->state = BLOCKED;
         //my_pcb->waiting_msg_from = coid;
-        *success = 0;
     }
 }
 

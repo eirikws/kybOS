@@ -40,7 +40,6 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     
     //delay(10000000);
     
-    
     init_pri_array();
     uart_puts("starting mmu\r\n");
     mmu_init_table();
@@ -50,6 +49,8 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     
     _SYSTEM_CALL(DUMMY,0,0,0);
     
+
+    uart_puts("hehe\n\r");
     //  enable LED pin as an output 
     get_gpio()->LED_GPFSEL |= LED_GPFBIT;
     /* Enable interrupts! */
@@ -67,7 +68,7 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     thread_start( (process_id_t){3}, 0);
     uart_puts("threads_started. starting timer irqs\r\n");
     arm_timer_set_frq(1);
-    arm_timer_init();
+    //arm_timer_init();
     _SYSTEM_CALL(YIELD,0,0,0);
     
      /* Never exit as there is no OS to exit to! */

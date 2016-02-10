@@ -48,6 +48,6 @@ typedef struct irq_controller{
 } irq_controller_t;
 
 
-irq_controller_t* GetIrqController( void );
+irq_controller_t* irq_controller_get( void );
 
 #endif

@@ -26,6 +26,11 @@ int thread_register(void (* f)(void), size_t priority,size_t stack_space,
                                             (uint32_t)f,
                                             mode);
     pcb_insert(pcb);
+    uart_puts("thread allocaded. stack at ");
+    uart_put_uint32_t(pcb.context_data.SP, 16);
+    uart_puts(" and program start at ");
+    uart_put_uint32_t((uint32_t)f, 16);
+    uart_puts("\r\n");
     return 1;
 }
 

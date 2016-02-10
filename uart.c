@@ -65,7 +65,7 @@ void uart_init( void ){
     uart_get()->IMSC   |= RECEIVE_MASK_BIT;
 
     //  restart uart again
-    GetIrqController()->Enable_IRQs_2 |= UART_IRQ;
+    irq_controller_get()->Enable_IRQs_2 |= UART_IRQ;
     uart_get()->CR = UART_ENABLE | TRANSMIT_ENABLE | RECEIVE_ENABLE;
 }
 
@@ -143,3 +143,15 @@ void print_alot(void){
     }
 }
 
+uint32_t uart_handler(){
+    char c;
+    static int lit = 0;
+    if( lit ){
+        get_gpio()->LED_GPSET = (1 << LED_GPIO_BIT);
+        lit = 0;
+    } else {
+        get_gpio()->LED_GPCLR = (1 << LED_GPIO_BIT);
+        lit = 1;
+    }
+    return 0;
+}
