@@ -63,6 +63,15 @@ void cpu_control_config(void){
 	asm volatile ("mcr p15, 0, %0, c1, c0, 0" :: "r" (mode) : "memory");
 }
 
+void cpu_set_irq_vectors_high(void){
+    uint32_t w_reg;
+    asm volatile ("mrc p15, 0, %0, c1, c0, 0" : "=r" (w_reg));
+    w_reg |= VECTORS_HIGH;
+    asm volatile ("mrc p15, 0, %0, c1, c0, 0" :: "r" (w_reg) : "memory");
+
+
+}
+
 char cpu_mode_print(void){
     int32_t cpsr = _get_cpsr();
     int32_t mode = cpsr & 0b11111;

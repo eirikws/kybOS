@@ -48,6 +48,9 @@ typedef struct {
 
 arm_timer_t* GetArmTimer(void);
 void arm_timer_irq_ack(void);
-void arm_timer_set_frq(int freq);
+void arm_timer_set_freq(int freq);
 void arm_timer_init(void);
+int arm_timer_get_freq(void);
+
+
 #endif

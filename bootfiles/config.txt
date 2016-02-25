@@ -1,4 +1,9 @@
-
+#set system clock
 arm_freq=1000
+#set kernel name
+KERNEL=kernel.img
+#set kernel load address
+KERNEL_ADDRESS=0x8000
+
 
 

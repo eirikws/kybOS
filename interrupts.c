@@ -140,7 +140,6 @@ uint32_t interrupt_vector_c(void){
 
 //  find irq source
 
-
     irq_controller_t *irq_flags = irq_controller_get();
     //  timer
     if( irq_flags->IRQ_basic_pending & ARM_TIMER_IRQ ){
