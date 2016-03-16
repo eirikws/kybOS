@@ -43,3 +43,4 @@ void arm_timer_init(void){
             ARMTIMER_CTRL_INT_ENABLE |
             ARMTIMER_CTRL_PRESCALE_256;
 }
+

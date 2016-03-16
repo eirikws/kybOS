@@ -36,6 +36,10 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     uart_put_uint32_t(0xFFFFFFFF, 16);
     uart_puts("\r\n");
     
+    uart_puts("sizeof int64_t");
+    uart_put_uint32_t(sizeof(uint64_t), 10);
+    uart_puts("\r\n");
+
     jtag_enable();
     
     //delay(10000000);
@@ -50,24 +54,37 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     _SYSTEM_CALL(DUMMY,0,0,0);
     
 
-    uart_puts("hehe\n\r");
     //  enable LED pin as an output 
     get_gpio()->LED_GPFSEL |= LED_GPFBIT;
     /* Enable interrupts! */
     
+    uart_puts("enabling emmc\r\n");
+    emmc_card_init();
+
+
+
+
     uart_puts("registering threads\r\n");
     //  registering first threads!
-    thread_register( prog2, 10,1000, (process_id_t){2}, CPSR_MODE_USER);
-    thread_register( prog1, 10,1000, (process_id_t){1}, CPSR_MODE_USER);
-    thread_register( prog3, 1 ,1000, (process_id_t){3}, CPSR_MODE_USER);
+    
+    thread_register( prog4, 10, 1000, (process_id_t){4}, CPSR_MODE_USER);
+   // thread_register( prog2, 10,1000, (process_id_t){2}, CPSR_MODE_USER);
+   // thread_register( prog2, 10,1000, (process_id_t){1}, CPSR_MODE_USER);
+   // thread_register( prog3, 1 ,1000, (process_id_t){3}, CPSR_MODE_USER);
+    
     uart_puts("starting threads\r\n");
     pcb_print();
     //  starting them
-    thread_start( (process_id_t){1}, 0);
-    thread_start( (process_id_t){2}, 0);
-    thread_start( (process_id_t){3}, 0);
+    
+    thread_start( (process_id_t){4}, 0);          
+   // thread_start( (process_id_t){1}, 0);
+   // thread_start( (process_id_t){2}, 0);
+   // thread_start( (process_id_t){3}, 0);          
+    
+    
+    
     uart_puts("threads_started. starting timer irqs\r\n");
-    arm_timer_set_freq(10000);
+    arm_timer_set_freq(1000);
     arm_timer_init();
     _SYSTEM_CALL(YIELD,0,0,0);
     

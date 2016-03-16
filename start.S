@@ -1,18 +1,16 @@
-
 .section ".text.startup"
 
 .global _start
 .global _get_stack_pointer
-.global _exception_table
 .global _enable_interrupts
 .global _get_cpsr
 .global _set_cpu_mode
 .global _SYSTEM_CALL
 .global _init_thr_stack
 .global _push_stack_pointer
-.global _get_user_sp
 .global _generate_yield
-
+.global _init_branch
+.global _gpio_fsel
 
 //  STATUS/MODE REGISTER
 .equ    CPSR_MODE_FILTER,       0x1F 
@@ -60,11 +58,14 @@ _unused_handler_h:                  .word   _reset_
 _interrupt_vector_h:                .word   interrupt_vector
 _fast_interrupt_vector_h:           .word   fast_interrupt_vector
 
+
+
+
 _reset_:
     // We enter execution in supervisor mode!
     
     // Copy _start and the table from 0x8000 to 0x0000
-    mov     r0, #0x8000
+    ldr     r0, =_start
     mov     r1, #0x0000
     ldmia   r0!,{r2, r3, r4, r5, r6, r7, r8, r9}
     stmia   r1!,{r2, r3, r4, r5, r6, r7, r8, r9}
@@ -388,8 +389,7 @@ _init_thr_stack:
     // r0-r12
 // location is packaged with in the SP
      
-     
-     
+
      
 _set_cpu_mode:
     //  store lr in r2, becuase lr is banked for different cpu modes    

@@ -89,5 +89,6 @@ typedef struct {
 
 gpio_t* get_gpio(void);
 void gpio_init(void);
+void gpio_jtag_enable(void);
 
 #endif

@@ -5,7 +5,7 @@
 #include "pcb.h"
 #include "prog1.h"
 #include "ipc.h"
-
+#include "time.h"
 
 void prog1(void){
     uint32_t x=0;
@@ -43,5 +43,18 @@ void prog3(void){
     while(1){
         x++;
         uart_puts("3 is runniiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiing\r\n");
+    }
+}
+
+void prog4(void){
+    time_unit_t mytime;
+    while(1){
+        mytime = time_get();
+        uart_puts("seconds and increments passes since started: ");
+        uart_put_uint32_t(mytime.seconds, 10);
+        uart_puts(",");
+        uart_put_uint32_t(mytime.increments, 10);
+        uart_puts("\r\n");
+        time_delay_microseconds(1000);
     }
 }

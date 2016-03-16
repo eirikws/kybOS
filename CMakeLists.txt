@@ -43,7 +43,11 @@ add_executable( kybOS
     mmu.h
     barrier.h
     time.c
-    time.h)
+    time.h
+    emmc.c
+    emmc.h
+    mailbox.c
+    mailbox.h)
 
 add_custom_command(
     TARGET kybOS POST_BUILD

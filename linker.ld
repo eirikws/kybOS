@@ -68,7 +68,7 @@ SECTIONS {
   .plt            : { *(.plt) }
   .iplt           : { *(.iplt) }
   .text           :
-  {
+  { *( text.init)
     *(.text.unlikely .text.*_unlikely)
     *(.text.exit .text.exit.*)
     *(.text.startup .text.startup.*)

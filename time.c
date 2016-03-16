@@ -2,11 +2,8 @@
 #include "armtimer.h"
 #include "scheduler.h"
 
-static unsigned int time_increments = 0;
-static unsigned long long seconds = 0;
-
-
-
+// the main time keeper in kybos. incremented each timer interrupt.
+static time_unit_t system_time;
 
 /*
  * Check if it is time for rescheduling
@@ -23,12 +20,11 @@ int time_for_reschedule(){
  */
 uint32_t time_handler(void){
     arm_timer_irq_ack();
-    time_increments++;
-    if (time_increments > arm_timer_get_freq()){
-        seconds++;
-        time_increments = 0;
+    system_time.increments++;
+    if (system_time.increments >= arm_timer_get_freq()){
+        system_time.seconds++;
+        system_time.increments = 0;
     }
-    uart_puts("|");
     // Check if we want to schedule
     if ( time_for_reschedule() ){
         reschedule();
@@ -38,10 +34,29 @@ uint32_t time_handler(void){
     }
 }
 
-unsigned int time_increments_get(void){
-    return time_increments;
+time_unit_t time_get(void){
+    return system_time;
 }
 
-unsigned long long time_get_seconds(void){
-    return seconds;
+void time_add_microseconds(time_unit_t *time_in, int n){
+    int irq_freq = arm_timer_get_freq();
+    int additional_increments = n * (irq_freq / 1000);
+    time_in->seconds +=  (additional_increments + time_in->increments)/ irq_freq;
+    time_in->increments = (additional_increments + time_in->increments) % irq_freq;
+}
+
+int time_compare(time_unit_t op1, time_unit_t op2){
+    if (op1.seconds > op2.seconds){ return 1;}
+    else if (op1.seconds < op2.seconds){ return -1;}
+    else if (op1.increments > op2.increments){ return 1;}
+    else if (op1.increments < op2.increments){ return -1;}
+    return 0;
+}
+
+
+int time_delay_microseconds(int n){
+    time_unit_t time_now = system_time;
+    time_add_microseconds(&time_now, n);
+    while( time_compare(time_now, time_get()) == 1){}
+    return 1;
 }

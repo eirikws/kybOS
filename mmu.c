@@ -123,3 +123,10 @@ void mmu_remap_section(uint32_t virt, uint32_t physical, uint32_t config_flags){
     // 5. data barrier
     barrier_data_sync();
 }
+
+void mmu_cache_invalidate(uint32_t address){
+    asm volatile ("mcr p15, 0, %0, c7, c14, 1"::"r"(address));
+    barrier_data_mem();
+    barrier_data_sync();
+}
+

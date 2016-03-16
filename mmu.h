@@ -46,7 +46,6 @@
 void mmu_init(void);
 void mmu_init_table(void);
 void mmu_remap(uint32_t virt,uint32_t physical, uint32_t config_flags);
-
-
+void mmu_cache_invalidate(uint32_t address);
 
 #endif

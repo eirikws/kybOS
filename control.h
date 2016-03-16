@@ -21,6 +21,10 @@ typedef enum{
  */
 void cpu_control_config(void);
 
+
+void cpu_cache_disable(void);
+void cpu_cache_enable(void);
+
 /*  
  *  get the current CPU mode
 */

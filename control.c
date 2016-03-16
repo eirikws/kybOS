@@ -63,6 +63,19 @@ void cpu_control_config(void){
 	asm volatile ("mcr p15, 0, %0, c1, c0, 0" :: "r" (mode) : "memory");
 }
 
+void cpu_cache_disable(void){
+    uint32_t reg;
+    asm volatile ("mrc p15, 0, %0, c1, c0, 0" : "=r" (reg));
+    reg &= ~(CACHE_DATA_ENABLE);
+    asm volatile ("mcr p15, 0, %0, c1, c0, 0" :: "r" (reg) : "memory");
+}
+
+void cpu_cache_enable(void){
+    uint32_t reg;
+    asm volatile ("mrc p15, 0, %0, c1, c0, 0" : "=r" (reg));
+    reg |= (CACHE_DATA_ENABLE);
+    asm volatile ("mcr p15, 0, %0, c1, c0, 0" :: "r" (reg) : "memory");
+}
 void cpu_set_irq_vectors_high(void){
     uint32_t w_reg;
     asm volatile ("mrc p15, 0, %0, c1, c0, 0" : "=r" (w_reg));
