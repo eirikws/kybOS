@@ -7,6 +7,7 @@ project( kybOS C ASM)
 #   are in the toolchain files toolchain-arm-none-eabi-bcm2835.cmake, etc.
 set( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O1" )
 set( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -nostartfiles" )
+set( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall" )
 
 #   Set the linker flags so that we use our "custom" linker script
 set( CMAKE_EXE_LINKER_FLAGS "-Wl,-T,${PROJECT_SOURCE_DIR}/linker.ld" )

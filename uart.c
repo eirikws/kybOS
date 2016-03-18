@@ -143,8 +143,7 @@ void print_alot(void){
     }
 }
 
-uint32_t uart_handler(){
-    char c;
+uint32_t uart_handler(void){
     static int lit = 0;
     if( lit ){
         get_gpio()->LED_GPSET = (1 << LED_GPIO_BIT);

@@ -3,9 +3,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include "interrupts.h"
-#include "ipc.h"
 #include "scheduler.h"
 #include "pcb.h"
+#include "uart.h"
+#include "ipc.h"
 
 static ipc_msg_t* ipc_new_node(void* payload, uint32_t size){
     ipc_msg_t *newNode = malloc(sizeof(ipc_msg_t) + size);
@@ -82,7 +83,7 @@ int ipc_msg_enqueue(void* payload, uint32_t size, process_id_t coid){
     ipc_msg_t* node =  ipc_new_node(payload, size);
     if (pcb_get(coid) == NULL){
         uart_puts("ipc msg enqueue coid_pcb == NULL     coid == ");
-        uart_put_uint32_t(coid, 10);
+        uart_put_uint32_t(coid.id_number, 10);
         uart_puts("\r\n");
         return -1;
     }

@@ -1,6 +1,7 @@
 
 #include <stdlib.h>
 
+#include "uart.h"
 #include "pcb.h"
 #include "scheduler.h"
 #include "threading.h"
@@ -40,5 +41,5 @@ int thread_start( process_id_t id, void* arg){
         uart_puts("pcb NULL\r\n");
         return -1;
     }
-    scheduler_enqueue(id);
+    return scheduler_enqueue(id);
 }

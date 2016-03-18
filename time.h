@@ -9,7 +9,7 @@ typedef struct{
 } time_unit_t;
 
 // called from main irq handeler if a timer has made a interrupt.
-uint32_t timer_handler(void);
+uint32_t time_handler(void);
 
 // function for getting the time.
 time_unit_t time_get(void);

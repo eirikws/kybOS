@@ -117,5 +117,5 @@ char cpu_mode_print(void){
             uart_puts("CPSR_MODE_SYSTEM\r\n");
             return CPSR_MODE_SYSTEM;
             break;
-    }
+    }return 0;
 }

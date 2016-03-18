@@ -1,6 +1,9 @@
 #include <string.h>
+#include <stdint.h>
 #include <stdlib.h>
 
+#include "jtag.h"
+#include "mmu.h"
 #include "pcb.h"
 #include "gpio.h"
 #include "armtimer.h"
@@ -9,6 +12,7 @@
 #include "control.h"
 #include "threading.h"
 #include "prog1.h"
+#include "emmc.h"
 
 extern void _enable_interrupts();
 void extern _SYSTEM_CALL(system_call_t arg0, void* arg1, void* arg2, void* arg3);
@@ -44,7 +48,7 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     
     //delay(10000000);
     
-    init_pri_array();
+    //init_pri_array();
     uart_puts("starting mmu\r\n");
     mmu_init_table();
     mmu_configure();

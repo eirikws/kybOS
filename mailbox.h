@@ -9,12 +9,49 @@ uint32_t mailbox_read(uint8_t chan);
 
 uint32_t mailbox_write_read(volatile uint32_t *addr, uint8_t chan);
 
+//  Clock IDs
+enum{
+    MAILBOX_CLOCK_EMMC          = 1,
+    MAILBOX_CLOCK_UART          = 2,
+    MAILBOX_CLOCK_ARM           = 3,
+    MAILBOX_CLOCK_CORE          = 4,
+    MAILBOX_CLOCK_V3D           = 5,
+    MAILBOX_CLOCK_H264          = 6,
+    MAILBOX_CLOCK_ISP           = 7,
+    MAILBOX_CLOCK_SDRAM         = 8,
+    MAILBOX_CLOCK_PIXEL         = 9,
+    MAILBOX_CLOCK_PWM           = 10,
+};
+
+//  Unique power IDs
+enum{
+    MAILBOX_SD_CARD             = 0,
+    MAILBOX_UART0               = 1,
+    MAILBOX_UART1               = 2,
+    MAILBOX_USB                 = 3,
+    MAILBOX_I2C0                = 4,
+    MAILBOX_I2C1                = 5,
+    MAILBOX_I2C2                = 6,
+    MAILBOX_SPI                 = 7,
+    MAILBOX_CCP2TX              = 8,
+};
+
+
+// Mailbox channels
+enum{
+    MAILBOX_POWER_MANAGEMENT    = 0,
+    MAILBOX_FRAMEBUFFER         = 1,
+    MAILBOX_VITUAL_UART         = 2,
+    MAILBOX_VCHIQ               = 3,
+    MAILBOX_LEDS                = 4,
+    MAILBOX_BUTTONS             = 5,
+    MAILBOX_TOUCHSCREEN         = 6,
+    MAILBOX_ARM_TO_VC           = 8,
+    MAILBOX_VC_TO_ARM           = 9,
+};
 
 enum {  
     MAILBOX_REQUEST = 0,
-};    
-
-enum {
     MAILBOX_REQUEST_SUCCESSFUL 	= 0x80000000,
     MAILBOX_REQUEST_FAILED 		= 0x80000001
 };
@@ -102,6 +139,4 @@ enum {
 	MAILBOX_SET_CURSOR_INFO             = 0x00008010,
 	MAILBOX_SET_CURSOR_STATE            = 0x00008011,
 };
-
-
 #endif

@@ -26,34 +26,6 @@ typedef struct emmc_scr{
     int emmc_version;
 } emmc_scr_t;
 
-typedef struct emmc_block_dev{
-    block_device_t bd;
-    uint32_t card_supports_emmchc;
-    uint32_t card_suppoerts_18v;
-    uint32_t card_ocr;
-    uint32_t card_rca;
-    uint32_t last_interrupt;
-    uint32_t last_error;
-    
-    emmc_scr_t *scr;
-
-    int failed_voltage_switch;
-
-    uint32_t last_cmd_reg;
-    uint32_t last_cmd;
-    uint32_t last_cmd_success;
-    uint32_t last_r0;
-    uint32_t last_r1;
-    uint32_t last_r2;
-    uint32_t last_r3;
-
-    void    *buf;
-    int     block_to_transfer;
-    uint32_t block_size;
-    int use_emmcma;
-    int card_removal;
-    uint32_t base_clock;
-} emmc_block_dev_t;
 
 typedef struct{
      volatile uint32_t ARG2;          // ACMD23 Argument                        0-4
@@ -92,7 +64,7 @@ typedef struct{
 
 emmc_controller_t *emmc_get(void);
 int emmc_card_init(void);
-int emmc_read(struct block_device *dev, uint8_t *buf, uint32_t buf_size, uint32_t block_no);
-int emmc_write(struct block_device *dev, uint8_t *buf, uint32_t buf_size, uint32_t block_no);
-int emmc_command( emmc_block_dev_t *dev, uint32_t command, uint32_t arg, uint32_t useconds_timeout);
+int emmc_read(uint8_t *buf, uint32_t buf_size, uint32_t block_no);
+int emmc_write(uint8_t *buf, uint32_t buf_size, uint32_t block_no);
+int emmc_command(uint32_t command, uint32_t arg, uint32_t useconds_timeout);
 #endif

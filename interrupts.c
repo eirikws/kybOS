@@ -57,7 +57,6 @@ void __attribute__((interrupt("UNDEF"))) undefined_instruction_vector(void){
     return 0 for no context switch
 */
 uint32_t software_interrupt_vector_c(void* arg0, void* arg1, void* arg2, void* arg3){
-    uint32_t size;
     switch( (system_call_t)arg0) {
         case IPC_SEND: 
         system_send(arg1, (uint32_t)arg2, *(process_id_t*)arg3);
@@ -78,7 +77,8 @@ uint32_t software_interrupt_vector_c(void* arg0, void* arg1, void* arg2, void* a
         return 1;
         break;
     }
-    return;
+    uart_puts("Software irq vector c: did not find source of exception!\r\n");
+    return 0;
 }
 
 
@@ -154,19 +154,6 @@ uint32_t interrupt_vector_c(void){
     return 0;
 }
 
-/*
-    called everytime there is a timer interrupt, and
-    when there is a yield system call
-*/
-/*
-uint32_t timer_handler_c(uint32_t stack_pointer) {
-    // we want to call the scheduler, which will return
-    // with the correct stack pointer of the process we switch to
-    // save current stack pointer in PCB
-    save_stack_ptr(get_current_running(), stack_pointer);
-    process_id_t new_process = schedule();
-    return pcb_get(new_process)->context_data.SP;
-}*/
 
 /*
     Fast irq handler

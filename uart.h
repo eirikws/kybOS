@@ -139,5 +139,6 @@ void uart_putc(unsigned char byte);
 uart_controller_t* uart_get( void );
 void uart_put_uint32_t(uint32_t,int base);
 void print_alot(void);
+uint32_t uart_handler(void);
 
 #endif

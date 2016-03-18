@@ -44,6 +44,7 @@
 #define SECTION_DEVICE_NON_SHAREABLE    ((2 << SECTION_TEX) | (0 << SECTION_C) | (0 << SECTION_B))
 
 void mmu_init(void);
+void mmu_configure(void);
 void mmu_init_table(void);
 void mmu_remap(uint32_t virt,uint32_t physical, uint32_t config_flags);
 void mmu_cache_invalidate(uint32_t address);

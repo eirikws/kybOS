@@ -134,31 +134,14 @@ static int priority_enqueue(priority_node_t* node, int priority){
 int scheduler_enqueue(process_id_t id){
     priority_node_t* node =  newNode(id);
     PCB_t* mypcb = pcb_get(id);
-    int retval;
     if (mypcb == NULL){ 
         return -1;
     }
     if (mypcb->state == READY){
-        retval = priority_enqueue( node, mypcb->priority );
+        return priority_enqueue( node, mypcb->priority );
     }
-    return retval;
+    return -1;
 }
-/*
-process_id_t schedule(void){
-    // implement some kind of policy
-    // this always selects the highest priority
-    // and round robin on those with equal priority
-    int err = 0;
-    if (!pcb_id_compare( current_running_process, (process_id_t){-1})){
-        err = scheduler_enqueue(current_running_process);
-        if (err == -1){
-            uart_puts("ERROR: Scheduler enqueuing error\r\n");
-        }
-    }
-    process_id_t retval = pop_highest_priority();
-    current_running_process = retval;
-    return retval;
-}*/
 
 void reschedule(void){
     // implement some kind of policy
