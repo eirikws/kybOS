@@ -32,7 +32,7 @@ typedef struct{
      volatile uint32_t BLKSIZECNT;    // Block size and count                   4-8
      volatile uint32_t ARG1;          // Argument                               8-c
      volatile uint32_t CMDTM;         // Command and transfer mode              c-10
-     volatile uint32_t RESPO;         // Response bits 31 : 0                   10-14
+     volatile uint32_t RESP0;         // Response bits 31 : 0                   10-14
      volatile uint32_t RESP1;         // Response bits 63 : 32                  14-18
      volatile uint32_t RESP2;         // Response bits 95 : 64                  18-1c
      volatile uint32_t RESP3;         // Response bits 127 : 96                 1c-20
@@ -66,5 +66,5 @@ emmc_controller_t *emmc_get(void);
 int emmc_card_init(void);
 int emmc_read(uint8_t *buf, uint32_t buf_size, uint32_t block_no);
 int emmc_write(uint8_t *buf, uint32_t buf_size, uint32_t block_no);
-int emmc_command(uint32_t command, uint32_t arg, uint32_t useconds_timeout);
+int emmc_command(uint32_t command, uint32_t arg, uint32_t timeout_msec);
 #endif

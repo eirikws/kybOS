@@ -1,6 +1,7 @@
 #include "time.h"
 #include "armtimer.h"
 #include "scheduler.h"
+#include "uart.h"
 
 // the main time keeper in kybos. incremented each timer interrupt.
 static time_unit_t system_time;
