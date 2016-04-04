@@ -10,8 +10,14 @@ static time_unit_t system_time;
  * Check if it is time for rescheduling
  */
 
-int time_for_reschedule(){
-    return 1;
+static int scheduling_on = 0;
+
+void scheduling_set(int onOff){
+    scheduling_on = onOff;
+}
+
+static int time_for_reschedule(){
+    return scheduling_on;
 }
 
 

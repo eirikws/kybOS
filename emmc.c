@@ -34,6 +34,7 @@ static int timeout_wait(volatile uint32_t *reg, uint32_t mask, int value, uint32
 typedef struct emmc_block_dev{
     uint32_t card_supports_emmchc;
     uint32_t card_ocr;
+    uint32_t card_supports_18v;
     uint32_t card_rca;
     uint32_t last_interrupt;
     uint32_t last_error;
@@ -132,6 +133,7 @@ emmc_dev_t emmc_dev;
 #define CEND_ERR            (1 << 18)
 #define CCRC_ERR            (1 << 17)
 #define CTO_ERR             (1 << 16)
+#define IS_ERROR            (1 << 15)
 #define ENDBOOT             (1 << 14)
 #define BOOTACK             (1 << 13)
 #define RETUNE              (1 << 12)
@@ -515,12 +517,21 @@ static int emmc_reset_cmd(void){
 }
 
 static void emmc_command_int( uint32_t cmd_reg, uint32_t arg, uint32_t timeout_msec){
+    uart_puts("blocks to transfer: ");
+    uart_put_uint32_t(emmc_dev.blocks_to_transfer, 10);
+    uart_puts("\r\n");
     emmc_dev.last_cmd_reg = cmd_reg;
     emmc_dev.last_cmd_success = 0;
-    
+    uart_puts("enter command_int\r\n");
     //  check cmd inhibit
     while( emmc_get()->STATUS & CMD_INHIBIT){
-        time_delay_microseconds(1);
+        uart_puts("checking cmd inhibit     ");
+        uart_put_uint32_t(emmc_get()->STATUS, 16);
+        uart_puts("\r\n");
+        time_delay_microseconds(1000);
+        uart_puts("checking cmd inhibit INTERRUPT     ");
+        uart_put_uint32_t(emmc_get()->INTERRUPT, 16);
+        uart_puts("\r\n");
     }
     // check busy
     if(( cmd_reg &  SD_CMD_RSPNS_TYPE_MASK) == SD_CMD_RSPNS_TYPE_48B){
@@ -529,7 +540,9 @@ static void emmc_command_int( uint32_t cmd_reg, uint32_t arg, uint32_t timeout_m
         if((cmd_reg & SD_CMD_TYPE_MASK) != SD_CMD_TYPE_ABORT){
             // not abort
             // wait for data line to be free
-            while( emmc_get()->STATUS & DAT_INHIBIT){ /* wait and do nothing*/}
+            while( emmc_get()->STATUS & DAT_INHIBIT){
+                uart_puts("waiting for dat inhibit\r\n");
+            }
         }
     }
     // dma transfer?
@@ -537,7 +550,10 @@ static void emmc_command_int( uint32_t cmd_reg, uint32_t arg, uint32_t timeout_m
     if(( cmd_reg & SD_CMD_ISDATA) && emmc_dev.use_emmcma){  is_emmcma = 1;}
     //set system adress reg
     //define 4KB aligned buffer
-    if(is_emmcma){   emmc_get()->ARG2 = SDMA_BUFFER_PA; }
+    if(is_emmcma){   
+        uart_puts("using DMA\r\n");
+        emmc_get()->ARG2 = SDMA_BUFFER_PA;
+    }
 
     // set block size = 512bytes and block count = 1
     // SDMA buffer boundry = 4KB
@@ -554,30 +570,46 @@ static void emmc_command_int( uint32_t cmd_reg, uint32_t arg, uint32_t timeout_m
     emmc_get()->CMDTM = cmd_reg;
     time_delay_microseconds(2);
     // wait for cmd complete
-    timeout_wait( &(emmc_get()->INTERRUPT), (CMD_DONE | BOOTACK), 1, timeout_msec);
+    
+    // SOMETHING WRONG HERE§
+    timeout_wait( &(emmc_get()->INTERRUPT), (CMD_DONE | IS_ERROR), 1, timeout_msec);
     uint32_t irpts = emmc_get()->INTERRUPT;
 
     // clear command complete flag
     emmc_get()->INTERRUPT = 0xffff0001;
-    
     // errors?
     if( (irpts & 0xffff0001) != 1){
+        uart_puts("command int there are errors\r\n");
         emmc_dev.last_error = irpts & 0xffff0000;
         emmc_dev.last_interrupt = irpts;
+        return;
     }
     time_delay_microseconds(2);
     switch( cmd_reg & SD_CMD_RSPNS_TYPE_MASK){
         case SD_CMD_RSPNS_TYPE_48:
         case SD_CMD_RSPNS_TYPE_48B:
+            uart_puts("receiving input and putting them in r0\r\n");
             emmc_dev.last_r0 = emmc_get()->RESP0;
+            uart_puts("R0: ");
+            uart_put_uint32_t(emmc_dev.last_r0, 16);
+            uart_puts("\r\n");
             break;
         case SD_CMD_RSPNS_TYPE_136:
+            uart_puts("receiving input and putting them in r0-4\r\n");
             emmc_dev.last_r0 = emmc_get()->RESP0;
             emmc_dev.last_r1 = emmc_get()->RESP1;
             emmc_dev.last_r2 = emmc_get()->RESP2;
             emmc_dev.last_r3 = emmc_get()->RESP3;
+            uart_puts("R3: ");
+            uart_put_uint32_t(emmc_dev.last_r3, 16);
+            uart_puts(" R2: ");
+            uart_put_uint32_t(emmc_dev.last_r2, 16);
+            uart_puts(" R1: ");
+            uart_put_uint32_t(emmc_dev.last_r1, 16);
+            uart_puts(" R0: ");
+            uart_put_uint32_t(emmc_dev.last_r0, 16);
+            uart_puts("\r\n");
     }
-    // with data?
     if(( cmd_reg & SD_CMD_ISDATA) && (is_emmcma == 0)){
         uint32_t wr_irpt;
         int is_write = 0;
@@ -589,6 +621,7 @@ static void emmc_command_int( uint32_t cmd_reg, uint32_t arg, uint32_t timeout_m
         int cur_block = 0;
         uint32_t *cur_buf = (uint32_t*)emmc_dev.buf;
         while( cur_block < emmc_dev.blocks_to_transfer ){
+            uart_puts("in while loop\r\n");
             timeout_wait( &(emmc_get()->INTERRUPT), wr_irpt | 0x8000, 1, timeout_msec);
             irpts = emmc_get()->INTERRUPT;
             emmc_get()->INTERRUPT = 0xffff | wr_irpt;
@@ -612,7 +645,6 @@ static void emmc_command_int( uint32_t cmd_reg, uint32_t arg, uint32_t timeout_m
             cur_block++;
         }
     }
-
     if((((cmd_reg & SD_CMD_RSPNS_TYPE_MASK) == SD_CMD_RSPNS_TYPE_48B) 
             || (cmd_reg & SD_CMD_ISDATA)) && (is_emmcma == 0)) {
         // check if data inhibit is 0 already
@@ -658,6 +690,7 @@ static void emmc_command_int( uint32_t cmd_reg, uint32_t arg, uint32_t timeout_m
             }
         }
     }
+    uart_puts("command int done!\r\n");
     emmc_dev.last_cmd_success = 1;
 }
 
@@ -674,11 +707,15 @@ static void emmc_handle_card_irq(){
 void emmc_handle_interrupts(void){
     uint32_t irpts = emmc_get()->INTERRUPT;
     uint32_t reset_irqs = 0;
-
+    uart_puts("irpts = ");
+    uart_put_uint32_t(irpts, 16);
+    uart_puts("\r\n");
     if( irpts & CMD_DONE){
+        uart_puts("handle interrupts command finished\r\n");
         reset_irqs |= CMD_DONE;
     }
     if( irpts & DATA_DONE){
+        uart_puts("handle interrupts data done\r\n");
         reset_irqs |= DATA_DONE;
     } 
     if( irpts & BLOCK_GAP){
@@ -732,11 +769,14 @@ int emmc_command(uint32_t command, uint32_t arg, uint32_t timeout_msec){
         if(emmc_dev.card_rca){
             rca = emmc_dev.card_rca << 16;
         }
+        uart_puts("Sending APP_CMD \r\n");
         emmc_command_int(emmc_commands[APP_CMD], rca, timeout_msec);
-
+        uart_puts("APP_CMD done. next should be a acommand!\r\n");
         if(emmc_dev.last_cmd_success){
             emmc_dev.last_cmd = command | APP_CMD_CHECK;
+            uart_puts("SENDING ACOMMAND\r\n");
             emmc_command_int(emmc_acommands[command], arg, timeout_msec);
+            uart_puts("ACOMMAND done\r\n");
         }
     }else{
         if(emmc_commands[command] == SD_CMD_RESERVED(0)){
@@ -863,39 +903,131 @@ int emmc_card_init(void){
     
 
     // initialize device struct
+    memset(&emmc_dev, 0, sizeof(emmc_dev));
     emmc_dev.base_clock = base_clock;
 
 
-
+    uart_puts("Doing GO_IDLE_STATE\r\n");
     emmc_command(GO_IDLE_STATE, 0, 500);
+    uart_puts("GO_IDLE_STATE done \r\n");
     
-    if( emmc_dev.last_cmd_success ){
+    if( !emmc_dev.last_cmd_success ){
+        uart_puts("Emmc error: init: go idle state failed\r\n");
         return -1;
     }
 
     //volt supplied = 1 = 2.7-3.6 V
     //should be 0xAA
-    emmc_command(SEND_IF_COND, 0x1aa, 500);
     
+    uart_puts("Doing SEND_IF_COND\r\n");
+    emmc_command(SEND_IF_COND, 0x1aa, 500);
+    uart_puts("SEND_IF_COND done \r\n");
+    
+    uart_puts("1\r\n");
     int v2 = 0;
     // timeout
     if( (emmc_dev.last_cmd_success == 0) && (emmc_dev.last_error == 0) ){
         v2 = 0;
     }else if( (emmc_dev.last_cmd_success == 0) && (emmc_dev.last_error & CTO_ERR)){
         if( emmc_reset_cmd() == -1){
+            uart_puts("Emmc error: init: emmc_reset_cmd failed\r\n");
             return -1;
         }
-        emmc_get()->INTERRUPT = SD_ERR_MASK_CMD_TIMEOUT;
+        emmc_get()->INTERRUPT = CTO_ERR;
         v2 = 0;
     }else if( emmc_dev.last_cmd_success == 0){
+        uart_puts("Emmc error: init: timeout-last cmd failed\r\n");
         return -1;
     }else{
-        if(( emmc_dev.last_r0 & 0xfff) !0 x1aa){
+        if(( emmc_dev.last_r0 & 0xfff) != 0x1aa){
+            uart_puts("Emmc error: init: timerout-last_r0 incorrect value\r\n");
             return -1;
         }else{
             v2 = 1;
         }
     }
+    
+    uart_puts("2\r\n");
+
+    // check response to command 5
+    uart_puts("Doing IO_SET_OP_COND\r\n");
+    //emmc_command(IO_SET_OP_COND, 0, 100);
+    uart_puts("IO_SET_OP_COND done\r\n");
+    uart_puts("cmd5 returned ");
+    uart_put_uint32_t(emmc_dev.last_r0, 16);
+    uart_puts(" ");
+    uart_put_uint32_t(emmc_dev.last_r1, 16);
+    uart_puts("\r\n");
+    if( !((emmc_dev.last_cmd_success==0) && (emmc_dev.last_error == 0)) ){
+        // check if there was a command timeout
+        // this is normal
+        uart_puts("last cmd success: ");
+        uart_put_uint32_t(emmc_dev.last_cmd_success, 10);
+        uart_puts(" last error: ");
+        uart_put_uint32_t(emmc_dev.last_error, 16);
+        uart_puts("\r\n");
+        if( (emmc_dev.last_cmd_success == 0) && (emmc_dev.last_error & CTO_ERR) ){
+            if( emmc_reset_cmd() == -1){
+                uart_puts("Emmc error: init: check response 5-emmc_reset_cmd error\r\n");
+                return -1;
+            }
+            uart_puts("not SDIO, thats OK \r\n");
+            emmc_get()->INTERRUPT = CTO_ERR;
+        }else{
+            uart_puts("Emmc error: init: check response 5-error\r\n");
+       //     return -1;
+        }
+    }
+
+    uart_puts("3\r\n");
+    // inquiry aCMD41 to get OCR
+    uart_puts("Doing 41 & APP_CMD_CHECK\r\n");
+    emmc_command( 41 | APP_CMD_CHECK, 0, 500);
+    uart_puts("41 & APP_CMD_CHECK done\r\n");
+    if (emmc_dev.last_cmd_success == 0){
+        uart_puts("Emmc error: init; inquire ACMD41\r\n");
+        return -1;
+    }
+    uart_puts("4\r\n");
+    int card_busy = 1;
+    uart_puts("v2: ");
+    uart_put_uint32_t(v2, 10);
+    uart_puts("\r\n");
+    while( card_busy){
+        uint32_t v2_flags = 0;
+        if(v2){
+            v2 |= (1 << 30); // SDHC support
+            if (!emmc_dev.failed_voltage_switch){
+           //     v2_flags |= (1 << 24); // 1.8V support
+            }
+         //   v2_flags |= (1 << 28); // perforamcne boost SDXC
+        }
+        uart_puts("doing 41 | APP_CMD_CHECK with 0xff8000\r\n");
+        emmc_command(41 | APP_CMD_CHECK, 0x80ff8000| v2_flags, 500);
+        uart_puts("41 | APP_CMD_CHECK done with 0xff8000\r\n");
+        if( emmc_dev.last_cmd_success == 0){
+            uart_puts("Emmc error: init: write v2_flags\r\n");
+            return -1;
+        }
+        uart_puts("last r0 check: ");
+        uart_put_uint32_t(emmc_dev.last_r0, 16);
+        uart_puts("\r\n");
+        if(( emmc_dev.last_r0 >> 31) & 1){
+            // init finished
+            uart_puts("Init is finished in loop\r\n");
+            emmc_dev.card_ocr = (emmc_dev.last_r0 >> 8) & 0xffff;
+            emmc_dev.card_supports_emmchc = (emmc_dev.last_r0 >> 30) & 1;
+            if(!emmc_dev.failed_voltage_switch){
+                emmc_dev.card_supports_18v = (emmc_dev.last_r0 >> 24) & 1;
+            }
+            card_busy = 0;
+        }
+        else{
+            time_delay_microseconds(1000);
+        }
+        uart_puts("emmc init loop\r\n");
+    }
+
 
     uart_puts("emmc_initialized\r\n");
     return 1;

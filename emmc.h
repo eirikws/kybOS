@@ -4,22 +4,6 @@
 #include <stdint.h>
 #include "time.h"
 
-
-typedef struct block_device{
-    char        *name;
-    uint8_t     id;
-    uint32_t    dev_id_len;
-
-    int supports_multiple_block_read;
-    int suppoers_multiple_block_write;
-
-    int (*read)(struct block_device *dev, uint8_t *buf, uint32_t buf_size, uint32_t block_num);
-    int (*write)(struct block_device *dev, uint8_t *buf, uint32_t buf_size, uint32_t block_num);
-    
-    uint32_t    block_size;
-    uint32_t    num_blocks;
-} block_device_t;
-
 typedef struct emmc_scr{
     uint32_t scr[2];
     uint32_t emmc_bus_width;

@@ -22,6 +22,11 @@ int time_delay_microseconds(int n);
 // adds n microseconds to time_in
 void time_add_microseconds(time_unit_t *time_in, int n);
 
+/*
+ * onOff =  1 to set scheduling on
+ *          0 to set scheduling off
+ */
+void scheduling_set(int onOff);
 
 /*
  *  returns 1 if op1 > op2
