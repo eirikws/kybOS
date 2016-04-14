@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#include "fat.h"
 #include "jtag.h"
 #include "mmu.h"
 #include "pcb.h"
@@ -9,13 +10,17 @@
 #include "armtimer.h"
 #include "interrupts.h"
 #include "uart.h"
+#include "fs.h"
+#include "time.h"
 #include "control.h"
 #include "threading.h"
 #include "prog1.h"
 #include "emmc.h"
 
-extern void _enable_interrupts();
+extern void _enable_interrupts(void);
 void extern _SYSTEM_CALL(system_call_t arg0, void* arg1, void* arg2, void* arg3);
+//int fat_init( struct fs ** filesys);
+
 
 void loop_forever_and_ever(void){
     int volatile i = 0;
@@ -24,6 +29,8 @@ void loop_forever_and_ever(void){
         if (i % 1000 == 0){}
     }
 }
+
+
 
 /* Main function - we'll never return from here */
 void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
@@ -71,10 +78,12 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     /* Enable interrupts! */
     
     uart_puts("enabling emmc\r\n");
-    emmc_card_init();
+    emmc_init();
 
-
-
+    uart_puts("initiating FAT\r\n");
+    struct fs** fatfs = NULL;
+    fat_init(fatfs);
+    
 
     uart_puts("registering threads\r\n");
     //  registering first threads!
