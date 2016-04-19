@@ -1,2 +1,2 @@
 #!/bin/sh
-cp -v kernel.img /media/eirikws/F301-DD4A
+cp -v kernel.img /media/eirikws/3AF5-2214

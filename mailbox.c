@@ -19,7 +19,7 @@ typedef struct{
 
 static mailbox_t* mailboxVC = (mailbox_t*)MAILBOX_VC_BASE;
 
-inline  mailbox_t* mailbox_vc_get(void){
+mailbox_t* mailbox_vc_get(void){
     return mailboxVC;
 }
 

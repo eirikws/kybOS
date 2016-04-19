@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include "emmc.h"
+#include "uart.h"
 #include "sd.h"
 
 #define MAX_TRIES		1
@@ -10,6 +11,7 @@ int sd_read(uint8_t *buf, size_t buf_size, uint32_t block_no){
 	uint32_t block_offset = 0;
 
     if( emmc_get_multiblock_read_support() && ((buf_size/emmc_get_dev_block_size() ) > 1)){
+        uart_puts("SD read multiblock\r\n");
         return emmc_read(buf, buf_size, block_no);
     }
 

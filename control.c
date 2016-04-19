@@ -60,27 +60,27 @@ void cpu_control_config(void){
 	                | TEX_REMAP_DISABLE
 	                | ACCESS_FLAG_DISABLE
 	                | THUMB_EXCEPTION_DISABLE ;         
-	asm volatile ("mcr p15, 0, %0, c1, c0, 0" :: "r" (mode) : "memory");
+	__asm volatile ("mcr p15, 0, %0, c1, c0, 0" :: "r" (mode) : "memory");
 }
 
 void cpu_cache_disable(void){
     uint32_t reg;
-    asm volatile ("mrc p15, 0, %0, c1, c0, 0" : "=r" (reg));
+    __asm volatile ("mrc p15, 0, %0, c1, c0, 0" : "=r" (reg));
     reg &= ~(CACHE_DATA_ENABLE);
-    asm volatile ("mcr p15, 0, %0, c1, c0, 0" :: "r" (reg) : "memory");
+    __asm volatile ("mcr p15, 0, %0, c1, c0, 0" :: "r" (reg) : "memory");
 }
 
 void cpu_cache_enable(void){
     uint32_t reg;
-    asm volatile ("mrc p15, 0, %0, c1, c0, 0" : "=r" (reg));
+    __asm volatile ("mrc p15, 0, %0, c1, c0, 0" : "=r" (reg));
     reg |= (CACHE_DATA_ENABLE);
-    asm volatile ("mcr p15, 0, %0, c1, c0, 0" :: "r" (reg) : "memory");
+    __asm volatile ("mcr p15, 0, %0, c1, c0, 0" :: "r" (reg) : "memory");
 }
 void cpu_set_irq_vectors_high(void){
     uint32_t w_reg;
-    asm volatile ("mrc p15, 0, %0, c1, c0, 0" : "=r" (w_reg));
+    __asm volatile ("mrc p15, 0, %0, c1, c0, 0" : "=r" (w_reg));
     w_reg |= VECTORS_HIGH;
-    asm volatile ("mrc p15, 0, %0, c1, c0, 0" :: "r" (w_reg) : "memory");
+    __asm volatile ("mrc p15, 0, %0, c1, c0, 0" :: "r" (w_reg) : "memory");
 
 
 }
@@ -118,4 +118,14 @@ char cpu_mode_print(void){
             return CPSR_MODE_SYSTEM;
             break;
     }return 0;
+}
+
+void cpu_fpu_enable(void){
+    __asm volatile ("mrc p15, 0, r0, c1, c1, 2");
+    __asm volatile ("orr r0, r0, #0b11<<10");
+    __asm volatile ("mcr p15, 0, r0, c1, c1, 2");
+    __asm volatile ("ldr r0, =(0xf << 20)");
+    __asm volatile ("mcr p15, 0, r0, c1, c0, 2");
+    __asm volatile ("mov r3, #0x40000000");
+    __asm volatile ("vmsr fpexc, r3");
 }

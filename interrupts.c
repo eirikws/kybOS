@@ -43,7 +43,7 @@ void __attribute__((interrupt("ABORT"))) reset_vector(void){
 */
 void __attribute__((interrupt("UNDEF"))) undefined_instruction_vector(void){
     uint32_t origin;
-    asm volatile ("mov %[out], lr" : [out] "=r" (origin) ::);
+    __asm volatile ("mov %[out], lr" : [out] "=r" (origin) ::);
     uart_puts("undefined mode from: ");
     uart_put_uint32_t(origin , 16);
     uart_puts("\r\n");

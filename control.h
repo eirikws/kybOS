@@ -41,6 +41,7 @@ extern void _set_cpu_mode(cpu_mode_t mode);
 extern cpu_mode_t _get_cpsr(void);
 
 
+void cpu_fpu_enable(void);
 
 
 

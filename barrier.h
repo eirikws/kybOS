@@ -7,15 +7,15 @@
 */
 
 static inline void barrier_data_mem(void){
-    asm volatile ("dmb" ::: "memory");
+    __asm volatile ("dmb" ::: "memory");
 }
 
 static inline void barrier_instruction(void){
-    asm volatile ("isb" ::: "memory");
+    __asm volatile ("isb" ::: "memory");
 }
 
 static inline void barrier_data_sync(void){
-    asm volatile ("dsb" ::: "memory");
+    __asm volatile ("dsb" ::: "memory");
 }
 
 #endif

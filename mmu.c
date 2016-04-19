@@ -82,17 +82,17 @@ void mmu_init_table(void) {
 void mmu_configure(void) {
 	// set SMP bit in ACTLR. MUST be done before the MMU is enabled.
 	uint32_t auxctrl;
-	asm volatile ("mrc p15, 0, %0, c1, c0,  1" : "=r" (auxctrl));
+	__asm volatile ("mrc p15, 0, %0, c1, c0,  1" : "=r" (auxctrl));
 	auxctrl |= 1 << SMP_ENABLE_COHERENT_REQUESTS;
-	asm volatile ("mcr p15, 0, %0, c1, c0,  1" :: "r" (auxctrl));
+	__asm volatile ("mcr p15, 0, %0, c1, c0,  1" :: "r" (auxctrl));
 
     // set domain 0 to be domain manager
     uint32_t dacr = (DOMAIN_MANAGER << 0);
-	asm volatile ("mcr     p15, 0, %0, c3, c0, 0" :: "r" (dacr));
+	__asm volatile ("mcr     p15, 0, %0, c3, c0, 0" :: "r" (dacr));
 
 	// configure TTBRC to always use TTBR0
 	// the reset value is the correct one, but it can't hurt to be safe!
-	asm volatile ("mcr p15, 0, %0, c2, c0, 2" :: "r" (0));
+	__asm volatile ("mcr p15, 0, %0, c2, c0, 2" :: "r" (0));
     
     // configure the TTBR0
 	uint32_t ttb_descr =       (unsigned)&page_table
@@ -100,7 +100,7 @@ void mmu_configure(void) {
 	                        |   TTB_REGION_OUT_WRITEBACK_WRITE_ALLOC_CACHEABLE
 	                        |   TTB_INNER_WRITETHROUGH_WRITE_ALLOC_CACHEABLE;
 	
-	asm volatile ("mcr p15, 0, %0, c2, c0, 0"
+	__asm volatile ("mcr p15, 0, %0, c2, c0, 0"
 		      :: "r" (ttb_descr));
 	barrier_instruction();
 }
@@ -116,7 +116,7 @@ void mmu_remap_section(uint32_t virt, uint32_t physical, uint32_t config_flags){
     barrier_data_sync();
     // 3. invalidate the translation table with a broadcast TLB invalidation instruction.
     // Invlaidate unified TLB by writing to TLBIALL
-    asm volatile ("mcr p15, 0, %0, c8, c5, 0" :: "r" (0));
+    __asm volatile ("mcr p15, 0, %0, c8, c5, 0" :: "r" (0));
     // 4. write new entry.
     page_table[virt >> SECTION_BASE_ADDRESS_OFFSET] = config_flags
                   | (physical >> SECTION_BASE_ADDRESS_OFFSET) << SECTION_BASE_ADDRESS_OFFSET;
@@ -125,7 +125,7 @@ void mmu_remap_section(uint32_t virt, uint32_t physical, uint32_t config_flags){
 }
 
 void mmu_cache_invalidate(uint32_t address){
-    asm volatile ("mcr p15, 0, %0, c7, c14, 1"::"r"(address));
+    __asm volatile ("mcr p15, 0, %0, c7, c14, 1"::"r"(address));
     barrier_data_mem();
     barrier_data_sync();
 }

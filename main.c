@@ -54,6 +54,7 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     // enable jtag for debugging
     jtag_enable();
     
+    cpu_fpu_enable();
     // initiate the OS clock
     uart_puts("initiating system clock and doing a wait for 1 seconds to check if it works\r\n");
     arm_timer_set_freq(1000);
@@ -81,8 +82,8 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     emmc_init();
 
     uart_puts("initiating FAT\r\n");
-    struct fs** fatfs = NULL;
-    fat_init(fatfs);
+    struct fs* filesys = NULL;
+    fat_init(filesys);
     
 
     uart_puts("registering threads\r\n");
