@@ -69,24 +69,17 @@ static int timeout_wait(volatile uint32_t *reg, uint32_t mask, int value, uint32
     return -1;
 }
 
-// SDMA buffer address
-#define SDMA_BUFFER     0x6000
-#define SDMA_BUFFER_PA  (SDMA_BUFFER + 0xC0000000)
 
-static char driver_name[] = "emmc";
-static char device_name[] = "emmc0";
 static uint32_t hci_ver = 0;
 
-struct emmc_scr
-{
+struct emmc_scr{
     uint32_t    scr[2];
     uint32_t    sd_bus_widths;
     int         sd_version;
 };
 
-struct emmc_dev
-{
-	struct block_device bd;
+struct emmc_dev{
+    struct block_device bd;
 	uint32_t card_supports_sdhc;
 	uint32_t card_supports_18v;
 	uint32_t card_ocr;
@@ -109,7 +102,6 @@ struct emmc_dev
 	void *buf;
 	int blocks_to_transfer;
 	size_t block_size;
-	int use_sdma;
 	int card_removal;
 	uint32_t base_clock;
 };
@@ -397,8 +389,7 @@ static uint32_t emmc_acommands[] = {
 
 #define SD_GET_CLOCK_DIVIDER_FAIL	0xffffffff
 
-static uint32_t byte_swap(unsigned int in)
-{
+static uint32_t byte_swap(unsigned int in){
     uint32_t b0 = in & 0xFF;
     uint32_t b1 = (in >> 8) & 0xFF;
     uint32_t b2 = (in >> 16) & 0xFF;
@@ -407,16 +398,14 @@ static uint32_t byte_swap(unsigned int in)
     return ret;
 }
 
-static void write_word(uint32_t val, uint8_t* buf, int offset)
-{
+static void write_word(uint32_t val, uint8_t* buf, int offset){
     buf[offset + 0] = val & 0xff;
     buf[offset + 1] = (val >> 8) & 0xff;
     buf[offset + 2] = (val >> 16) & 0xff;
     buf[offset + 3] = (val >> 24) & 0xff;
 }
 
-static uint32_t read_word(uint8_t* buf, int offset)
-{
+static uint32_t read_word(uint8_t* buf, int offset){
     uint32_t b0 = buf[offset + 0] & 0xff;
     uint32_t b1 = buf[offset + 1] & 0xff;
     uint32_t b2 = buf[offset + 2] & 0xff;
@@ -424,14 +413,14 @@ static uint32_t read_word(uint8_t* buf, int offset)
     return b0 | (b1 << 8) | (b2 << 16) | (b3 << 24);
 }
 
-static void emmc_power_off(){
+static void emmc_power_off(void){
     /* Power off the SD card */
     uint32_t control0 = emmc_get()->CONTROL0;
     control0 &= ~(1 << 8);    // Set SD Bus Power bit off in Power Control Register
     emmc_get()->CONTROL0, control0;
 }
 
-static uint32_t emmc_get_base_clock_hz(void){
+static uint32_t emmc_get_base_clock(void){
     //      mailbox needs to be 0x100 aligned
     volatile __attribute__((aligned(0x100))) uint32_t mailbuffer[8];  // response needs 8 bits
     // use mailbox to get clock
@@ -459,8 +448,7 @@ static uint32_t emmc_get_base_clock_hz(void){
     return mailbuffer[6];       // return clock rate
 }
 
-static int bcm_2708_power_off()
-{
+static int bcm_power_off(void){
     volatile __attribute__((aligned(0x100))) uint32_t mailbuffer[8];
     mailbuffer[0] = sizeof(mailbuffer);
     mailbuffer[1] = MAILBOX_REQUEST;
@@ -477,26 +465,26 @@ static int bcm_2708_power_off()
     mailbox_write_read(mailbuffer, MAILBOX_ARM_TO_VC);
 
     if(mailbuffer[1] != MAILBOX_REQUEST_SUCCESSFUL){
-        uart_puts("error: emmc power off: request not successfull:\r\n");
+        uart_puts("EMMC power off: request not successfull:\r\n");
         return -1;
     }
     if(mailbuffer[5] != MAILBOX_SD_CARD) {
-        uart_puts("error: emmc power off: Wrong device ID returned!\r\n");
+        uart_puts("EMMC power off: Wrong device ID returned!\r\n");
         return -1;
     }
     if(mailbuffer[6] & (1 << 0)){
-        uart_puts("error: emmc power off: power still on!   ");
+        uart_puts("EMMC power off: power still on!   ");
         uart_put_uint32_t(mailbuffer[6], 16);
         uart_puts("\r\n");
         return -1;
     }
     if(mailbuffer[6] & (1 << 1)){
-        uart_puts("error: emmc power off: device does not exist!\r\n");
+        uart_puts("EMMC power off: device does not exist!\r\n");
         return -1;
     } return 0;
 }
 
-static int bcm_2708_power_on(){
+static int bcm_power_on(void){
     volatile __attribute__((aligned(0x100))) uint32_t mailbuffer[8];
     mailbuffer[0] = sizeof(mailbuffer);
     mailbuffer[1] = MAILBOX_REQUEST;
@@ -513,119 +501,102 @@ static int bcm_2708_power_on(){
     mailbox_write_read(mailbuffer, MAILBOX_ARM_TO_VC);
 
     if(mailbuffer[1] != MAILBOX_REQUEST_SUCCESSFUL){
-        uart_puts("error: emmc power on: request not successfull:\r\n");
+        uart_puts("EMMC power on: request not successfull:\r\n");
         return -1;
     }
     if(mailbuffer[5] != MAILBOX_SD_CARD) {
-        uart_puts("error: emmc power on: Wrong device ID returned!\r\n");
+        uart_puts("EMMC power on: Wrong device ID returned!\r\n");
         return -1;
     }
     if(mailbuffer[6] & (1 << 1)){
-        uart_puts("error: emmc power on: device does not exist!\r\n");
+        uart_puts("EMMC power on: device does not exist!\r\n");
         return -1;
     }
     if(!(mailbuffer[6] & (1 << 0))){
-        uart_puts("error: emmc power on: device still off!\r\n");
+        uart_puts("EMMC power on: device still off!\r\n");
         return -1;
     }
     return 0;
 }
 
-static int bcm_2708_power_cycle()
-{
-    if(bcm_2708_power_off() < 0){
+static int bcm_power_cycle(void){
+    if(bcm_power_off() < 0){
         return -1;
     }
     time_delay_microseconds(5);
-    return bcm_2708_power_on();
+    return bcm_power_on();
 }
 
-// Set the clock dividers to generate a target value
-// Set the clock dividers to generate a target value
-static uint32_t emmc_get_clock_divider(uint32_t base_clock, uint32_t target_rate)
-{
-    uint32_t targetted_divisor = 0;
-    if(target_rate > base_clock)
-        targetted_divisor = 1;
-    else
-    {
-        targetted_divisor = base_clock / target_rate;
+static uint32_t emmc_get_clock_divider(uint32_t base_clock, uint32_t target_rate){
+    uint32_t target_div = 0;
+    if(target_rate > base_clock){
+        target_div = 1;
+    }else{
+        target_div = base_clock / target_rate;
         uint32_t mod = base_clock % target_rate;
-        if(mod)
-            targetted_divisor--;
+        if(mod){
+            target_div--;
+        }
     }
 
-    // Decide on the clock mode to use
-
-    // Currently only 10-bit divided clock mode is supported
-
-    if(hci_ver >= 2)
-    {
-        // HCI version 3 or greater supports 10-bit divided clock mode
-        // This requires a power-of-two divider
+    if(hci_ver >= 2){
+        // version 3 or greater supports 10-bit divided clock mode
 
         // Find the first bit set
-        int divisor = -1;
+        int div = -1;
         int first_bit;
         for(first_bit = 31; first_bit >= 0; first_bit--)
         {
             uint32_t bit_test = (1 << first_bit);
-            if(targetted_divisor & bit_test)
+            if(target_div & bit_test)
             {
-                divisor = first_bit;
-                targetted_divisor &= ~bit_test;
-                if(targetted_divisor)
-                    divisor++;
+                div = first_bit;
+                target_div &= ~bit_test;
+                if(target_div)
+                    div++;
                 break;
             }
         }
+        if(div == -1){  div = 31; }
+        if(div >= 32){  div = 31; }
+        if(div != 0) {  div = (1 << (div - 1)); }
+        if(div >= 0x400)    {div = 0x3ff;}
 
-        if(divisor == -1)
-            divisor = 31;
-        if(divisor >= 32)
-            divisor = 31;
-
-        if(divisor != 0)
-            divisor = (1 << (divisor - 1));
-
-        if(divisor >= 0x400)
-            divisor = 0x3ff;
-
-        uint32_t freq_select = divisor & 0xff;
-        uint32_t upper_bits = (divisor >> 8) & 0x3;
+        uint32_t freq_select = div & 0xff;
+        uint32_t upper_bits = (div >> 8) & 0x3;
         uint32_t ret = (freq_select << 8) | (upper_bits << 6) | (0 << 5);
 
         return ret;
     }
-    else
+    else{
         return SD_GET_CLOCK_DIVIDER_FAIL;
+    }
 }
 
-// Switch the clock rate whilst running
-static int emmc_switch_clock_rate(uint32_t base_clock, uint32_t target_rate)
-{
-    // Decide on an appropriate divider
-    uint32_t divider = emmc_get_clock_divider(base_clock, target_rate);
-    if(divider == SD_GET_CLOCK_DIVIDER_FAIL)
+// Switch the clock rate 
+static int emmc_switch_clock_rate(uint32_t base_clock, uint32_t target_rate){
+    // get divider
+    uint32_t div = emmc_get_clock_divider(base_clock, target_rate);
+    if(div == SD_GET_CLOCK_DIVIDER_FAIL){
         return -1;
-
-    // Wait for the command inhibit (CMD and DAT) bits to clear
-    while( emmc_get()->STATUS & 0x3)
+    }
+    // wait for cmd and dat inhibit to clear
+    while( emmc_get()->STATUS & 0x3){
         time_delay_microseconds(1);
-
-    // Set the SD clock off
+    }
+    // Set the emmc clock off
     uint32_t control1 = emmc_get()->CONTROL1;
     control1 &= ~(1 << 2);
     emmc_get()->CONTROL1 = control1;
     time_delay_microseconds(2);
 
     // Write the new divider
-    control1 &= ~0xffe0;        // Clear old setting + clock generator select
-    control1 |= divider;
+    control1 &= ~0xffe0;        // Clear old
+    control1 |= div;
     emmc_get()->CONTROL1 = control1;
     time_delay_microseconds(2);
 
-    // Enable the SD clock
+    // Enable the emmc clock
     control1 |= (1 << 2);
     emmc_get()->CONTROL1 = control1;
     time_delay_microseconds(2);
@@ -635,77 +606,48 @@ static int emmc_switch_clock_rate(uint32_t base_clock, uint32_t target_rate)
 
 
 // Reset the CMD line
-static int emmc_reset_cmd()
-{
+static int emmc_reset_cmd(void){
     uint32_t control1 = emmc_get()->CONTROL1;
     control1 |= SD_RESET_CMD;
     emmc_get()->CONTROL1 = control1;
     timeout_wait( &(emmc_get()->CONTROL1), SD_RESET_CMD, 0, 1000);
-    if( (emmc_get()->CONTROL1 & SD_RESET_CMD) != 0)
-        return -1;
+    if( (emmc_get()->CONTROL1 & SD_RESET_CMD) != 0){    return -1;}
     return 0;
 }
 
 // Reset the CMD line
-static int emmc_reset_dat()
-{
+static int emmc_reset_dat(void){
     uint32_t control1 = emmc_get()->CONTROL1;
     control1 |= SD_RESET_DAT;
     emmc_get()->CONTROL1 = control1;
     timeout_wait( &(emmc_get()->CONTROL1), SD_RESET_DAT, 0, 1000);
-    if(( emmc_get()->CONTROL1 & SD_RESET_DAT) != 0)
-        return -1;
+    if(( emmc_get()->CONTROL1 & SD_RESET_DAT) != 0)  {return -1;}
     return 0;
 }
 
-static void emmc_issue_command_int(struct emmc_dev *dev, uint32_t cmd_reg, uint32_t argument, useconds_t timeout)
-{
+static void emmc_command_single(         struct emmc_dev *dev,
+                                        uint32_t cmd_reg, uint32_t argument, 
+                                        uint32_t timeout){
     dev->last_cmd_reg = cmd_reg;
     dev->last_cmd_success = 0;
 
-    // This is as per HCSS 3.7.1.1/3.7.2.2
-
-    // Check Command Inhibit
     while(emmc_get()->STATUS & 0x1)
         time_delay_microseconds(1);
 
-    // Is the command with busy?
-    if((cmd_reg & SD_CMD_RSPNS_TYPE_MASK) == SD_CMD_RSPNS_TYPE_48B)
-    {
-        // With busy
-
-        // Is is an abort command?
-        if((cmd_reg & SD_CMD_TYPE_MASK) != SD_CMD_TYPE_ABORT)
-        {
-            // Not an abort command
-
+    // Is the command busy?
+    if((cmd_reg & SD_CMD_RSPNS_TYPE_MASK) == SD_CMD_RSPNS_TYPE_48B){
+        if((cmd_reg & SD_CMD_TYPE_MASK) != SD_CMD_TYPE_ABORT){
             // Wait for the data line to be free
-            while( emmc_get()->STATUS & 0x2)
+            while( emmc_get()->STATUS & 0x2){
                 time_delay_microseconds(1);
+            }
         }
-    }
-
-    // Is this a DMA transfer?
-    int is_sdma = 0;
-    if((cmd_reg & SD_CMD_ISDATA) && (dev->use_sdma))
-    {
-        is_sdma = 1;
-    }
-
-    if(is_sdma)
-    {
-        // Set system address register (ARGUMENT2 in RPi)
-
-        // We need to define a 4 kiB aligned buffer to use here
-        // Then convert its virtual address to a bus address
-        emmc_get()->ARG2 = SDMA_BUFFER_PA;
     }
 
     // Set block size and block count
     // For now, block size = 512 bytes, block count = 1,
     //  host SDMA buffer boundary = 4 kiB
-    if(dev->blocks_to_transfer > 0xffff)
-    {
+    if(dev->blocks_to_transfer > 0xffff){
         dev->last_cmd_success = 0;
         return;
     }
@@ -714,12 +656,6 @@ static void emmc_issue_command_int(struct emmc_dev *dev, uint32_t cmd_reg, uint3
 
     // Set argument 1 reg
     emmc_get()->ARG1 = argument;
-
-    if(is_sdma)
-    {
-        // Set Transfer mode register
-        cmd_reg |= SD_CMD_DMA;
-    }
 
     // Set command reg
     emmc_get()->CMDTM = cmd_reg;
@@ -744,8 +680,7 @@ static void emmc_issue_command_int(struct emmc_dev *dev, uint32_t cmd_reg, uint3
     time_delay_microseconds(2);
 
     // Get response data
-    switch(cmd_reg & SD_CMD_RSPNS_TYPE_MASK)
-    {
+    switch(cmd_reg & SD_CMD_RSPNS_TYPE_MASK){
         case SD_CMD_RSPNS_TYPE_48:
         case SD_CMD_RSPNS_TYPE_48B:
             dev->last_r0 = emmc_get()->RESP0;
@@ -760,8 +695,7 @@ static void emmc_issue_command_int(struct emmc_dev *dev, uint32_t cmd_reg, uint3
     }
 
     // If with data, wait for the appropriate interrupt
-    if((cmd_reg & SD_CMD_ISDATA) && (is_sdma == 0))
-    {
+    if(cmd_reg & SD_CMD_ISDATA){
         uint32_t wr_irpt;
         int is_write = 0;
         if(cmd_reg & SD_CMD_DAT_DIR_CH)
@@ -811,9 +745,8 @@ static void emmc_issue_command_int(struct emmc_dev *dev, uint32_t cmd_reg, uint3
     }
 
     // Wait for transfer complete (set if read/write transfer or with busy)
-    if((((cmd_reg & SD_CMD_RSPNS_TYPE_MASK) == SD_CMD_RSPNS_TYPE_48B) ||
-       (cmd_reg & SD_CMD_ISDATA)) && (is_sdma == 0))
-    {
+    if(((cmd_reg & SD_CMD_RSPNS_TYPE_MASK) == SD_CMD_RSPNS_TYPE_48B) ||
+       (cmd_reg & SD_CMD_ISDATA)){
         // First check command inhibit (DAT) is not already 0
         if( ((emmc_get()->STATUS) & 0x2) == 0)
             emmc_get()->INTERRUPT = 0xffff0002;
@@ -834,73 +767,18 @@ static void emmc_issue_command_int(struct emmc_dev *dev, uint32_t cmd_reg, uint3
             emmc_get()->INTERRUPT = 0xffff0002;
         }
     }
-    else if (is_sdma)
-    {
-        // For SDMA transfers, we have to wait for either transfer complete,
-        //  DMA int or an error
-
-        // First check command inhibit (DAT) is not already 0
-        if((emmc_get()->STATUS & 0x2) == 0)
-            emmc_get()->INTERRUPT = 0xffff000a;
-        else
-        {
-            timeout_wait( (&emmc_get()->INTERRUPT), 0x800a, 1, timeout);
-            irpts = emmc_get()->INTERRUPT;
-            emmc_get()->INTERRUPT = 0xffff000a;
-
-            // Detect errors
-            if((irpts & 0x8000) && ((irpts & 0x2) != 0x2))
-            {
-                dev->last_error = irpts & 0xffff0000;
-                dev->last_interrupt = irpts;
-                return;
-            }
-
-            // Detect DMA interrupt without transfer complete
-            // Currently not supported - all block sizes should fit in the
-            //  buffer
-            if((irpts & 0x8) && ((irpts & 0x2) != 0x2))
-            {
-                dev->last_error = irpts & 0xffff0000;
-                dev->last_interrupt = irpts;
-                return;
-            }
-
-            // Detect transfer complete
-            if(irpts & 0x2)
-            {
-                // Transfer the data to the user buffer
-                memcpy(dev->buf, (const void *)SDMA_BUFFER, dev->block_size);
-            }
-            else
-            {
-                if((irpts == 0) && ((emmc_get()->STATUS & 0x3) == 0x2))
-                {
-                    // The data transfer is ongoing, we should attempt to stop
-                    //  it
-                    emmc_get()->CMDTM = emmc_commands[STOP_TRANSMISSION];
-                }
-                dev->last_error = irpts & 0xffff0000;
-                dev->last_interrupt = irpts;
-                return;
-            }
-        }
-    }
-
     // Return success
     dev->last_cmd_success = 1;
 }
 
-static void emmc_handle_card_interrupt(struct emmc_dev *dev)
-{
+static void emmc_handle_card_interrupt(struct emmc_dev *dev){
     // Handle a card interrupt
     if(dev->card_rca)
-        emmc_issue_command_int(dev, emmc_commands[SEND_STATUS], dev->card_rca << 16,
+        emmc_command_single(dev, emmc_commands[SEND_STATUS], dev->card_rca << 16,
                          500);
 }
 
-static void emmc_handle_interrupts(struct emmc_dev *dev)
-{
+static void emmc_handle_interrupts(struct emmc_dev *dev){
     uint32_t irpts = emmc_get()->INTERRUPT;
     uint32_t reset_mask = 0;
 
@@ -940,71 +818,62 @@ static void emmc_handle_interrupts(struct emmc_dev *dev)
 }
 
 
-static int emmc_issue_command(struct emmc_dev *dev, uint32_t command, uint32_t argument, useconds_t timeout)
-{
+static int emmc_command(        struct emmc_dev *dev,
+                                uint32_t command,
+                                uint32_t argument,
+                                uint32_t timeout){
     // First, handle any pending interrupts
     emmc_handle_interrupts(dev);
 
     // Stop the command issue if it was the card remove interrupt that was
     //  handled
-    if(dev->card_removal)
-    {
+    if(dev->card_removal){
         dev->last_cmd_success = 0;
         return -1;
     }
 
     // Now run the appropriate commands by calling emmc_issue_command_int()
-    if(command & IS_APP_CMD)
-    {
+    if(command & IS_APP_CMD){
         command &= 0xff;
 
-        if(emmc_acommands[command] == SD_CMD_RESERVED(0))
-        {
+        if(emmc_acommands[command] == SD_CMD_RESERVED(0)){
             dev->last_cmd_success = 0;
             return -1;
         }
         dev->last_cmd = APP_CMD;
 
         uint32_t rca = 0;
-        if(dev->card_rca)
+        if(dev->card_rca){
             rca = dev->card_rca << 16;
-        emmc_issue_command_int(dev, emmc_commands[APP_CMD], rca, timeout);
-        if(dev->last_cmd_success)
-        {
-            dev->last_cmd = command | IS_APP_CMD;
-            emmc_issue_command_int(dev, emmc_acommands[command], argument, timeout);
         }
-    }
-    else
-    {
-
-        if(emmc_commands[command] == SD_CMD_RESERVED(0))
-        {
+        emmc_command_single(dev, emmc_commands[APP_CMD], rca, timeout);
+        if(dev->last_cmd_success){
+            dev->last_cmd = command | IS_APP_CMD;
+            emmc_command_single(dev, emmc_acommands[command], argument, timeout);
+        }
+    }else{
+        if(emmc_commands[command] == SD_CMD_RESERVED(0)){
             dev->last_cmd_success = 0;
             return -1;
         }
 
         dev->last_cmd = command;
-        emmc_issue_command_int(dev, emmc_commands[command], argument, timeout);
+        emmc_command_single(dev, emmc_commands[command], argument, timeout);
     }
     return 0;
 }
 
-static int emmc_card_init(struct block_device **dev)
-{
+static int emmc_card_init(struct block_device **dev){
     // Check the sanity of the sd_commands and emmc_acommands structures
-    if(sizeof(emmc_commands) != (64 * sizeof(uint32_t)))
-    {
+    if(sizeof(emmc_commands) != (64 * sizeof(uint32_t))){
         return -1;
     }
-    if(sizeof(emmc_acommands) != (64 * sizeof(uint32_t)))
-    {
+    if(sizeof(emmc_acommands) != (64 * sizeof(uint32_t))){
         return -1;
     }
 
 	// Power cycle the card to ensure its in its startup state
-	if(bcm_2708_power_cycle() != 0)
-	{
+	if(bcm_power_cycle() != 0){
         return -1;
 	}
 
@@ -1013,8 +882,7 @@ static int emmc_card_init(struct block_device **dev)
     uint32_t emmcversion = (ver >> 16) & 0xff;
     hci_ver = emmcversion;
 
-	if(hci_ver < 2)
-	{
+	if(hci_ver < 2){
 		return -1;
 	}
 
@@ -1035,14 +903,14 @@ static int emmc_card_init(struct block_device **dev)
 	// Check for a valid card
     timeout_wait( &(emmc_get()->STATUS), (1 << 16), 1, 500);
     uint32_t status_reg = emmc_get()->STATUS;
-    if((status_reg & (1 << 16)) == 0)
+    if((status_reg & (1 << 16)) == 0){
         return -1;
-
+    }
 	// Clear control2
 	emmc_get()->CONTROL2 = 0;
 
 	// Get the base clock rate
-	uint32_t base_clock = emmc_get_base_clock_hz();
+	uint32_t base_clock = emmc_get_base_clock();
     if(base_clock == 0){
         uart_puts("EMMC init: can't get emmc base clock. assuming 100 000 000\r\n");
         base_clock = 100000000;
@@ -1082,17 +950,15 @@ static int emmc_card_init(struct block_device **dev)
 
 	time_delay_microseconds(2);
 
-    // Prepare the device structure
+    // Prepare the device 
 	struct emmc_dev *ret;
-	if(*dev == NULL)
+	if(*dev == NULL){
 		ret = (struct emmc_dev *)malloc(sizeof(struct emmc_dev));
-	else
+	}else{
 		ret = (struct emmc_dev *)*dev;
-
+    }
 
 	memset(ret, 0, sizeof(struct emmc_dev));
-	ret->bd.driver_name = driver_name;
-	ret->bd.device_name = device_name;
 	ret->bd.block_size = 512;
 	ret->bd.dev_read = emmc_read;
     ret->bd.dev_write = emmc_write;
@@ -1101,124 +967,96 @@ static int emmc_card_init(struct block_device **dev)
 	ret->base_clock = base_clock;
 
 	// Send CMD0 to the card (reset to idle state)
-	emmc_issue_command(ret, GO_IDLE_STATE, 0, 500);
-	if(FAIL(ret))
-	{
-        return -1;
-	}
+	emmc_command(ret, GO_IDLE_STATE, 0, 500);
+	if(FAIL(ret))   {return -1;}
 
 	// Send CMD8 to the card
 	// Voltage supplied = 0x1 = 2.7-3.6V (standard)
 	// Check pattern = 10101010b (as per PLSS 4.3.13) = 0xAA
-	emmc_issue_command(ret, SEND_IF_COND, 0x1aa, 500);
-	int v2_later = 0;
-	if(TIMEOUT(ret))
-        v2_later = 0;
-    else if(CMD_TIMEOUT(ret))
-    {
-        if(emmc_reset_cmd() == -1)
-            return -1;
+	emmc_command(ret, SEND_IF_COND, 0x1aa, 500);
+	int v2 = 0;
+	if(TIMEOUT(ret)){   v2 = 0; }
+    else if(CMD_TIMEOUT(ret)){
+        if(emmc_reset_cmd() == -1){     return -1; }
         emmc_get()->INTERRUPT = SD_ERR_MASK_CMD_TIMEOUT;
-        v2_later = 0;
+        v2 = 0;
     }
-    else if(FAIL(ret))
-    {
-        return -1;
-    }
-    else
-    {
-        if((ret->last_r0 & 0xfff) != 0x1aa)
-        {
+    else if(FAIL(ret)){     return -1; }
+    else{
+        if((ret->last_r0 & 0xfff) != 0x1aa){
             uart_puts("EMMC: not usable card\n");
             return -1;
+        }else{
+            v2 = 1;
         }
-        else
-            v2_later = 1;
     }
 
     // Here we are supposed to check the response to CMD5 (HCSS 3.6)
     // It only returns if the card is a SDIO card
-    emmc_issue_command(ret, IO_SET_OP_COND, 0, 10);
-    if(!TIMEOUT(ret))
-    {
-        if(CMD_TIMEOUT(ret))
-        {
-            if(emmc_reset_cmd() == -1)
-                return -1;
+    emmc_command(ret, IO_SET_OP_COND, 0, 10);
+    if(!TIMEOUT(ret)){
+        if(CMD_TIMEOUT(ret)){
+            if(emmc_reset_cmd() == -1){ return -1;}
             emmc_get()->INTERRUPT = SD_ERR_MASK_CMD_TIMEOUT;
-        }
-        else
-        {
+        }else{
             return -1;
         }
     }
 
     // Call an inquiry ACMD41 (voltage window = 0) to get the OCR
-    emmc_issue_command(ret, ACMD(41), 0, 500);
-    if(FAIL(ret))
-    {
-        return -1;
-    }
+    emmc_command(ret, ACMD(41), 0, 500);
+    if(FAIL(ret)){   return -1;}
 
 	// Call initialization ACMD41
 	int card_is_busy = 1;
-	while(card_is_busy)
-	{
+	while(card_is_busy){
 	    uint32_t v2_flags = 0;
-	    if(v2_later)
-	    {
+	    if(v2){
 	        // Set SDHC support
 	        v2_flags |= (1 << 30);
 
 	        // Set 1.8v support
-	        if(!ret->failed_voltage_switch)
+	        if(!ret->failed_voltage_switch){
                 v2_flags |= (1 << 24);
+            }
 
             // Enable SDXC maximum performance
             v2_flags |= (1 << 28);
 	    }
 
-	    emmc_issue_command(ret, ACMD(41), 0x00ff8000 | v2_flags, 500);
-	    if(FAIL(ret))
-	    {
+	    emmc_command(ret, ACMD(41), 0x00ff8000 | v2_flags, 500);
+	    if(FAIL(ret)){
 	        uart_puts("SD: error issuing ACMD41\n");
 	        return -1;
 	    }
 
-	    if((ret->last_r0 >> 31) & 0x1)
-	    {
+	    if((ret->last_r0 >> 31) & 0x1){
 	        // Initialization is complete
 	        ret->card_ocr = (ret->last_r0 >> 8) & 0xffff;
 	        ret->card_supports_sdhc = (ret->last_r0 >> 30) & 0x1;
 
-	        if(!ret->failed_voltage_switch)
+	        if(!ret->failed_voltage_switch){
                 ret->card_supports_18v = (ret->last_r0 >> 24) & 0x1;
-
+            }
 	        card_is_busy = 0;
-	    }
-	    else
-	    {
+	    }else{
 	        // Card is still busy
             time_delay_microseconds(5);
 	    }
 	}
 
-    // At this point, we know the card is definitely an SD card, so will definitely
-	//  support SDR12 mode which runs at 25 MHz
     emmc_switch_clock_rate(base_clock, SD_CLOCK_NORMAL);
 
 	// A small wait before the voltage switch
 	time_delay_microseconds(5);
 
 	// Switch to 1.8V mode if possible
-	if(ret->card_supports_18v)
-	{
+	if(ret->card_supports_18v){
 	    // As per HCSS 3.6.1
 
 	    // Send VOLTAGE_SWITCH
-	    emmc_issue_command(ret, VOLTAGE_SWITCH, 0, 500);
-	    if(FAIL(ret))
-	    {
+	    emmc_command(ret, VOLTAGE_SWITCH, 0, 500);
+	    if(FAIL(ret)){
 	        ret->failed_voltage_switch = 1;
 			emmc_power_off();
 			uart_puts("EMMC: voltage switch error\r\n");
@@ -1233,8 +1071,7 @@ static int emmc_card_init(struct block_device **dev)
 	    // Check DAT[3:0]
 	    status_reg = emmc_get()->STATUS;
         uint32_t dat30 = (status_reg >> 20) & 0xf;
-	    if(dat30 != 0)
-	    {
+	    if(dat30 != 0){
 	        ret->failed_voltage_switch = 1;
 			emmc_power_off();
 			uart_puts("EMMC: dat30 error\r\n");
@@ -1250,8 +1087,7 @@ static int emmc_card_init(struct block_device **dev)
 
 	    // Check the 1.8V signal enable is set
 	    control0 = emmc_get()->CONTROL0;
-	    if(((control0 >> 8) & 0x1) == 0)
-	    {
+	    if(((control0 >> 8) & 0x1) == 0){
 	        ret->failed_voltage_switch = 1;
 			emmc_power_off();
 	        return emmc_card_init((struct block_device **)&ret);
@@ -1268,8 +1104,7 @@ static int emmc_card_init(struct block_device **dev)
 	    // Check DAT[3:0]
 	    status_reg = emmc_get()->STATUS;
         dat30 = (status_reg >> 20) & 0xf;
-        if(dat30 != 0xf)
-	    {
+        if(dat30 != 0xf){
 	        ret->failed_voltage_switch = 1;
 			emmc_power_off();
 	        return emmc_card_init((struct block_device **)&ret);
@@ -1277,9 +1112,8 @@ static int emmc_card_init(struct block_device **dev)
 	}
 
 	// Send CMD2 to get the cards CID
-	emmc_issue_command(ret, ALL_SEND_CID, 0, 500);
-	if(FAIL(ret))
-	{
+	emmc_command(ret, ALL_SEND_CID, 0, 500);
+	if(FAIL(ret)){
 	    uart_puts("SD: error sending ALL_SEND_CID\n");
 	    return -1;
 	}
@@ -1297,9 +1131,8 @@ static int emmc_card_init(struct block_device **dev)
 	ret->bd.dev_id_len = 4 * sizeof(uint32_t);
 
 	// Send CMD3 to enter the data state
-	emmc_issue_command(ret, SEND_RELATIVE_ADDR, 0, 500000);
-	if(FAIL(ret))
-    {
+	emmc_command(ret, SEND_RELATIVE_ADDR, 0, 500000);
+	if(FAIL(ret)){
         free(ret);
         return -1;
     }
@@ -1313,29 +1146,25 @@ static int emmc_card_init(struct block_device **dev)
 	uint32_t status = (cmd3_resp >> 9) & 0xf;
 	uint32_t ready = (cmd3_resp >> 8) & 0x1;
 
-	if(crc_error)
-	{
+	if(crc_error){
 		free(ret);
 		free(dev_id);
 		return -1;
 	}
 
-	if(illegal_cmd)
-	{
+	if(illegal_cmd){
 		free(ret);
 		free(dev_id);
 		return -1;
 	}
 
-	if(error)
-	{
+	if(error){
 		free(ret);
 		free(dev_id);
 		return -1;
 	}
 
-	if(!ready)
-	{
+	if(!ready){
 		free(ret);
 		free(dev_id);
 		return -1;
@@ -1343,9 +1172,8 @@ static int emmc_card_init(struct block_device **dev)
 
 
 	// Now select the card (toggles it to transfer state)
-	emmc_issue_command(ret, SELECT_CARD, ret->card_rca << 16, 500);
-	if(FAIL(ret))
-	{
+	emmc_command(ret, SELECT_CARD, ret->card_rca << 16, 500);
+	if(FAIL(ret)){
 	    free(ret);
 	    return -1;
 	}
@@ -1353,19 +1181,16 @@ static int emmc_card_init(struct block_device **dev)
 	uint32_t cmd7_resp = ret->last_r0;
 	status = (cmd7_resp >> 9) & 0xf;
 
-	if((status != 3) && (status != 4))
-	{
+	if((status != 3) && (status != 4)){
 		free(ret);
 		free(dev_id);
 		return -1;
 	}
 
 	// If not an SDHC card, ensure BLOCKLEN is 512 bytes
-	if(!ret->card_supports_sdhc)
-	{
-	    emmc_issue_command(ret, SET_BLOCKLEN, 512, 500);
-	    if(FAIL(ret))
-	    {
+	if(!ret->card_supports_sdhc){
+	    emmc_command(ret, SET_BLOCKLEN, 512, 500);
+	    if(FAIL(ret)){
 	        uart_puts("SD: error sending SET_BLOCKLEN\n\r");
 	        free(ret);
 	        return -1;
@@ -1382,10 +1207,9 @@ static int emmc_card_init(struct block_device **dev)
 	ret->buf = &ret->scr->scr[0];
 	ret->block_size = 8;
 	ret->blocks_to_transfer = 1;
-	emmc_issue_command(ret, SEND_SCR, 0, 500);
+	emmc_command(ret, SEND_SCR, 0, 500);
 	ret->block_size = 512;
-	if(FAIL(ret))
-	{
+	if(FAIL(ret)){
 	    uart_puts("SD: error sending SEND_SCR\n\r");
 	    free(ret->scr);
         free(ret);
@@ -1400,26 +1224,20 @@ static int emmc_card_init(struct block_device **dev)
 	uint32_t emmc_spec3 = (scr0 >> (47 - 32)) & 0x1;
 	uint32_t emmc_spec4 = (scr0 >> (42 - 32)) & 0x1;
 	ret->scr->sd_bus_widths = (scr0 >> (48 - 32)) & 0xf;
-	if(emmc_spec == 0)
-        ret->scr->sd_version = SD_VER_1;
-    else if(emmc_spec == 1)
-        ret->scr->sd_version = SD_VER_1_1;
-    else if(emmc_spec == 2)
-    {
-        if(emmc_spec3 == 0)
-            ret->scr->sd_version = SD_VER_2;
-        else if(emmc_spec3 == 1)
-        {
-            if(emmc_spec4 == 0)
+	if(emmc_spec == 0)      { ret->scr->sd_version = SD_VER_1; }
+    else if(emmc_spec == 1) { ret->scr->sd_version = SD_VER_1_1; }
+    else if(emmc_spec == 2) {
+        if(emmc_spec3 == 0) {ret->scr->sd_version = SD_VER_2; }
+        else if(emmc_spec3 == 1){
+            if(emmc_spec4 == 0){
                 ret->scr->sd_version = SD_VER_3;
-            else if(emmc_spec4 == 1)
+            }else if(emmc_spec4 == 1){
                 ret->scr->sd_version = SD_VER_4;
+            }
         }
     }
 
-
-    if(ret->scr->sd_bus_widths & 0x4)
-    {
+    if(ret->scr->sd_bus_widths & 0x4){
         // Set 4-bit transfer mode (ACMD6)
         // See HCSS 3.4 for the algorithm
 
@@ -1429,11 +1247,10 @@ static int emmc_card_init(struct block_device **dev)
         emmc_get()->IRPT_MASK = new_iprt_mask;
 
         // Send ACMD6 to change the card's bit mode
-        emmc_issue_command(ret, SET_BUS_WIDTH, 0x2, 500);
-        if(FAIL(ret))
+        emmc_command(ret, SET_BUS_WIDTH, 0x2, 500);
+        if(FAIL(ret)){
             uart_puts("EMMC init: switch to 4-bit data mode failed\n\r");
-        else
-        {
+        }else{
             // Change bit mode for Host
             uint32_t control0 = emmc_get()->CONTROL0;
             control0 |= 0x2;
@@ -1452,19 +1269,15 @@ static int emmc_card_init(struct block_device **dev)
 	return 0;
 }
 
-static int emmc_ensure_data_mode(struct emmc_dev *edev)
-{
-	if(edev->card_rca == 0)
-	{
+static int emmc_ensure_data_mode(struct emmc_dev *edev){
+	if(edev->card_rca == 0){
 		// Try again to initialise the card
 		int ret = emmc_card_init((struct block_device **)&edev);
-		if(ret != 0)
-			return ret;
+		if(ret != 0){   return ret;}
 	}
 
-    emmc_issue_command(edev, SEND_STATUS, edev->card_rca << 16, 500);
-    if(FAIL(edev))
-    {
+    emmc_command(edev, SEND_STATUS, edev->card_rca << 16, 500);
+    if(FAIL(edev)){
         uart_puts("SD: ensure_data_mode() error sending CMD13\n");
         edev->card_rca = 0;
         return -1;
@@ -1472,52 +1285,42 @@ static int emmc_ensure_data_mode(struct emmc_dev *edev)
 
 	uint32_t status = edev->last_r0;
 	uint32_t cur_state = (status >> 9) & 0xf;
-	if(cur_state == 3)
-	{
+	if(cur_state == 3){
 		// Currently in the stand-by state - select it
-		emmc_issue_command(edev, SELECT_CARD, edev->card_rca << 16, 500);
-		if(FAIL(edev))
-		{
+		emmc_command(edev, SELECT_CARD, edev->card_rca << 16, 500);
+		if(FAIL(edev)){
 			uart_puts("SD: ensure_data_mode() no response from CMD17\n");
 			edev->card_rca = 0;
 			return -1;
 		}
-	}
-	else if(cur_state == 5)
-	{
+	}else if(cur_state == 5){
 		// In the data transfer state - cancel the transmission
-		emmc_issue_command(edev, STOP_TRANSMISSION, 0, 500);
-		if(FAIL(edev))
-		{
+		emmc_command(edev, STOP_TRANSMISSION, 0, 500);
+		if(FAIL(edev)){
 			edev->card_rca = 0;
 			return -1;
 		}
 
 		// Reset the data circuit
 		emmc_reset_dat();
-	}
-	else if(cur_state != 4)
-	{
+		
+	}else if(cur_state != 4){
 		// Not in the transfer state - re-initialise
 		int ret = emmc_card_init((struct block_device **)&edev);
-		if(ret != 0)
-			return ret;
+		if(ret != 0){   return ret; }
 	}
 
 	// Check again that we're now in the correct mode
-	if(cur_state != 4)
-	{
-        emmc_issue_command(edev, SEND_STATUS, edev->card_rca << 16, 500000);
-        if(FAIL(edev))
-		{
+	if(cur_state != 4){
+        emmc_command(edev, SEND_STATUS, edev->card_rca << 16, 500000);
+        if(FAIL(edev)){
 			edev->card_rca = 0;
 			return -1;
 		}
 		status = edev->last_r0;
 		cur_state = (status >> 9) & 0xf;
 
-		if(cur_state != 4)
-		{
+		if(cur_state != 4){
 			edev->card_rca = 0;
 			return -1;
 		}
@@ -1526,74 +1329,48 @@ static int emmc_ensure_data_mode(struct emmc_dev *edev)
 	return 0;
 }
 
-// We only support DMA transfers to buffers aligned on a 4 kiB boundary
-static int sd_suitable_for_dma(void *buf)
-{
-    if((uintptr_t)buf & 0xfff)
-        return 0;
-    else
-        return 1;
-}
-
-static int emmc_do_data_command(struct emmc_dev *edev, int is_write, uint8_t *buf, size_t buf_size, uint32_t block_no)
-{
+static int emmc_do_data_command(        struct emmc_dev *edev,
+                                        int is_write, uint8_t *buf,
+                                        size_t buf_size,
+                                        uint32_t block_no){
 	// PLSS table 4.20 - SDSC cards use byte addresses rather than block addresses
-	if(!edev->card_supports_sdhc)
-		block_no *= 512;
-
+	if(!edev->card_supports_sdhc)   {block_no *= 512; }
+    
 	// This is as per HCSS 3.7.2.1
-	if(buf_size < edev->block_size)
-	{
-        return -1;
-	}
+	if(buf_size < edev->block_size){ return -1; }
 
 	edev->blocks_to_transfer = buf_size / edev->block_size;
-	if(buf_size % edev->block_size)
-	{
-        return -1;
-	}
+	if(buf_size % edev->block_size)     {return -1;}
 	edev->buf = buf;
 
-	// Decide on the command to use
 	int command;
-	if(is_write)
-	{
-	    if(edev->blocks_to_transfer > 1)
+	if(is_write){
+	    if(edev->blocks_to_transfer > 1){
             command = WRITE_MULTIPLE_BLOCK;
-        else
+        }else{
             command = WRITE_BLOCK;
-	}
-	else
-    {
-        if(edev->blocks_to_transfer > 1)
+        }
+	}else{
+        if(edev->blocks_to_transfer > 1){
             command = READ_MULTIPLE_BLOCK;
-        else
+        }else{
             command = READ_SINGLE_BLOCK;
+        }
     }
 
 	int retry_count = 0;
 	int max_retries = 3;
-	while(retry_count < max_retries)
-	{
-	    // use SDMA for the first try only
-	    if((retry_count == 0) && sd_suitable_for_dma(buf))
-            edev->use_sdma = 1;
-        else
-        {
-            edev->use_sdma = 0;
-        }
+	while(retry_count < max_retries){
 
-        emmc_issue_command(edev, command, block_no, 500);
+        emmc_command(edev, command, block_no, 500);
 
-        if(SUCCESS(edev))
+        if(SUCCESS(edev)){
             break;
-        else
-        {
+        }else{
             retry_count++;
         }
 	}
-	if(retry_count == max_retries)
-    {
+	if(retry_count == max_retries) {
         edev->card_rca = 0;
         return -1;
     }

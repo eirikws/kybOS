@@ -301,8 +301,6 @@ int fat_init(struct fs **filesystem){
 	
     //read root dir
     uart_puts("doing a test read after init of fat\r\n");
-    fat_read_dir(ret, NULL);
-    uart_puts("lalala\r\n");
     struct dirent* testres = fat_read_dir(ret, NULL);
     uart_puts("test read done\r\n");
 
@@ -354,9 +352,6 @@ static uint32_t get_next_fat_entry(struct fat_fs *filesys, uint32_t cur_cluster)
             sector = filesys->first_fat_sector + (offset / filesys->bytes_per_sector);
             ret = sd_read(buf, 512, sector + partition_offset);
             if(ret < 0){
-                uart_puts("FAT: SD read returns with: ");
-                uart_put_uint32_t(ret, 10);
-                uart_puts("\r\n");
                 return 0x0ffffff7;
             }
             index = offset & filesys->bytes_per_sector;
@@ -367,16 +362,10 @@ static uint32_t get_next_fat_entry(struct fat_fs *filesys, uint32_t cur_cluster)
             sector = filesys ->first_fat_sector + (offset / filesys->bytes_per_sector);
             ret = sd_read(buf, 512, sector + partition_offset);
             if(ret < 0){
-                uart_puts("FAT: sd read returns with: ");
-                uart_put_uint32_t(ret, 10);
-                uart_puts("\r\n");
                 return 0x0ffffff7;
             }
             index = offset % filesys->bytes_per_sector;
             next_cluster = *(uint32_t*)&buf[index];
-            uart_puts("get next fat entry returns with: ");
-            uart_put_uint32_t(next_cluster, 16);
-            uart_puts("\r\n");
             return next_cluster & 0x0fffffff;
         default:
             uart_puts("FAT: type ");
@@ -436,61 +425,52 @@ static size_t fat_read(struct fat_fs *filesystem, uint32_t cluster_no, uint8_t *
 }
 
 
-struct dirent *fat_read_dir(struct fat_fs *fs, struct dirent *d)
-{
-	int is_root = 0;
+struct dirent *fat_read_dir(struct fat_fs *fs, struct dirent *d){
+	int root = 0;
 	struct fat_fs *fat = fs;
 
-	if(d == (void*)0)
-		is_root = 1;
-
+	if(d == NULL){
+		root = 1;
+    }
+    
 	uint32_t cur_cluster;
 	uint32_t cur_root_cluster_offset = 0;
-	if(is_root)
+	if(root){
 		cur_cluster = fat->root_dir_cluster;
-	else
-		cur_cluster = (uint32_t)d->cluster_no;
-
-	struct dirent *ret = (void *)0;
-	struct dirent *prev = (void *)0;
-
+	}else{
+		cur_cluster = d->cluster_no;
+    }
+	struct dirent *ret = NULL;
+	struct dirent *prev = NULL;
 
 	do
 	{
-		/* Read this cluster */
+		// Read this cluster 
 		uint32_t cluster_size = fat->bytes_per_sector * fat->sectors_per_cluster;
 		uint8_t *buf = (uint8_t *)malloc(cluster_size);
 
-		/* Interpret the cluster number to an absolute address */
-		uint32_t absolute_cluster = cur_cluster - 2;
+		// Interpret the cluster number to an absolute address
+		uint32_t abs_cluster = cur_cluster - 2;
 		uint32_t first_data_sector = fat->first_data_sector;
-		if(!is_root)
+		if(!root)
 			first_data_sector = fat->first_non_root_sector;
 		
 		int br_ret = sd_read( buf, cluster_size, 
-				absolute_cluster * fat->sectors_per_cluster + first_data_sector + partition_offset);
+				abs_cluster * fat->sectors_per_cluster + first_data_sector + partition_offset);
 
-		if(br_ret < 0)
-		{
-			uart_puts("FAT: block_read returned with fault\r\n");
+		if(br_ret < 0){
 			return (void*)0;
 		}
 
-		for(uint32_t ptr = 0; ptr < cluster_size; ptr += 32)
-		{
-			// Does the entry exist (if the first byte is zero of 0xe5 it doesn't)
-			if((buf[ptr] == 0) || (buf[ptr] == 0xe5))
-				continue;
+		for(uint32_t ptr = 0; ptr < cluster_size; ptr += 32){
+			// exists?
+			if((buf[ptr] == 0) || (buf[ptr] == 0xe5)){  continue;}
+			// the "." or ".." directory?
+			if(buf[ptr] == '.')   {continue;}
+			// long filename entry?
+			if(buf[ptr + 11] == 0x0f){  continue;}
 
-			// Is it the directories '.' or '..'?
-			if(buf[ptr] == '.')
-				continue;
-
-			// Is it a long filename entry (if so ignore)
-			if(buf[ptr + 11] == 0x0f)
-				continue;
-
-			// Else read it
+			// if not, we can read the entry
 			struct dirent *de = (struct dirent *)malloc(sizeof(struct dirent));
 			memset(de, 0, sizeof(struct dirent));
 			if(ret == (void *)0)
@@ -500,57 +480,54 @@ struct dirent *fat_read_dir(struct fat_fs *fs, struct dirent *d)
 			prev = de;
 
 			de->name = (char *)malloc(13);
-			// Convert to lowercase on load
-			int d_idx = 0;
-			int in_ext = 0;
+			// interpret name
+			int name_index = 0;
+			int ext = 0;
 			int has_ext = 0;
 			for(int i = 0; i < 11; i++)
 			{
 				char cur_v = (char)buf[ptr + i];
 				if(i == 8)
 				{
-					in_ext = 1;
-					de->name[d_idx++] = '.';
+					ext = 1;
+					de->name[name_index++] = '.';
 				}
 				if(cur_v == ' ')
 					continue;
-				if(in_ext)
+				if(ext)
 					has_ext = 1;
 				if((cur_v >= 'A') && (cur_v <= 'Z'))
 					cur_v = 'a' + cur_v - 'A';
-				de->name[d_idx++] = cur_v;
+				de->name[name_index++] = cur_v;
 			}
 			if(!has_ext)
-				de->name[d_idx - 1] = 0;
+				de->name[name_index - 1] = 0;
 			else
-				de->name[d_idx] = 0;
+				de->name[name_index] = 0;
 
 			if(buf[ptr + 11] & 0x10)
 				de->is_dir = 1;
-			de->next = (void *)0;
+			de->next = NULL;
 			de->byte_size = *(uint32_t*)&buf[ptr + 28];
             uint32_t cluster_num = *(uint16_t*)&buf[ptr + 26] 
                     | ((uint32_t)(*(uint16_t*)&buf[ptr + 20]) << 16);
 
 			de->cluster_no = cluster_num;
-
 		}
 		free(buf);
-
-		// Get the next cluster
-		if(is_root && (fs->fat_type != FAT32))
-		{
+		// next cluster
+		if(root && (fs->fat_type != FAT32)){
 			cur_root_cluster_offset++;
 			if(cur_root_cluster_offset < (fat->root_dir_sectors /
-						fat->sectors_per_cluster))
+						fat->sectors_per_cluster)){
 				cur_cluster++;
-			else
+			}else{
 				cur_cluster = 0x0ffffff8;
+		    }
 		}
-		else
+		else{
 			cur_cluster = get_next_fat_entry(fat, cur_cluster);
-
-	} while(cur_cluster < 0x0ffffff7);
-
+    }
+	}while(cur_cluster < 0x0ffffff7);
 	return ret;
 }
