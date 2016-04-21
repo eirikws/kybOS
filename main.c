@@ -83,8 +83,18 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
 
     uart_puts("initiating FAT\r\n");
     struct fs* filesys = NULL;
-    fat_init(filesys);
-    
+    fat_init(&filesys);
+
+    if(filesys == NULL){
+        uart_puts("filesys is NULL!!!\r\n");
+    }
+
+    uart_puts("trying to load \r\n");
+    uart_puts(filesys->fs_name);
+    uart_puts("\r\n");
+
+
+    filesys->fs_load(filesys, "test/hehe.txt", (uint8_t)0x3000);
 
     uart_puts("registering threads\r\n");
     //  registering first threads!

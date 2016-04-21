@@ -5,7 +5,6 @@
 #include "mailbox.h"
 #include "uart.h"
 #include "mmu.h"
-#include "block.h"
 #include "time.h"
 #include "emmc.h"
 
@@ -70,7 +69,7 @@ static int timeout_wait(volatile uint32_t *reg, uint32_t mask, int value, uint32
 }
 
 
-static uint32_t hci_ver = 0;
+static uint32_t sd_version = 0;
 
 struct emmc_scr{
     uint32_t    scr[2];
@@ -79,14 +78,16 @@ struct emmc_scr{
 };
 
 struct emmc_dev{
-    struct block_device bd;
 	uint32_t card_supports_sdhc;
 	uint32_t card_supports_18v;
 	uint32_t card_ocr;
 	uint32_t card_rca;
 	uint32_t last_interrupt;
 	uint32_t last_error;
-
+    
+	int supports_multiple_block_read;
+	int supports_multiple_block_write;
+	
 	struct emmc_scr *scr;
 
 	int failed_voltage_switch;
@@ -539,7 +540,7 @@ static uint32_t emmc_get_clock_divider(uint32_t base_clock, uint32_t target_rate
         }
     }
 
-    if(hci_ver >= 2){
+    if(sd_version >= 2){
         // version 3 or greater supports 10-bit divided clock mode
 
         // Find the first bit set
@@ -625,7 +626,7 @@ static int emmc_reset_dat(void){
     return 0;
 }
 
-static void emmc_command_single(         struct emmc_dev *dev,
+static void emmc_command_single(        struct emmc_dev *dev,
                                         uint32_t cmd_reg, uint32_t argument, 
                                         uint32_t timeout){
     dev->last_cmd_reg = cmd_reg;
@@ -863,26 +864,19 @@ static int emmc_command(        struct emmc_dev *dev,
     return 0;
 }
 
-static int emmc_card_init(struct block_device **dev){
-    // Check the sanity of the sd_commands and emmc_acommands structures
-    if(sizeof(emmc_commands) != (64 * sizeof(uint32_t))){
-        return -1;
-    }
-    if(sizeof(emmc_acommands) != (64 * sizeof(uint32_t))){
-        return -1;
-    }
+static int emmc_card_init(struct emmc_dev **dev){
 
 	// Power cycle the card to ensure its in its startup state
 	if(bcm_power_cycle() != 0){
         return -1;
 	}
 
-	// Read the controller version
-	uint32_t ver =emmc_get()->SLOTISR_VER;
+	// read the sd controller version
+	uint32_t ver = emmc_get()->SLOTISR_VER;
     uint32_t emmcversion = (ver >> 16) & 0xff;
-    hci_ver = emmcversion;
+    sd_version = emmcversion;
 
-	if(hci_ver < 2){
+	if(sd_version < 2){
 		return -1;
 	}
 
@@ -955,15 +949,10 @@ static int emmc_card_init(struct block_device **dev){
 	if(*dev == NULL){
 		ret = (struct emmc_dev *)malloc(sizeof(struct emmc_dev));
 	}else{
-		ret = (struct emmc_dev *)*dev;
+		ret = *dev;
     }
 
 	memset(ret, 0, sizeof(struct emmc_dev));
-	ret->bd.block_size = 512;
-	ret->bd.dev_read = emmc_read;
-    ret->bd.dev_write = emmc_write;
-    ret->bd.supports_multiple_block_read = 1;
-    ret->bd.supports_multiple_block_write = 1;
 	ret->base_clock = base_clock;
 
 	// Send CMD0 to the card (reset to idle state)
@@ -1060,7 +1049,7 @@ static int emmc_card_init(struct block_device **dev){
 	        ret->failed_voltage_switch = 1;
 			emmc_power_off();
 			uart_puts("EMMC: voltage switch error\r\n");
-	        return emmc_card_init((struct block_device **)&ret);
+	        return emmc_card_init(&ret);
 	    }
 
 	    // Disable SD clock
@@ -1075,7 +1064,7 @@ static int emmc_card_init(struct block_device **dev){
 	        ret->failed_voltage_switch = 1;
 			emmc_power_off();
 			uart_puts("EMMC: dat30 error\r\n");
-	        return emmc_card_init((struct block_device **)&ret);
+	        return emmc_card_init(&ret);
 	    }
 
 	    // Set 1.8V signal enable to 1
@@ -1090,7 +1079,7 @@ static int emmc_card_init(struct block_device **dev){
 	    if(((control0 >> 8) & 0x1) == 0){
 	        ret->failed_voltage_switch = 1;
 			emmc_power_off();
-	        return emmc_card_init((struct block_device **)&ret);
+	        return emmc_card_init(&ret);
 	    }
 
 	    // Re-enable the SD clock
@@ -1107,7 +1096,7 @@ static int emmc_card_init(struct block_device **dev){
         if(dat30 != 0xf){
 	        ret->failed_voltage_switch = 1;
 			emmc_power_off();
-	        return emmc_card_init((struct block_device **)&ret);
+	        return emmc_card_init(&ret);
 	    }
 	}
 
@@ -1127,8 +1116,6 @@ static int emmc_card_init(struct block_device **dev){
 	dev_id[1] = card_cid_1;
 	dev_id[2] = card_cid_2;
 	dev_id[3] = card_cid_3;
-	ret->bd.device_id = (uint8_t *)dev_id;
-	ret->bd.dev_id_len = 4 * sizeof(uint32_t);
 
 	// Send CMD3 to enter the data state
 	emmc_command(ret, SEND_RELATIVE_ADDR, 0, 500000);
@@ -1148,25 +1135,21 @@ static int emmc_card_init(struct block_device **dev){
 
 	if(crc_error){
 		free(ret);
-		free(dev_id);
 		return -1;
 	}
 
 	if(illegal_cmd){
 		free(ret);
-		free(dev_id);
 		return -1;
 	}
 
 	if(error){
 		free(ret);
-		free(dev_id);
 		return -1;
 	}
 
 	if(!ready){
 		free(ret);
-		free(dev_id);
 		return -1;
 	}
 
@@ -1183,7 +1166,6 @@ static int emmc_card_init(struct block_device **dev){
 
 	if((status != 3) && (status != 4)){
 		free(ret);
-		free(dev_id);
 		return -1;
 	}
 
@@ -1264,15 +1246,14 @@ static int emmc_card_init(struct block_device **dev){
 	// Reset interrupt register
 	emmc_get()->INTERRUPT = 0xffffffff;
 
-	*dev = (struct block_device *)ret;
-    uart_puts("card init successfull\r\n");
+	*dev = ret;
 	return 0;
 }
 
 static int emmc_ensure_data_mode(struct emmc_dev *edev){
 	if(edev->card_rca == 0){
 		// Try again to initialise the card
-		int ret = emmc_card_init((struct block_device **)&edev);
+		int ret = emmc_card_init(&edev);
 		if(ret != 0){   return ret;}
 	}
 
@@ -1306,7 +1287,7 @@ static int emmc_ensure_data_mode(struct emmc_dev *edev){
 		
 	}else if(cur_state != 4){
 		// Not in the transfer state - re-initialise
-		int ret = emmc_card_init((struct block_device **)&edev);
+		int ret = emmc_card_init(&edev);
 		if(ret != 0){   return ret; }
 	}
 
@@ -1379,7 +1360,7 @@ static int emmc_do_data_command(        struct emmc_dev *edev,
 }
 
 
-static struct block_device *device = NULL;
+static struct emmc_dev *device;
 
 int emmc_init(void){
     if( emmc_card_init(&device) == -1){
@@ -1390,27 +1371,17 @@ int emmc_init(void){
     return 0;
 }
 
-int emmc_read(uint8_t *buf, size_t buf_size, uint32_t block_no)
-{
+int emmc_read(uint8_t *buf, size_t buf_size, uint32_t block_no){
 	// Check the status of the card
-	struct emmc_dev *edev = (struct emmc_dev *)device;
-    if(emmc_ensure_data_mode(edev) != 0)
-        return -1;
-
-    if(emmc_do_data_command(edev, 0, buf, buf_size, block_no) < 0)
-        return -1;
-
+    if(emmc_ensure_data_mode(device) != 0){     return -1; }
+    if(emmc_do_data_command(device, 0, buf, buf_size, block_no) < 0){ return -1;}
 	return buf_size;
 }
 
-int emmc_write(uint8_t *buf, size_t buf_size, uint32_t block_no)
-{
+int emmc_write(uint8_t *buf, size_t buf_size, uint32_t block_no){
 	// Check the status of the card
-	struct emmc_dev *edev = (struct emmc_dev *)device;
-    if(emmc_ensure_data_mode(edev) != 0)
-        return -1;
-    if(emmc_do_data_command(edev, 1, buf, buf_size, block_no) < 0)
-        return -1;
+    if(emmc_ensure_data_mode(device) != 0){ return -1; }
+    if(emmc_do_data_command(device, 1, buf, buf_size, block_no) < 0){ return -1;}
 	return buf_size;
 }
 
