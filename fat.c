@@ -78,8 +78,6 @@ struct fat_BS{
 	} ext;
 };
 
-static uint32_t partition_offset;
-
 void copy_to_fat16(struct fat_extBS_16* b, uint8_t *buf){
     memcpy(&(b->bios_drive_num), buf + 36, 1);
     memcpy(&(b->boot_signature), buf + 38, 1);
@@ -126,74 +124,8 @@ static const char *fat_names[] = { "FAT12", "FAT16", "FAT32"};
 #define FAT_BLOCK_SIZE      512
 
 struct dirent *fat_read_dir(struct fat_fs *filesys, struct dirent *d);
-
-//if input is 'jepp.txt\0'
-// a.exe
-int fat_get_next_path(char *path){
-    int offset = 0;
-    // look for '/' to find directory
-    // if not found loop has reached end of loop
-    // we have found the filename.
-    while(path[offset] != '\0'){
-        if(path[offset] == '/'){   return offset; }
-
-        offset++;
-    }
-    // has found filename
-    return offset;
-}
-
-int fat_load(struct fs *filesys, char *path, uint8_t *buf){
-    char *c = path;
-    int offset;
-    struct dirent *node = NULL;
-    struct dirent *current_node = NULL;
-    struct dirent *free_node = NULL;
-    if( path == NULL){  return -1; }
-
-    // find first folder/file
-    // look for '/' or '/'
-    while(1){
-        if(*c == '/'){ c++;}
-        offset = fat_get_next_path(c);
-        
-        char* path_buf = (char*)malloc(sizeof(char) * offset + 1);
-        memcpy(path_buf, c, offset);
-        path_buf[offset] = '\0';
-        // now path_buf contains the next segment in the path.
-        // search for it!
-        // delete all the other nodes in the linked list
-        node = fat_read_dir( (struct fat_fs*)filesys, current_node);
-
-        while(node){
-            if( !strcmp( node->name, path_buf) ){
-                current_node = node;
-                node = node->next;
-            }else{
-                free_node = node;
-                node = node->next;
-                free(free_node);
-            }
-        }
-        if( current_node == NULL)   { return -1; }
-
-        // target_node now contains the dirent for the next path segment
-        if(current_node->is_dir){
-        }else{
-            break;
-        }
-        c = c + offset;
-        free(path_buf);
-    }
-    //  do something to load the file
-    return 0;
-}
-
-
-int fat_store(struct fs *filesys, char *path, uint8_t *buf){
-    return -1;
-}
-
+int fat_load(struct fs *filesys, char *path, uint8_t *buf, uint32_t buf_size);
+int fat_store(struct fs *filesys, char *path, uint8_t *buf);
 
 int fat_init(struct fs **filesystem){
 
@@ -211,7 +143,7 @@ int fat_init(struct fs **filesystem){
 		uart_puts(" bytes read)\r\n");
 		return -1;
 	}
-    partition_offset =              buf[454] << 0
+    uint32_t partition_offset =              buf[454] << 0
                                 |   buf[455] << 8
                                 |   buf[456] << 16
                                 |   buf[457] << 24;
@@ -308,9 +240,9 @@ int fat_init(struct fs **filesystem){
 	    uart_puts(ret->vol_label);
 	    uart_puts("\r\n");
 	    
-	    ret->first_data_sector = myfat.reserved_sector_count + (myfat.table_count *
+	    ret->first_data_sector = partition_offset + myfat.reserved_sector_count + (myfat.table_count *
 			                                myfat.ext.fat32.table_size_32);
-		ret->first_fat_sector = myfat.reserved_sector_count;
+		ret->first_fat_sector = myfat.reserved_sector_count + partition_offset;
 		ret->first_non_root_sector = ret->first_data_sector;
 		ret->sectors_per_fat = myfat.ext.fat32.table_size_32;
 		uart_puts("FAT first data sector: ");
@@ -332,9 +264,9 @@ int fat_init(struct fs **filesystem){
 	    uart_puts(ret->vol_label);
 	    uart_puts("\r\n");
 	    
-	    ret->first_data_sector = myfat.reserved_sector_count + (myfat.table_count *
+	    ret->first_data_sector = partition_offset + myfat.reserved_sector_count + (myfat.table_count *
 			                                myfat.table_size_16);
-		ret->first_fat_sector = myfat.reserved_sector_count;
+		ret->first_fat_sector = myfat.reserved_sector_count + partition_offset;
 		ret->sectors_per_fat = myfat.table_size_16;
 		
 		ret->root_dir_entries = myfat.root_entry_count;
@@ -356,39 +288,7 @@ int fat_init(struct fs **filesystem){
 		uart_puts("\r\n");
 	}
 	*filesystem = (struct fs*)ret;
-	
-    //read root dir
-    uart_puts("doing a test read after init of fat\r\n");
-    struct dirent* testres = fat_read_dir(ret, NULL);
-    uart_puts("test read done\r\n");
 
-    
-    struct dirent *test = NULL;
-
-    if(testres == NULL){
-        uart_puts("test is null\r\n");
-    }
-    struct dirent *it = testres;
-    uart_puts("root directory names are: ");
-    while(it){
-        if(!strcmp( it->name, "test") ){
-            test = it;
-        }
-        uart_puts(it->name);
-        uart_puts(", ");
-        it = it->next;
-    }
-    uart_puts("\r\n");
-    it = fat_read_dir( ret, test);
-    uart_puts("test directory name is: ");
-    
-    while(it){
-        uart_puts(it->name);
-        uart_puts(", ");
-        it = it->next;
-    }
-
-    uart_puts("\r\n");
 	return 1;
 }
 	
@@ -405,12 +305,11 @@ static uint32_t get_next_fat_entry(struct fat_fs *filesys, uint32_t cur_cluster)
     int ret;
     uint32_t index;
     uint32_t next_cluster;
-
     switch(filesys->fat_type){
         case FAT16:
             offset = cur_cluster << 1;
             sector = filesys->first_fat_sector + (offset / filesys->bytes_per_sector);
-            ret = sd_read(buf, 512, sector + partition_offset);
+            ret = sd_read(buf, 512, sector);
             if(ret < 0){
                 return 0x0ffffff7;
             }
@@ -420,7 +319,7 @@ static uint32_t get_next_fat_entry(struct fat_fs *filesys, uint32_t cur_cluster)
         case FAT32:
             offset = cur_cluster << 2;
             sector = filesys ->first_fat_sector + (offset / filesys->bytes_per_sector);
-            ret = sd_read(buf, 512, sector + partition_offset);
+            ret = sd_read(buf, 512, sector );
             if(ret < 0){
                 return 0x0ffffff7;
             }
@@ -441,13 +340,13 @@ static size_t fat_read(struct fat_fs *filesystem, uint32_t cluster_no, uint8_t *
     size_t cluster_size = filesystem->bytes_per_sector * filesystem->sectors_per_cluster;
     size_t file_loc = 0;
     int buf_ptr = 0;
-    while(cur_cluster < 0xfffffff8){
+    while(cur_cluster < 0x0ffffff8){
         if(( file_loc + cluster_size) > offset){
             if( file_loc < (offset + byte_count)){
                 //  load this cluster, as it contains the requested file
                 uint32_t sector = get_sector(filesystem, cur_cluster);
                 uint8_t * r_buf = (uint8_t*)malloc(cluster_size);
-                int ret = sd_read(r_buf, cluster_size, sector + partition_offset);
+                int ret = sd_read(r_buf, cluster_size, sector);
                 // check for error
                 if(ret < 0){
                     return ret;
@@ -488,7 +387,6 @@ struct dirent *fat_read_dir(struct fat_fs *fs, struct dirent *d){
 	struct fat_fs *fat = fs;
 
 	if(d == NULL){
-        uart_puts("is root\r\n");
 		root = 1;
     }
     
@@ -514,7 +412,7 @@ struct dirent *fat_read_dir(struct fat_fs *fs, struct dirent *d){
 			first_data_sector = fat->first_non_root_sector;
 		
 		int br_ret = sd_read( buf, cluster_size, 
-				abs_cluster * fat->sectors_per_cluster + first_data_sector + partition_offset);
+				abs_cluster * fat->sectors_per_cluster + first_data_sector);
 
 		if(br_ret < 0){
 			return (void*)0;
@@ -571,9 +469,6 @@ struct dirent *fat_read_dir(struct fat_fs *fs, struct dirent *d){
                     | ((uint32_t)(*(uint16_t*)&buf[ptr + 20]) << 16);
 
 			de->cluster_no = cluster_num;
-            uart_puts("read dir found: ");
-            uart_puts(de->name);
-            uart_puts("\r\n");
 		}
 		free(buf);
 		// next cluster
@@ -591,5 +486,85 @@ struct dirent *fat_read_dir(struct fat_fs *fs, struct dirent *d){
     }
 	}while(cur_cluster < 0x0ffffff7);
 	return ret;
+}
+
+//if input is 'jepp.txt\0'
+// a.exe
+int fat_get_next_path(char *path){
+    int offset = 0;
+    // look for '/' to find directory
+    // if not found loop has reached end of loop
+    // we have found the filename.
+    while(path[offset] != '\0'){
+        if(path[offset] == '/'){   return offset; }
+
+        offset++;
+    }
+    // has found filename
+    return offset;
+}
+
+int fat_load(struct fs *filesys, char *path, uint8_t *buf, uint32_t buf_size){
+    char *c = path;
+    int offset;
+    struct dirent *node = NULL;
+    struct dirent *current_node = NULL;
+    struct dirent *free_node = NULL;
+    if( path == NULL){  return -1; }
+
+    // find first folder/file
+    // look for '/' or '/'
+    while(1){
+        if(*c == '/'){ c++;}
+        offset = fat_get_next_path(c);
+        
+        char* path_buf = (char*)malloc(sizeof(char) * offset + 1);
+        memcpy(path_buf, c, offset);
+        path_buf[offset] = '\0';
+        // now path_buf contains the next segment in the path.
+        // search for it!
+        // delete all the other nodes in the linked list
+        node = fat_read_dir( (struct fat_fs*)filesys, current_node);
+
+        while(node){
+            if( !strcmp( node->name, path_buf) ){
+                current_node = node;
+                node = node->next;
+            }else{
+                free_node = node;
+                node = node->next;
+                free(free_node);
+            }
+        }
+        if( current_node == NULL)   { return -1; }
+
+        // current_node now contains the dirent for the next path segment
+        if(current_node->is_dir){
+        }else{
+            break;  // is file
+        }
+        c = c + offset;
+        free(path_buf);
+    }
+    //  do something to load the file
+    
+    if( current_node->byte_size > buf_size){
+        uart_puts("FS load: buffer too small for file size\r\n");
+        return -1;
+    }
+
+
+    int ret = fat_read(     (struct fat_fs*)filesys,
+                            current_node->cluster_no,
+                            buf,
+                            current_node->byte_size,
+                            0);
+
+    return ret;
+}
+
+
+int fat_store(struct fs *filesys, char *path, uint8_t *buf){
+    return -1;
 }
 
