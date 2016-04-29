@@ -124,8 +124,8 @@ static const char *fat_names[] = { "FAT12", "FAT16", "FAT32"};
 #define FAT_BLOCK_SIZE      512
 
 struct dirent *fat_read_dir(struct fat_fs *filesys, struct dirent *d);
-int fat_load(struct fs *filesys, char *path, uint8_t *buf, uint32_t buf_size);
-int fat_store(struct fs *filesys, char *path, uint8_t *buf);
+int fat_load(const char *path, uint8_t *buf, uint32_t buf_size);
+int fat_store(const char *path, uint8_t *buf);
 
 int fat_init(struct fs **filesystem){
 
@@ -288,7 +288,39 @@ int fat_init(struct fs **filesystem){
 		uart_puts("\r\n");
 	}
 	*filesystem = (struct fs*)ret;
+	
+	   //read root dir
+    uart_puts("doing a test read after init of fat\r\n");
+    struct dirent* testres = fat_read_dir(ret, NULL);
+    uart_puts("test read done\r\n");
 
+    
+    struct dirent *test = NULL;
+
+    if(testres == NULL){
+        uart_puts("test is null\r\n");
+    }
+    struct dirent *it = testres;
+    uart_puts("root directory names are: ");
+    while(it){
+        if(!strcmp( it->name, "test") ){
+            test = it;
+        }
+        uart_puts(it->name);
+        uart_puts("\r\n");
+        it = it->next;
+    }
+    it = fat_read_dir( ret, test);
+    uart_puts("test directory name is: ");
+    
+    while(it){
+        uart_puts(it->name);
+        uart_puts("\r\n");
+        it = it->next;
+    }
+
+	
+	
 	return 1;
 }
 	
@@ -490,7 +522,7 @@ struct dirent *fat_read_dir(struct fat_fs *fs, struct dirent *d){
 
 //if input is 'jepp.txt\0'
 // a.exe
-int fat_get_next_path(char *path){
+int fat_get_next_path(const char *path){
     int offset = 0;
     // look for '/' to find directory
     // if not found loop has reached end of loop
@@ -504,12 +536,13 @@ int fat_get_next_path(char *path){
     return offset;
 }
 
-int fat_load(struct fs *filesys, char *path, uint8_t *buf, uint32_t buf_size){
-    char *c = path;
+int fat_load(const char *path, uint8_t *buf, uint32_t buf_size){
+    const char *c = path;
     int offset;
     struct dirent *node = NULL;
     struct dirent *current_node = NULL;
     struct dirent *free_node = NULL;
+    struct fs* filesys = fs_get();
     if( path == NULL){  return -1; }
 
     // find first folder/file
@@ -549,7 +582,9 @@ int fat_load(struct fs *filesys, char *path, uint8_t *buf, uint32_t buf_size){
     //  do something to load the file
     
     if( current_node->byte_size > buf_size){
-        uart_puts("FS load: buffer too small for file size\r\n");
+        uart_puts("FS load: buffer too small for file size ");
+        uart_put_uint32_t(current_node->byte_size, 10);
+        uart_puts(" \r\n");
         return -1;
     }
 
@@ -564,7 +599,7 @@ int fat_load(struct fs *filesys, char *path, uint8_t *buf, uint32_t buf_size){
 }
 
 
-int fat_store(struct fs *filesys, char *path, uint8_t *buf){
+int fat_store(const char *path, uint8_t *buf){
     return -1;
 }
 

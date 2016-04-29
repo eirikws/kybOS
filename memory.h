@@ -4,9 +4,7 @@
 #include "stdint.h"
 
 void memory_init(void);
-
-uint32_t memory_map(void);
-void memory_unmap(uint32_t mem);
-
+void* memory_slot_get(void);
+void memory_slot_free(void* addr);
 
 #endif

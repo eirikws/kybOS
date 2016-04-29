@@ -2,6 +2,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#include "process.h"
+#include "memory.h"
 #include "fat.h"
 #include "jtag.h"
 #include "mmu.h"
@@ -19,14 +21,14 @@
 
 extern void _enable_interrupts(void);
 void extern _SYSTEM_CALL(system_call_t arg0, void* arg1, void* arg2, void* arg3);
-//int fat_init( struct fs ** filesys);
-
 
 void loop_forever_and_ever(void){
     int volatile i = 0;
     while(1){
         i++;   // do nothing
-        if (i % 1000 == 0){}
+        if (i % 100000 == 0){
+            uart_puts("loooooooooooooooooping in kernel forever and ever!\r\n");
+        }
     }
 }
 
@@ -78,41 +80,35 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     get_gpio()->LED_GPFSEL |= LED_GPFBIT;
     /* Enable interrupts! */
     
-    uart_puts("enabling emmc\r\n");
-    emmc_init();
+    uart_puts("initiating memory\r\n");
+    memory_init();
 
-    uart_puts("initiating FAT\r\n");
-    struct fs* filesys = NULL;
-    fat_init(&filesys);
-
-    if(filesys == NULL){
+    uart_puts("initiating filesystem emmc\r\n");
+    fs_init();
+    
+    if(fs_get() == NULL){
         uart_puts("filesys is NULL!!!\r\n");
     }
 
     uart_puts("Loading from \r\n");
-    uart_puts(filesys->fs_name);
+    uart_puts(fs_get()->fs_name);
     uart_puts("\r\n");
 
-    filesys->fs_load(filesys, "test/hehe.txt", (uint8_t*)0x1000,0x5000);
+        
+    uart_puts("loading processes\r\n");
+    process_load("a.elf", 20, CPSR_MODE_USER, (process_id_t){2});
+    process_load("b.elf", 20, CPSR_MODE_USER, (process_id_t){1});
 
-    uart_puts("registering threads\r\n");
-    //  registering first threads!
+
     
-    thread_register( prog4, 10, 1000, (process_id_t){4}, CPSR_MODE_USER);
-   // thread_register( prog2, 10,1000, (process_id_t){2}, CPSR_MODE_USER);
-   // thread_register( prog2, 10,1000, (process_id_t){1}, CPSR_MODE_USER);
-   // thread_register( prog3, 1 ,1000, (process_id_t){3}, CPSR_MODE_USER);
-    
-    uart_puts("starting threads\r\n");
+    uart_puts("starting processes\r\n");
     pcb_print();
     //  starting them
+    process_start( (process_id_t){2});
+    process_start( (process_id_t){1});
     
-    thread_start( (process_id_t){4}, 0);          
-   // thread_start( (process_id_t){1}, 0);
-   // thread_start( (process_id_t){2}, 0);
-   // thread_start( (process_id_t){3}, 0);          
-    
-    scheduling_set(1);
+
+    scheduling_set(0);
     uart_puts("threads_started. starting timer irqs\r\n");
     _SYSTEM_CALL(YIELD,0,0,0);
     

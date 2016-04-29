@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdint.h>
+#include "mmu.h"
 #include "uart.h"
 #include "pcb.h"
 #include "scheduler.h"
@@ -18,6 +19,8 @@ typedef struct priority_list{
 static priority_list_t priority_array[NUM_PRIORITIES];
 static process_id_t current_running_process = {-1};
 static process_id_t previous_running_process;
+
+
 
 void init_pri_array(void){
     int i;
@@ -167,8 +170,22 @@ uint32_t context_switch_c(uint32_t old_sp){
         uart_puts("KERN Error: Save process context_switch_c\r\n");
     } else {
         // if no errors, save old sp
-        pcb_get(previous_running_process)->context_data.SP = old_sp;
+        pcb->context_data.SP = old_sp;
+       // unmap memory of old process
+        mmu_remap_section(  pcb->context_data.virtual_address,
+                            0,
+	                        0);
+                            /*
+                            SET_FORMAT_SECTION
+	                      | SECTION_SHAREABLE
+	                      | SECTION_ACCESS_PL1_RW_PL0_NONE
+	                      | SECTION_OUT_INN_WRITE_BACK__WRITE_ALOC
+	                      | SECTION_EXECUTE_ENABLE
+	                      | 0 << SECTION_DOMAIN // set the domain of this section to 0
+	                      | SECTION_GLOBAL
+	                      | SECTION_NON_SECURE);*/
     }
+    
 
     // load new sp
     pcb = pcb_get( current_running_process);
@@ -177,10 +194,31 @@ uint32_t context_switch_c(uint32_t old_sp){
         //  if cant load a process stack pointer, return with...
         //  IDK, zero I guess. Something something something...
         return 0;
-    } else {
-        // if no errors, return the stack pointer!
-        return pcb_get(current_running_process)->context_data.SP;
     }
+    // map memory of new process so that the virtual memory points to its  where it should
+    
+    mmu_remap_section(  pcb->context_data.virtual_address,
+                        pcb->context_data.real_address,
+	                    SET_FORMAT_SECTION
+	                  | SECTION_SHAREABLE
+	                  | SECTION_ACCESS_PL1_RW_PL0_RW
+	                  | SECTION_OUT_INN_WRITE_BACK__WRITE_ALOC
+	                  | SECTION_EXECUTE_ENABLE
+	                  | 0 << SECTION_DOMAIN // set the domain of this section to 0
+	                  | SECTION_GLOBAL
+	                  | SECTION_NON_SECURE);
+
+        // if no errors, return the stack pointer!
+    uart_puts("Loading stack at virtual address ");
+    uart_put_uint32_t(pcb->context_data.SP, 16);
+    uart_puts("\r\n");
+
+    uart_puts("trying to write something to mapped memory\r\n");
+    volatile uint8_t *ptr = (uint8_t*)(pcb->context_data.virtual_address + 0x5000);
+    *ptr = 4;    
+    uart_puts("Have written something\r\n");
+
+    return pcb->context_data.SP;
 }
 
 

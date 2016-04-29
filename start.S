@@ -24,11 +24,12 @@
 .equ    CPSR_IRQ_INHIBIT,       0x80
 .equ    CPSR_FIQ_INHIBIT,       0x40
 .equ    CPSR_THUMB,             0x20
-.equ    STACK_SVR,              (64 * 1024 * 1024)
-.equ    STACK_UNDEF,            (61 * 1024 * 1024)
-.equ    STACK_IRQ,              (63 * 1024 * 1024)
-.equ    STACK_ABORT,            (60 * 1024 * 1024)
-.equ    STACK_INIT,             (59 * 1024 * 1024)
+.equ    STACK_SVR,              (0xf0000) // these adresses are within 
+.equ    STACK_UNDEF,            (0x100000)// the first 1 MB block of memory
+.equ    STACK_IRQ,              (0xf8000) // because of 1 MB page table!  
+.equ    STACK_ABORT,            (0xfc000)
+.equ    STACK_INIT,             (0x100000)
+.equ    STACK_SYSTEM,           (0xfa000)
 
 /*
         Put the vector table in the ram at 0x8000.
@@ -91,7 +92,7 @@ _reset_:
     //  switch to system mode because the we are able to switch back!
     mov r0, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r0
-    mov sp, #(62 * 1024 * 1024)
+    mov sp, #(STACK_SYSTEM)
     //  switch back to supervisor mode and set the stack pointer
     //  to init stack. The stack will work down, and the heap up.
     mov r0, #(CPSR_MODE_SVR | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
@@ -125,7 +126,7 @@ find_origin_context_switch:
     beq build_context_stack_user    // perform context switch from user
     cmp r0, #(CPSR_MODE_SVR)
     popeq {r0}
-    bne build_context_stack_svr    //else from supervisor
+    beq build_context_stack_svr    //else from supervisor
     // add more as needed. at this point of time interrupts
     // are only enabled in svr and usr mode  
 
@@ -196,6 +197,9 @@ pop_return_stack_user:
     mov r0, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r0
     mov sp, r4
+    
+    
+    
     pop {r0-r2}     // spsr, pc, lr
     mov lr, r2
     mov r3, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
@@ -215,6 +219,8 @@ pop_return_stack_user:
     mov r1, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r1
     push {r0}
+    
+    
     ldm sp!, {r0-r12, pc}^
     
 
@@ -390,6 +396,33 @@ _init_thr_stack:
 // location is packaged with in the SP
      
 
+.global _process_stack_init
+    // r0 carries sp, r1 location of code, r2 cpsr
+_process_stack_init:
+    mov r3, sp
+    mov sp, r0
+    mov r0, #42
+    push {r0}
+    push {r0}
+    mov r0, #0
+    push {r0}
+    push {r0}
+    push {r0}
+    push {r0}
+    push {r0}
+    push {r0}
+    push {r0}
+    push {r0}
+    push {r0}
+    push {r0}
+    mov r0, #42
+    push {r0}
+    push {r0} // lr contains nothing
+    push {r1} // pc
+    push {r2} // cpsr
+    mov r0, sp
+    mov sp, r3
+    mov pc, lr
      
 _set_cpu_mode:
     //  store lr in r2, becuase lr is banked for different cpu modes    

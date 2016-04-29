@@ -57,6 +57,12 @@ add_executable( kybOS
     sd.h
     fat.c
     fat.h
+    fs.c
+    fs.h
+    memory.c
+    memory.h
+    process.c
+    process.h
     dirent.h)
 
 add_custom_command(

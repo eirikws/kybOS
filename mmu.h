@@ -4,7 +4,7 @@
 
 // paging bits
 // page: SECTION bits
-#define SECTION_BASE_ADDRESS_OFFSET      20
+#define SECTION_BASE_ADDRESS_OFFSET     20
 #define SECTION_NS                      19
 #define SECTION_nG                      17
 #define SECTION_S                       16
@@ -46,7 +46,7 @@
 void mmu_init(void);
 void mmu_configure(void);
 void mmu_init_table(void);
-void mmu_remap(uint32_t virt,uint32_t physical, uint32_t config_flags);
+void mmu_remap_section(uint32_t virt,uint32_t physical, uint32_t config_flags);
 void mmu_cache_invalidate(uint32_t address);
 
 #endif

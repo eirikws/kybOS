@@ -8,20 +8,35 @@
 static volatile __attribute__ ((aligned (0x4000))) uint32_t page_table[4096];
 
 void mmu_init_table(void) {
-	uint32_t base;
+	uint32_t base = 0;
 	// initialize page_table
 	// 1024MB - 16MB of kernel memory
 	// each page describes xx00000-xxFFFFF.
-	for (base = 0; base < 1024-16; base++) {
-	    page_table[base] =    SET_FORMAT_SECTION
-	                          | base << SECTION_BASE_ADDRESS_OFFSET
-	                          | SECTION_SHAREABLE
-	                          | SECTION_ACCESS_PL1_RW_PL0_RW
-	                          | SECTION_OUT_INN_WRITE_BACK__WRITE_ALOC
-	                          | SECTION_EXECUTE_ENABLE
-	                          | 0 << SECTION_DOMAIN // set the domain of this section to 0
-	                          | SECTION_GLOBAL
-	                          | SECTION_NON_SECURE;
+
+    // first page is operating system
+	page_table[base] =    SET_FORMAT_SECTION
+	                      | base << SECTION_BASE_ADDRESS_OFFSET
+	                      | SECTION_SHAREABLE
+	                      | SECTION_ACCESS_PL1_RW_PL0_NONE
+	                      | SECTION_OUT_INN_WRITE_BACK__WRITE_ALOC
+	                      | SECTION_EXECUTE_ENABLE
+	                      | 0 << SECTION_DOMAIN // set the domain of this section to 0
+	                      | SECTION_GLOBAL
+	                      | SECTION_NON_SECURE;
+    
+    base++;
+    // the next ones are for processes. they are not loaded yet,
+    // so should be only accessable by PL1
+	for (; base < 1024-16; base++) {
+	    page_table[base] = 0; /*  SET_FORMAT_SECTION
+	                        | base << SECTION_BASE_ADDRESS_OFFSET
+	                        | SECTION_SHAREABLE
+	                        | SECTION_ACCESS_PL1_RW_PL0_NONE
+	                        | SECTION_OUT_INN_WRITE_BACK__WRITE_ALOC
+	                        | SECTION_EXECUTE_ENABLE
+	                        | 0 << SECTION_DOMAIN // set the domain of this section to 0
+	                        | SECTION_GLOBAL
+	                        | SECTION_NON_SECURE;*/
 	}
 	
 	// 16 MB peripherals at 0x3F000000-3ffffffff
@@ -116,13 +131,16 @@ void mmu_remap_section(uint32_t virt, uint32_t physical, uint32_t config_flags){
     barrier_data_sync();
     // 3. invalidate the translation table with a broadcast TLB invalidation instruction.
     // Invlaidate unified TLB by writing to TLBIALL
-    __asm volatile ("mcr p15, 0, %0, c8, c5, 0" :: "r" (0));
+    __asm volatile ("mcr p15, 0, %0, c8, c7, 0" :: "r" (0));
     // 4. write new entry.
     page_table[virt >> SECTION_BASE_ADDRESS_OFFSET] = config_flags
-                  | (physical >> SECTION_BASE_ADDRESS_OFFSET) << SECTION_BASE_ADDRESS_OFFSET;
+                  |( (physical >> SECTION_BASE_ADDRESS_OFFSET) << SECTION_BASE_ADDRESS_OFFSET);
     // 5. data barrier
     barrier_data_sync();
+    __asm volatile ("mcr p15, 0, %0, c8, c7, 0" :: "r" (0));
+    barrier_data_sync();
 }
+
 
 void mmu_cache_invalidate(uint32_t address){
     __asm volatile ("mcr p15, 0, %0, c7, c14, 1"::"r"(address));

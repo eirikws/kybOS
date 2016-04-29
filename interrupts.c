@@ -73,8 +73,13 @@ uint32_t software_interrupt_vector_c(void* arg0, void* arg1, void* arg2, void* a
         return 0;
         break;
         case YIELD:
+        uart_puts("yield!\r\n");
         reschedule();
         return 1;
+        break;
+        case PRINT:
+        uart_puts(arg1);
+        return 0;
         break;
     }
     uart_puts("Software irq vector c: did not find source of exception!\r\n");

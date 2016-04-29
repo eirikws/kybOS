@@ -154,3 +154,10 @@ uint32_t uart_handler(void){
     }
     return 0;
 }
+
+void p_d(void){
+    static int i;
+    uart_put_uint32_t(i++, 10);
+    uart_puts("\r\n");
+}
+    
