@@ -1015,7 +1015,7 @@ static int emmc_card_init(struct emmc_dev **dev){
 
 	    emmc_command(ret, ACMD(41), 0x00ff8000 | v2_flags, 500);
 	    if(FAIL(ret)){
-	        uart_puts("SD: error issuing ACMD41\n");
+	        uart_puts("EMMC: error issuing ACMD41\n");
 	        return -1;
 	    }
 

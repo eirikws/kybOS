@@ -23,7 +23,8 @@ typedef enum{
     IPC_RECV,
     YIELD,
     DUMMY,
-    PRINT,
+    PRINT_STR,
+    PRINT_INT,
 } system_call_t;
 
 

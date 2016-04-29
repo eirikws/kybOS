@@ -140,7 +140,8 @@ int scheduler_enqueue(process_id_t id){
     if (mypcb == NULL){ 
         return -1;
     }
-    if (mypcb->state == READY){
+    if (mypcb->state == READY && !mypcb->is_queued){
+        mypcb->is_queued = 1;
         return priority_enqueue( node, mypcb->priority );
     }
     return -1;
@@ -154,12 +155,18 @@ void reschedule(void){
     if (!pcb_id_compare( current_running_process, (process_id_t){-1})){
         err = scheduler_enqueue(current_running_process);
         if (err == -1){
-            uart_puts("ERROR: Scheduler enqueuing error\r\n");
+ //           uart_puts("ERROR: Scheduler enqueuing error\r\n");
         }
     }
+  //  priority_print_list();
+
     process_id_t retval = pop_highest_priority();
+    pcb_get(retval)->is_queued = 0;
     previous_running_process = current_running_process;
     current_running_process = retval;
+ /*   uart_puts("Scheduling to process: ");
+    uart_put_uint32_t(retval.id_number, 10);
+    uart_puts("\r\n"); */
     return;
 }
 
@@ -209,15 +216,6 @@ uint32_t context_switch_c(uint32_t old_sp){
 	                  | SECTION_NON_SECURE);
 
         // if no errors, return the stack pointer!
-    uart_puts("Loading stack at virtual address ");
-    uart_put_uint32_t(pcb->context_data.SP, 16);
-    uart_puts("\r\n");
-
-    uart_puts("trying to write something to mapped memory\r\n");
-    volatile uint8_t *ptr = (uint8_t*)(pcb->context_data.virtual_address + 0x5000);
-    *ptr = 4;    
-    uart_puts("Have written something\r\n");
-
     return pcb->context_data.SP;
 }
 

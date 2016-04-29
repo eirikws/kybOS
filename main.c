@@ -16,7 +16,6 @@
 #include "time.h"
 #include "control.h"
 #include "threading.h"
-#include "prog1.h"
 #include "emmc.h"
 
 extern void _enable_interrupts(void);
@@ -40,22 +39,10 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     uart_init();
     _enable_interrupts();
     uart_puts("kernel start!\r\n");
-    uart_puts("itoa test: ");
-    uart_puts("     binary:");
-    uart_put_uint32_t(0xFFFFFFFF, 2);
-    uart_puts("     decimal:");
-    uart_put_uint32_t(0xFFFFFFFF, 10);
-    uart_puts("     hexadecimal:");
-    uart_put_uint32_t(0xFFFFFFFF, 16);
-    uart_puts("\r\n");
-    
-    uart_puts("sizeof int64_t");
-    uart_put_uint32_t(sizeof(uint64_t), 10);
-    uart_puts("\r\n");
 
     // enable jtag for debugging
     jtag_enable();
-    
+    // enable floting point module   
     cpu_fpu_enable();
     // initiate the OS clock
     uart_puts("initiating system clock and doing a wait for 1 seconds to check if it works\r\n");
@@ -90,14 +77,10 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
         uart_puts("filesys is NULL!!!\r\n");
     }
 
-    uart_puts("Loading from \r\n");
-    uart_puts(fs_get()->fs_name);
-    uart_puts("\r\n");
-
         
     uart_puts("loading processes\r\n");
-    process_load("a.elf", 20, CPSR_MODE_USER, (process_id_t){2});
-    process_load("b.elf", 20, CPSR_MODE_USER, (process_id_t){1});
+    process_load("prog1.elf", 20, CPSR_MODE_USER, (process_id_t){1});
+    process_load("prog2.elf", 20, CPSR_MODE_USER, (process_id_t){2});
 
 
     
@@ -109,7 +92,6 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     
 
     scheduling_set(0);
-    uart_puts("threads_started. starting timer irqs\r\n");
     _SYSTEM_CALL(YIELD,0,0,0);
     
      /* Never exit as there is no OS to exit to! */

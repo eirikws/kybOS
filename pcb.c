@@ -33,7 +33,6 @@ static PCB_t* pcb_new(PCB_t pcb) {
         return NULL;
     }
     *newNode = pcb;
-    newNode->waiting_msg_from = 0;
 	newNode->prev = NULL;
 	newNode->next = NULL;
 	return newNode;

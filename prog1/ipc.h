@@ -10,7 +10,7 @@ typedef struct process_id{
 
 
 
-int ipc_send(process_id_t coid, const void* smsg, int sbytes);
+int ipc_send(process_id_t *coid, const void* smsg, int sbytes);
 process_id_t ipc_receive(void* rmesg, int rbytes);
 
 #endif

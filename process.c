@@ -103,19 +103,9 @@ int process_load(const char* file_path, size_t priority, int mode, process_id_t 
         uart_puts("Process load The instruction set is not ARM. Try to use another compiler\r\n");
         return -1;
     }
-    
-    uart_puts("prog entry is ");
-    uart_put_uint32_t(myheader->program_entry, 16);
-    uart_puts(" program header is ");
-    uart_put_uint32_t(myheader->program_header, 10);
-    uart_puts("\r\n");
-    
 
     // the new process should go in here!
     void* dest = memory_slot_get();
-    uart_puts("new process is put in ");
-    uart_put_uint32_t((int)dest, 16);
-    uart_puts("\r\n");
 
     struct program_header *prog_header = (struct program_header*)&buf[myheader->program_header];
  //   struct section_header *sect_header = (struct section_header*)&buf[myheader->section_header];
@@ -127,9 +117,7 @@ int process_load(const char* file_path, size_t priority, int mode, process_id_t 
                     .context_data.real_address = (uint32_t)dest,
                   //  .context_data.stack_start = (1 << 20)-0x1000,
     };
-    uart_puts("Process load: mapping memory\r\n");
 
-    cpu_mode_print();
     mmu_remap_section(  pcb.context_data.virtual_address,
                         pcb.context_data.real_address,
                         SET_FORMAT_SECTION
@@ -143,18 +131,9 @@ int process_load(const char* file_path, size_t priority, int mode, process_id_t 
         
     
 
-    uart_puts("remapped slot ");
-    uart_put_uint32_t(pcb.context_data.virtual_address >> 20, 10);
-    uart_puts(" to point to real physical address ");
-    uart_put_uint32_t( (pcb.context_data.real_address >> SECTION_BASE_ADDRESS_OFFSET) << SECTION_BASE_ADDRESS_OFFSET, 16);
-    uart_puts("\r\n");
-    uart_puts("Process load: map complete\r\n");
-    cpu_mode_print();
     memset((void*)pcb.context_data.virtual_address, 0, prog_header->p_memsz);
     memcpy((void*)pcb.context_data.virtual_address, buf + prog_header->p_offset , prog_header->p_filesz);
 
-    uart_puts("code is now put in memory\r\n");
-    cpu_mode_print();
     // make PCB
     pcb.context_data.stack_start = (1 << 20) - 0x1000 + pcb.context_data.virtual_address;
 
@@ -164,16 +143,6 @@ int process_load(const char* file_path, size_t priority, int mode, process_id_t 
     
     // unmap process now that we are done with it
     mmu_remap_section(  pcb.context_data.virtual_address, 0,0);
-
-    uart_puts("New process ");
-    uart_put_uint32_t( id.id_number, 10);
-    uart_puts(" lies at real address ");
-    uart_put_uint32_t(pcb.context_data.real_address, 16);
-    uart_puts(" and should linked to Virt adr ");
-    uart_put_uint32_t(pcb.context_data.virtual_address, 16);
-    uart_puts("\r\nThe stack is at virtual address ");
-    uart_put_uint32_t(pcb.context_data.SP, 16);
-    uart_puts("\r\n");
 
     free(buf);
 

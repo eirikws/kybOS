@@ -44,7 +44,7 @@ typedef struct PCB{
     context_data_t context_data;
     struct PCB* next;
     struct PCB* prev;
-    uint32_t waiting_msg_from;
+    int is_queued;
     void* shared_data_ptr;
     msg_queue_t msg_queue[NUM_PRIORITIES];
 } PCB_t;

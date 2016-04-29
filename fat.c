@@ -147,10 +147,11 @@ int fat_init(struct fs **filesystem){
                                 |   buf[455] << 8
                                 |   buf[456] << 16
                                 |   buf[457] << 24;
+ /*
     uart_puts("partition offset is ");
     uart_put_uint32_t(partition_offset, 16);
     uart_puts("\r\n");
-
+*/
 
     //read block 0 where the boot section is
     r = sd_read(buf, FAT_BLOCK_SIZE, partition_offset);
@@ -175,7 +176,6 @@ int fat_init(struct fs **filesystem){
 	
 	uint32_t total_sectors = myfat.total_sectors_16;
 	if(total_sectors == 0){
-	    uart_puts("total sectors is zero\r\n");
 		total_sectors = myfat.total_sectors_32;
 	}
 	struct fat_fs *ret = (struct fat_fs *)malloc(sizeof(struct fat_fs));
@@ -205,20 +205,20 @@ int fat_init(struct fs **filesystem){
 
                             
 	if(total_clusters < 4085){
-		uart_puts("SD card is FAT12\r\n");
+//		uart_puts("SD card is FAT12\r\n");
 		ret->fat_type = FAT12;
 	}else if(total_clusters < 65525){
-		uart_puts("SD card is FAT16\r\n");
+//		uart_puts("SD card is FAT16\r\n");
 		ret->fat_type = FAT16;
 	}else{
-	    uart_puts("SD card is FAT32\r\n");
+//	    uart_puts("SD card is FAT32\r\n");
 		ret->fat_type = FAT32;
 	}
 	ret->b.fs_name = fat_names[ret->fat_type];
 	ret->sectors_per_cluster = myfat.sectors_per_cluster;
 	ret->bytes_per_sector = myfat.bytes_per_sector;
 	
-	uart_puts("Reading a ");
+/*	uart_puts("Reading a ");
 	uart_puts(ret->b.fs_name);
 	uart_puts(" filesystem:\r\n      -Total sectors: ");
 	uart_put_uint32_t(ret->total_sectors, 10);
@@ -229,41 +229,41 @@ int fat_init(struct fs **filesystem){
     uart_puts("\r\n      -number of FAT tables: ");
     uart_put_uint32_t(myfat.table_count, 10);
 	uart_puts("\r\n");
-	
+*/	
 	ret->vol_label = (char*)malloc(12);
 	// if fat32
 	if( ret->fat_type == FAT32){
 	    copy_to_fat32(&(myfat.ext.fat32), buf);
 	    strcpy(ret->vol_label, myfat.ext.fat32.volume_label);
 	    ret->vol_label[11] = 0;
-	    uart_puts("FAT volume label: ");
+/*	    uart_puts("FAT volume label: ");
 	    uart_puts(ret->vol_label);
 	    uart_puts("\r\n");
-	    
+*/	    
 	    ret->first_data_sector = partition_offset + myfat.reserved_sector_count + (myfat.table_count *
 			                                myfat.ext.fat32.table_size_32);
 		ret->first_fat_sector = myfat.reserved_sector_count + partition_offset;
 		ret->first_non_root_sector = ret->first_data_sector;
 		ret->sectors_per_fat = myfat.ext.fat32.table_size_32;
-		uart_puts("FAT first data sector: ");
+/*		uart_puts("FAT first data sector: ");
 		uart_put_uint32_t(ret->first_data_sector, 10);
 		uart_puts(", first fat sector: ");
-		uart_put_uint32_t(ret->first_fat_sector, 10);
+		uart_put_uint32_t(ret->first_fat_sector, 10);*/
         ret->root_dir_cluster = myfat.ext.fat32.root_cluster;
-        uart_puts(", root is at: ");
+/*        uart_puts(", root is at: ");
         uart_put_uint32_t(ret->root_dir_cluster, 10);
         uart_puts("\r\nfat32 table size is ");
         uart_put_uint32_t(myfat.ext.fat32.table_size_32, 10);
 
-		uart_puts("\r\n");
+		uart_puts("\r\n");*/
 	}else{ // if fat16/12 
 		copy_to_fat16(&(myfat.ext.fat16), buf);
 	    strcpy(ret->vol_label, myfat.ext.fat16.volume_label);
 	    ret->vol_label[11] = 0;
-	    uart_puts("FAT volume label: ");
+/*	    uart_puts("FAT volume label: ");
 	    uart_puts(ret->vol_label);
 	    uart_puts("\r\n");
-	    
+*/	    
 	    ret->first_data_sector = partition_offset + myfat.reserved_sector_count + (myfat.table_count *
 			                                myfat.table_size_16);
 		ret->first_fat_sector = myfat.reserved_sector_count + partition_offset;
@@ -275,7 +275,7 @@ int fat_init(struct fs **filesystem){
 		
 		
 		ret->first_non_root_sector = ret->first_data_sector;
-		uart_puts("FAT first data sector: ");
+/*		uart_puts("FAT first data sector: ");
 		uart_put_uint32_t(ret->first_data_sector, 10);
 		uart_puts(", first fat sector: ");
 		uart_put_uint32_t(ret->first_fat_sector, 10);
@@ -285,41 +285,9 @@ int fat_init(struct fs **filesystem){
 		uart_put_uint32_t(ret->root_dir_entries, 10);
 		uart_puts(", root dir sectors: ");
 		uart_put_uint32_t(ret->root_dir_sectors, 10);
-		uart_puts("\r\n");
+		uart_puts("\r\n");*/
 	}
 	*filesystem = (struct fs*)ret;
-	
-	   //read root dir
-    uart_puts("doing a test read after init of fat\r\n");
-    struct dirent* testres = fat_read_dir(ret, NULL);
-    uart_puts("test read done\r\n");
-
-    
-    struct dirent *test = NULL;
-
-    if(testres == NULL){
-        uart_puts("test is null\r\n");
-    }
-    struct dirent *it = testres;
-    uart_puts("root directory names are: ");
-    while(it){
-        if(!strcmp( it->name, "test") ){
-            test = it;
-        }
-        uart_puts(it->name);
-        uart_puts("\r\n");
-        it = it->next;
-    }
-    it = fat_read_dir( ret, test);
-    uart_puts("test directory name is: ");
-    
-    while(it){
-        uart_puts(it->name);
-        uart_puts("\r\n");
-        it = it->next;
-    }
-
-	
 	
 	return 1;
 }

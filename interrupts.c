@@ -59,12 +59,14 @@ void __attribute__((interrupt("UNDEF"))) undefined_instruction_vector(void){
 uint32_t software_interrupt_vector_c(void* arg0, void* arg1, void* arg2, void* arg3){
     switch( (system_call_t)arg0) {
         case IPC_SEND: 
-        system_send(arg1, (uint32_t)arg2, *(process_id_t*)arg3);
+        // system_send(void* payload, uint32_t size, process_id_t coid)
+        system_send(arg1, (uint32_t)arg2, (process_id_t*)arg3);
         reschedule();
         return 1;
         break;
         case IPC_RECV:
-        system_receive(arg1, (uint32_t)arg2);
+        // system_receive(ipc_msg_t *recv_msg, uint32_t size, int* success)
+        system_receive(arg1, (uint32_t)arg2, (int*)arg3);
         reschedule();
         return 1;
         break;
@@ -77,8 +79,12 @@ uint32_t software_interrupt_vector_c(void* arg0, void* arg1, void* arg2, void* a
         reschedule();
         return 1;
         break;
-        case PRINT:
-        uart_puts(arg1);
+        case PRINT_STR:
+        uart_puts((char*)arg1);
+        return 0;
+        break;
+        case PRINT_INT:
+        uart_put_uint32_t((int)arg1, 10);
         return 0;
         break;
     }

@@ -32,8 +32,6 @@ add_executable( kybOS
     uart.h
     control.c
     control.h
-    prog1.c
-    prog1.h
     pcb.c
     pcb.h
     threading.c

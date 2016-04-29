@@ -16,7 +16,7 @@ set( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ffreestanding" )
 #   Set the linker flags so that we use our "custom" linker script
 set( CMAKE_EXE_LINKER_FLAGS "-Wl,-T,${PROJECT_SOURCE_DIR}/linker.ld" )
 
-add_executable( prog.elf
+add_executable( prog2.elf
     main.c
     start.S
     cstartup.c

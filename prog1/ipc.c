@@ -24,16 +24,21 @@ void extern _SYSTEM_CALL(system_call_t arg0, void* arg1, void* arg2, void* arg3)
 /*
     send msg rmsg to coid
 */
-int ipc_send(process_id_t coid, const void* smsg, int size){
-    _SYSTEM_CALL(IPC_SEND,(void*)smsg, (void*)size, (void*)&coid);
+int ipc_send(process_id_t *coid, const void* smsg, int size){
+    _SYSTEM_CALL(IPC_SEND,(void*)smsg, (void*)size, (void*)coid);
    // _SYSTEM_CALL(YIELD, NULL, NULL, NULL);
     return 1;
 }
 
 process_id_t ipc_receive(void* rmsg, int size){
     process_id_t sender;
+    int success = 0;
     ipc_msg_t* recv_msg = malloc( sizeof(ipc_msg_t) + size);
-    _SYSTEM_CALL(IPC_RECV, recv_msg, (void*)size, 0);
+    _SYSTEM_CALL(IPC_RECV, recv_msg, (void*)size, &success );
+    if( !success ){
+        _SYSTEM_CALL(YIELD, NULL, NULL, NULL);
+        _SYSTEM_CALL(IPC_RECV, recv_msg, (void*)size, &success );
+    }
     memcpy(rmsg, recv_msg->payload, size);
     sender = recv_msg->sender;
     free(recv_msg);
