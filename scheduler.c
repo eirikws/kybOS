@@ -158,9 +158,9 @@ void reschedule(void){
  //           uart_puts("ERROR: Scheduler enqueuing error\r\n");
         }
     }
+    process_id_t retval;
   //  priority_print_list();
-
-    process_id_t retval = pop_highest_priority();
+    while(  retval = pop_highest_priority(), pcb_get(retval) == NULL){ /* do northing*/}
     pcb_get(retval)->is_queued = 0;
     previous_running_process = current_running_process;
     current_running_process = retval;
@@ -205,7 +205,7 @@ uint32_t context_switch_c(uint32_t old_sp){
     // map memory of new process so that the virtual memory points to its  where it should
     
     mmu_remap_section(  pcb->context_data.virtual_address,
-                        pcb->context_data.real_address,
+                        pcb->context_data.physical_address,
 	                    SET_FORMAT_SECTION
 	                  | SECTION_SHAREABLE
 	                  | SECTION_ACCESS_PL1_RW_PL0_RW

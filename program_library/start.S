@@ -13,6 +13,7 @@ _start:
     //  zero .bss
     // call main
     bl _cstartup
+    b _exit
     
    
 _SYSTEM_CALL:

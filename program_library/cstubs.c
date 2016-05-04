@@ -13,6 +13,7 @@ extern int errno;
 
 /* Required include for times() */
 #include <sys/times.h>
+#include "system_calls.h"
 
 /* A pointer to a list of environment variables and their values. For a minimal
    environment, this empty list is adequate: */
@@ -23,17 +24,9 @@ char **environ = __env;
 extern caddr_t _get_stack_pointer(void);
 
 
-/* Never return from _exit as there's no OS to exit to, so instead we trap
-   here */
-void _exit( int status )
-{
-    /* Stop the compiler complaining about unused variables by "using" it */
-    (void)status;
 
-    while(1)
-    {
-        /* TRAP HERE */
-    }
+void _exit( int status ){
+    _SYSTEM_CALL(EXIT, (void*)status, NULL, NULL);
 }
 
 

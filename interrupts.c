@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "process.h"
 #include "armtimer.h"
 #include "base.h"
 #include "gpio.h"
@@ -11,6 +12,7 @@
 #include "control.h"
 #include "scheduler.h"
 #include "ipc.h"
+#include "system_calls.h"
 #include "pcb.h"
 #include "time.h"
 #define INTERRUPT_CONTROLLER_BASE   ( PERIPHERAL_BASE + 0xB200 )
@@ -86,6 +88,16 @@ uint32_t software_interrupt_vector_c(void* arg0, void* arg1, void* arg2, void* a
         case PRINT_INT:
         uart_put_uint32_t((int)arg1, 10);
         return 0;
+        break;
+        case EXIT:
+        process_kill( get_current_running_process() );
+        reschedule();
+        return 1;
+        break;
+        case KILL:
+        reschedule();
+        process_kill( *(process_id_t*)arg1);
+        return 1;
         break;
     }
     uart_puts("Software irq vector c: did not find source of exception!\r\n");

@@ -11,16 +11,16 @@ set( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall" )
 #set( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -nostdlib" )
 set( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ffreestanding" )
 
-
+#include_directories(${../program_library/})
 
 #   Set the linker flags so that we use our "custom" linker script
-set( CMAKE_EXE_LINKER_FLAGS "-Wl,-T,${PROJECT_SOURCE_DIR}/linker.ld" )
+set( CMAKE_EXE_LINKER_FLAGS "-Wl,-T,${PROJECT_SOURCE_DIR}/../program_library/linker.ld" )
 
 add_executable( prog2.elf
     main.c
-    start.S
-    cstartup.c
-    cstubs.c
-    ipc.c
-    ipc.h
+    ../program_library/start.S
+    ../program_library/cstartup.c
+    ../program_library/cstubs.c
+    ../program_library/ipc.c
+    ../program_library/ipc.h
    )

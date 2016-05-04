@@ -10,6 +10,6 @@ process_id_t ipc_receive(void* rmesg, int rbytes);
 // used by system calls
 void system_send(void* payload, uint32_t size, process_id_t* coid);
 void system_receive(ipc_msg_t *recv_msg, uint32_t size, int*success);
-
+void ipc_flush_msg_queue( process_id_t id);
 
 #endif

@@ -15,9 +15,5 @@ void _cstartup( unsigned int r0, unsigned int r1, unsigned int r2 )
     /* We never return from main */
     main( r0, r1, r2 );
 
-    //  Trap
-    while(1)
-    {
-        /* EMPTY! */
-    }
+    return;
 }

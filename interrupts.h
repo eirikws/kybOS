@@ -18,14 +18,6 @@
 #define UART_IRQ              (1 << 25)
 
 
-typedef enum{
-    IPC_SEND,
-    IPC_RECV,
-    YIELD,
-    DUMMY,
-    PRINT_STR,
-    PRINT_INT,
-} system_call_t;
 
 
 /*

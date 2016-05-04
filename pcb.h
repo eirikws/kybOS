@@ -10,16 +10,16 @@ typedef struct process_id{
 } process_id_t;
 
 typedef enum{
-    RUNNING,
+    BLOCKED_SENDING,
+    BLOCKED_RECEIVING,
     READY,
-    BLOCKED,
 } process_state_t;
 
 typedef struct Context_Data{
     uint32_t stack_start;
     uint32_t SP;
     uint32_t virtual_address;
-    uint32_t real_address;
+    uint32_t physical_address;
 } context_data_t;
 
     // contains the ID of a process.

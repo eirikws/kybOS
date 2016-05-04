@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "scheduler.h"
+#include "ipc.h"
 #include "uart.h"
 #include "control.h"
 #include "fs.h"
@@ -76,7 +77,6 @@ int process_load(const char* file_path, size_t priority, int mode, process_id_t 
     struct elf_header *myheader = (struct elf_header*)buf;
 
     // read elf header
-    //const char* c = buf+1;
     if(( myheader->magic_number != ELF_MAGIC_NUM) || strncmp(myheader->magic_string, elf_magic_string, 3)){
         uart_puts("Process load: file not a elf file\r\n");
         uart_puts("Magic number is ");
@@ -114,12 +114,12 @@ int process_load(const char* file_path, size_t priority, int mode, process_id_t 
                     .state = READY, 
                     .priority = priority,
                     .context_data.virtual_address = prog_header->p_vadder,
-                    .context_data.real_address = (uint32_t)dest,
+                    .context_data.physical_address = (uint32_t)dest,
                   //  .context_data.stack_start = (1 << 20)-0x1000,
     };
 
     mmu_remap_section(  pcb.context_data.virtual_address,
-                        pcb.context_data.real_address,
+                        pcb.context_data.physical_address,
                         SET_FORMAT_SECTION
                       | SECTION_SHAREABLE
                       | SECTION_ACCESS_PL1_RW_PL0_NONE
@@ -158,5 +158,14 @@ int process_start( process_id_t id){
     return scheduler_enqueue(id);
 }
 
+void process_kill( process_id_t id){
+    // empty msg queue
+    ipc_flush_msg_queue(id);
+    
+    // free memory
+    memory_slot_free( (void*)pcb_get(id)->context_data.physical_address); 
 
+    // remove pcb
+    pcb_remove(id);
+}
 

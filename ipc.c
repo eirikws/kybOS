@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include "system_calls.h"
 #include "interrupts.h"
 #include "scheduler.h"
 #include "pcb.h"
@@ -21,8 +22,8 @@ static ipc_msg_t* ipc_new_node(void* payload, uint32_t size){
     return newNode;
 }
 
-static ipc_msg_t* msg_priority_pop(int priority){
-    PCB_t* my_pcb = pcb_get( get_current_running_process() );
+static ipc_msg_t* msg_priority_pop(process_id_t id, int priority){
+    PCB_t* my_pcb = pcb_get( id );
     //  check priority is within bounds
     if (priority < 0 || priority > NUM_PRIORITIES){ return NULL;}
     //  if empty
@@ -45,11 +46,11 @@ static ipc_msg_t* msg_priority_pop(int priority){
 }
 
     // iterate through list. return -1 if empty
-static ipc_msg_t* ipc_dequeue(void){
+static ipc_msg_t* ipc_dequeue(process_id_t id){
     int i;
     ipc_msg_t* retval;
     for (i = NUM_PRIORITIES-1; i>-1; i--){
-        retval = msg_priority_pop(i);
+        retval = msg_priority_pop(id, i);
         if (retval != NULL){
             return retval;
         }
@@ -90,8 +91,6 @@ int ipc_msg_enqueue(void* payload, uint32_t size, process_id_t coid){
     return ipc_msg_enqueue_priority( node, coid);
 }
 
-void extern _SYSTEM_CALL(system_call_t arg0, void* arg1, void* arg2, void* arg3);
-
 /*
     send msg rmsg to coid
 */
@@ -122,8 +121,8 @@ void system_send(void* payload, uint32_t size, process_id_t* coid){
         // wake up receiving thread
         // block the sending thread            
     ipc_msg_enqueue(payload, size, *coid);
-    pcb_get( get_current_running_process() )->state = BLOCKED;
-    if (pcb_get(*coid)->state == BLOCKED){
+    pcb_get( get_current_running_process() )->state = BLOCKED_SENDING;
+    if (pcb_get(*coid)->state == BLOCKED_RECEIVING){
         pcb_get(*coid)->state = READY;
         scheduler_enqueue(*coid);
     }
@@ -131,7 +130,7 @@ void system_send(void* payload, uint32_t size, process_id_t* coid){
 
 void system_receive(ipc_msg_t *recv_msg, uint32_t size, int* success){
     PCB_t* my_pcb = pcb_get( get_current_running_process() );
-    ipc_msg_t* popped_msg = ipc_dequeue();
+    ipc_msg_t* popped_msg = ipc_dequeue(get_current_running_process());
     if ( popped_msg != NULL){
         memcpy(      (void*)recv_msg,
                      (void*)popped_msg,
@@ -142,8 +141,17 @@ void system_receive(ipc_msg_t *recv_msg, uint32_t size, int* success){
         *success = 1;
     }
     else{
-        my_pcb->state = BLOCKED;
+        my_pcb->state = BLOCKED_RECEIVING;
         *success = 0;
     }
 }
 
+void ipc_flush_msg_queue( process_id_t id){
+    ipc_msg_t *msg;
+    while( msg = ipc_dequeue(id), msg != NULL){
+        if (pcb_get(msg->sender)->state == BLOCKED_SENDING){
+            pcb_get(msg->sender)->state = READY;
+        }
+        free(msg);
+    }
+}   
