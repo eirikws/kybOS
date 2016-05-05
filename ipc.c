@@ -15,6 +15,7 @@ static ipc_msg_t* ipc_new_node(void* payload, uint32_t size){
         uart_puts("Failed to allocate new IPC priority_node!\r\n");
         return newNode;
     }
+    newNode->payload_size = size;
     memcpy( &(newNode->payload), payload, size);
     newNode->sender = get_current_running_process();
     newNode->next = NULL;
@@ -94,6 +95,7 @@ int ipc_msg_enqueue(void* payload, uint32_t size, process_id_t coid){
 /*
     send msg rmsg to coid
 */
+/*  OLD. NEW IN program_library folder!
 int ipc_send(process_id_t* coid, const void* smsg, int size){
     _SYSTEM_CALL(IPC_SEND,(void*)smsg, (void*)size, (void*)coid);
    // _SYSTEM_CALL(YIELD, NULL, NULL, NULL);
@@ -114,8 +116,8 @@ process_id_t ipc_receive(void* rmsg, int size){
     free(recv_msg);
     return sender;
 }
-
-void system_send(void* payload, uint32_t size, process_id_t* coid){
+*/
+void system_send(void* payload, size_t size, process_id_t* coid){
     //  setup for IPC
         // send message
         // wake up receiving thread
@@ -128,21 +130,31 @@ void system_send(void* payload, uint32_t size, process_id_t* coid){
     }
 }
 
-void system_receive(ipc_msg_t *recv_msg, uint32_t size, int* success){
+// ipc receive call flags
+#define QUEUE_EMPTY         (1 << 0)
+#define BUF_TOO_SMALL       (1 << 1)
+
+void system_receive(ipc_msg_t *recv_msg, size_t buf_size, int* flags){
+    int cpy_bytes;
     PCB_t* my_pcb = pcb_get( get_current_running_process() );
     ipc_msg_t* popped_msg = ipc_dequeue(get_current_running_process());
+    if( popped_msg->payload_size > buf_size){
+        *flags |= BUF_TOO_SMALL;
+        cpy_bytes = buf_size;
+    }else{
+        cpy_bytes = popped_msg->payload_size;
+    }
     if ( popped_msg != NULL){
         memcpy(      (void*)recv_msg,
                      (void*)popped_msg,
-                     sizeof(ipc_msg_t) + size);
+                     sizeof(ipc_msg_t) + cpy_bytes ) ;
         free(popped_msg);
         pcb_get(recv_msg->sender)->state=READY;
         scheduler_enqueue(recv_msg->sender);
-        *success = 1;
     }
     else{
         my_pcb->state = BLOCKED_RECEIVING;
-        *success = 0;
+        *flags |= QUEUE_EMPTY;
     }
 }
 

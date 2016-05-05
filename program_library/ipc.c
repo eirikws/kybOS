@@ -2,18 +2,16 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include "system_calls.h"
+#include "system_calls.h"
 #include "ipc.h"
 
-
-typedef enum{
-    IPC_SEND,
-    IPC_RECV,
-    YIELD,
-    DUMMY,
-} system_call_t;
+// ipc receive call flags
+#define QUEUE_EMPTY             (1 << 0)
 
 typedef struct ipc_msg{
     process_id_t sender;
+    size_t payload_size;
     struct ipc_msg* next;
     struct ipc_msg* prev;
     char payload[0];
@@ -24,22 +22,23 @@ void extern _SYSTEM_CALL(system_call_t arg0, void* arg1, void* arg2, void* arg3)
 /*
     send msg rmsg to coid
 */
-int ipc_send(process_id_t *coid, const void* smsg, int size){
-    _SYSTEM_CALL(IPC_SEND,(void*)smsg, (void*)size, (void*)coid);
-   // _SYSTEM_CALL(YIELD, NULL, NULL, NULL);
+int ipc_send(process_id_t *coid, const void* smsg, size_t sbytes){
+    _SYSTEM_CALL(IPC_SEND,(void*)smsg, (void*)sbytes, (void*)coid);
     return 1;
 }
 
-process_id_t ipc_receive(void* rmsg, int size){
+process_id_t ipc_receive(void* rmsg, size_t buf_size, int* flags){
     process_id_t sender;
-    int success = 0;
-    ipc_msg_t* recv_msg = malloc( sizeof(ipc_msg_t) + size);
-    _SYSTEM_CALL(IPC_RECV, recv_msg, (void*)size, &success );
-    if( !success ){
+    ipc_msg_t* recv_msg = malloc( sizeof(ipc_msg_t) + buf_size);
+    _SYSTEM_CALL(IPC_RECV, recv_msg, (void*)buf_size, flags );
+    if( *flags & QUEUE_EMPTY ){
+        _SYSTEM_CALL(4, "queue is empty\r\n", NULL, NULL);
         _SYSTEM_CALL(YIELD, NULL, NULL, NULL);
-        _SYSTEM_CALL(IPC_RECV, recv_msg, (void*)size, &success );
+        _SYSTEM_CALL(IPC_RECV, recv_msg, (void*)buf_size, flags );
     }
-    memcpy(rmsg, recv_msg->payload, size);
+    // clear queue empty, should not be visible to user
+    *flags &= ~(QUEUE_EMPTY);
+    memcpy(rmsg, recv_msg->payload, buf_size);
     sender = recv_msg->sender;
     free(recv_msg);
     return sender;

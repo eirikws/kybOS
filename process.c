@@ -159,6 +159,7 @@ int process_start( process_id_t id){
 }
 
 void process_kill( process_id_t id){
+    uart_puts("killing process\r\n");
     // empty msg queue
     ipc_flush_msg_queue(id);
     
@@ -167,5 +168,6 @@ void process_kill( process_id_t id){
 
     // remove pcb
     pcb_remove(id);
+    uart_puts("process kill done\r\n");
 }
 

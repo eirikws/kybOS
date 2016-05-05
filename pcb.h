@@ -1,6 +1,7 @@
 #ifndef PCB_H
 #define PCB_H
 
+#include <stdlib.h>
 #include <stdint.h>
 
 #define NUM_PRIORITIES  64
@@ -26,6 +27,7 @@ typedef struct Context_Data{
     // can contain more, like IP address of the current node.
 typedef struct ipc_msg{
     process_id_t sender;
+    size_t payload_size;
     struct ipc_msg* next;
     struct ipc_msg* prev;
     char payload[0];
