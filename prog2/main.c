@@ -8,7 +8,7 @@ int main(void){
     while(1){
         _SYSTEM_CALL(4, (void*)"Program 2 calling receive\r\n", NULL, NULL);
         flags = 0;
-        ipc_receive( &i, sizeof(char), &flags);
+        ipc_receive( &i, sizeof(i), &flags);
         if(flags & BUF_TOO_SMALL){
             _SYSTEM_CALL(4, (void*)"Too small buffer\r\n", NULL, NULL);
         }

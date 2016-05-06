@@ -11,6 +11,7 @@
 
 typedef struct ipc_msg{
     process_id_t sender;
+    int flags;
     size_t payload_size;
     struct ipc_msg* next;
     struct ipc_msg* prev;
@@ -22,8 +23,8 @@ void extern _SYSTEM_CALL(system_call_t arg0, void* arg1, void* arg2, void* arg3)
 /*
     send msg rmsg to coid
 */
-int ipc_send(process_id_t *coid, const void* smsg, size_t sbytes){
-    _SYSTEM_CALL(IPC_SEND,(void*)smsg, (void*)sbytes, (void*)coid);
+int ipc_send(void* smsg, ipc_msg_config_t *config){
+    _SYSTEM_CALL(IPC_SEND,(void*)smsg, (void*)config, NULL);
     return 1;
 }
 
@@ -32,7 +33,6 @@ process_id_t ipc_receive(void* rmsg, size_t buf_size, int* flags){
     ipc_msg_t* recv_msg = malloc( sizeof(ipc_msg_t) + buf_size);
     _SYSTEM_CALL(IPC_RECV, recv_msg, (void*)buf_size, flags );
     if( *flags & QUEUE_EMPTY ){
-        _SYSTEM_CALL(4, "queue is empty\r\n", NULL, NULL);
         _SYSTEM_CALL(YIELD, NULL, NULL, NULL);
         _SYSTEM_CALL(IPC_RECV, recv_msg, (void*)buf_size, flags );
     }

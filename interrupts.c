@@ -62,7 +62,7 @@ uint32_t software_interrupt_vector_c(void* arg0, void* arg1, void* arg2, void* a
     switch( (system_call_t)arg0) {
         case IPC_SEND: 
         // system_send(void* payload, uint32_t size, process_id_t coid)
-        system_send(arg1, (uint32_t)arg2, (process_id_t*)arg3);
+        system_send(arg1, (ipc_msg_config_t*)arg2);
         reschedule();
         return 1;
         break;

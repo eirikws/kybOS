@@ -9,13 +9,14 @@
 #include "uart.h"
 #include "ipc.h"
 
-static ipc_msg_t* ipc_new_node(void* payload, uint32_t size){
+static ipc_msg_t* ipc_new_node(void* payload, uint32_t size, int flags){
     ipc_msg_t *newNode = malloc(sizeof(ipc_msg_t) + size);
     if (newNode == NULL){
         uart_puts("Failed to allocate new IPC priority_node!\r\n");
         return newNode;
     }
     newNode->payload_size = size;
+    newNode->flags = flags;
     memcpy( &(newNode->payload), payload, size);
     newNode->sender = get_current_running_process();
     newNode->next = NULL;
@@ -81,8 +82,8 @@ static int ipc_msg_enqueue_priority(ipc_msg_t* node, process_id_t coid){
     }
 }
 
-int ipc_msg_enqueue(void* payload, uint32_t size, process_id_t coid){
-    ipc_msg_t* node =  ipc_new_node(payload, size);
+int ipc_msg_enqueue(void* payload, uint32_t size, process_id_t coid, int flags){
+    ipc_msg_t* node =  ipc_new_node(payload, size, flags);
     if (pcb_get(coid) == NULL){
         uart_puts("ipc msg enqueue coid_pcb == NULL     coid == ");
         uart_put_uint32_t(coid.id_number, 10);
@@ -117,20 +118,27 @@ process_id_t ipc_receive(void* rmsg, int size){
     return sender;
 }
 */
-void system_send(void* payload, size_t size, process_id_t* coid){
+
+// ipc send call flag bits
+#define WAITING_SEND   (1 << 0)
+
+void system_send(void* payload, ipc_msg_config_t *config){
     //  setup for IPC
         // send message
         // wake up receiving thread
         // block the sending thread            
-    ipc_msg_enqueue(payload, size, *coid);
-    pcb_get( get_current_running_process() )->state = BLOCKED_SENDING;
-    if (pcb_get(*coid)->state == BLOCKED_RECEIVING){
-        pcb_get(*coid)->state = READY;
-        scheduler_enqueue(*coid);
+    ipc_msg_enqueue(payload, config->size, config->coid, config->flags);
+    if(config->flags & WAITING_SEND){
+        pcb_get( get_current_running_process() )->state = BLOCKED_SENDING;
+
+    }
+    if (pcb_get(config->coid)->state == BLOCKED_RECEIVING){
+        pcb_get(config->coid)->state = READY;
+        scheduler_enqueue(config->coid);
     }
 }
 
-// ipc receive call flags
+// ipc receive call flags bits
 #define QUEUE_EMPTY         (1 << 0)
 #define BUF_TOO_SMALL       (1 << 1)
 
@@ -138,21 +146,22 @@ void system_receive(ipc_msg_t *recv_msg, size_t buf_size, int* flags){
     int cpy_bytes;
     PCB_t* my_pcb = pcb_get( get_current_running_process() );
     ipc_msg_t* popped_msg = ipc_dequeue(get_current_running_process());
-    if( popped_msg->payload_size > buf_size){
-        *flags |= BUF_TOO_SMALL;
-        cpy_bytes = buf_size;
-    }else{
-        cpy_bytes = popped_msg->payload_size;
-    }
     if ( popped_msg != NULL){
+        if( popped_msg->payload_size > buf_size){
+            *flags |= BUF_TOO_SMALL;
+            cpy_bytes = buf_size;
+        }else{
+            cpy_bytes = popped_msg->payload_size;
+        }
         memcpy(      (void*)recv_msg,
                      (void*)popped_msg,
-                     sizeof(ipc_msg_t) + cpy_bytes ) ;
+                     sizeof(ipc_msg_t) + cpy_bytes);
+        if( popped_msg->flags & WAITING_SEND){
+            pcb_get(recv_msg->sender)->state=READY;
+            scheduler_enqueue(recv_msg->sender);
+        }
         free(popped_msg);
-        pcb_get(recv_msg->sender)->state=READY;
-        scheduler_enqueue(recv_msg->sender);
-    }
-    else{
+    }else{
         my_pcb->state = BLOCKED_RECEIVING;
         *flags |= QUEUE_EMPTY;
     }

@@ -11,8 +11,15 @@ typedef struct process_id{
 // ipc receive flag bits
 #define BUF_TOO_SMALL           (1 << 1)
 
+// ipc send flag bits
+#define WAITING_SEND            (1 << 0)
+typedef struct ipc_msg_config{
+    process_id_t coid;
+    int flags;
+    size_t size;
+}ipc_msg_config_t;
 
-int ipc_send(process_id_t *coid, const void* smsg, size_t sbytes);
+int ipc_send(void* smsg, ipc_msg_config_t *config);
 process_id_t ipc_receive(void* rmesg, size_t buf_size, int* flags );
 
 #endif

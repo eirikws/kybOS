@@ -27,6 +27,7 @@ typedef struct Context_Data{
     // can contain more, like IP address of the current node.
 typedef struct ipc_msg{
     process_id_t sender;
+    int flags;
     size_t payload_size;
     struct ipc_msg* next;
     struct ipc_msg* prev;
