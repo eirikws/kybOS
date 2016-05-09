@@ -19,9 +19,14 @@ typedef enum{
 typedef struct Context_Data{
     uint32_t stack_start;
     uint32_t SP;
-    uint32_t virtual_address;
-    uint32_t physical_address;
 } context_data_t;
+
+typedef struct Mem_mapping{
+    uint32_t physical_address;
+    uint32_t virtual_address;
+    struct Mem_mapping *mem_next;
+}mem_mapping_t;
+
 
     // contains the ID of a process.
     // can contain more, like IP address of the current node.
@@ -45,10 +50,11 @@ typedef struct PCB{
     process_state_t state;
     uint32_t priority;
     context_data_t context_data;
+    mem_mapping_t *mem_next;
+    uint32_t physical_address;
     struct PCB* next;
     struct PCB* prev;
     int is_queued;
-    void* shared_data_ptr;
     msg_queue_t msg_queue[NUM_PRIORITIES];
 } PCB_t;
 

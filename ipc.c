@@ -156,7 +156,7 @@ void system_receive(ipc_msg_t *recv_msg, size_t buf_size, int* flags){
         memcpy(      (void*)recv_msg,
                      (void*)popped_msg,
                      sizeof(ipc_msg_t) + cpy_bytes);
-        if( popped_msg->flags & WAITING_SEND){
+        if( popped_msg->flags & WAITING_SEND ){
             pcb_get(recv_msg->sender)->state=READY;
             scheduler_enqueue(recv_msg->sender);
         }

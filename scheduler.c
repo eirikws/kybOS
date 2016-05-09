@@ -3,6 +3,7 @@
 #include "mmu.h"
 #include "uart.h"
 #include "pcb.h"
+#include "memory.h"
 #include "scheduler.h"
 
 typedef struct priority_node{
@@ -178,19 +179,8 @@ uint32_t context_switch_c(uint32_t old_sp){
     } else {
         // if no errors, save old sp
         pcb->context_data.SP = old_sp;
+        memory_perform_process_unmapping(previous_running_process);
        // unmap memory of old process
-        mmu_remap_section(  pcb->context_data.virtual_address,
-                            0,
-	                        0);
-                            /*
-                            SET_FORMAT_SECTION
-	                      | SECTION_SHAREABLE
-	                      | SECTION_ACCESS_PL1_RW_PL0_NONE
-	                      | SECTION_OUT_INN_WRITE_BACK__WRITE_ALOC
-	                      | SECTION_EXECUTE_ENABLE
-	                      | 0 << SECTION_DOMAIN // set the domain of this section to 0
-	                      | SECTION_GLOBAL
-	                      | SECTION_NON_SECURE);*/
     }
     
 
@@ -202,19 +192,7 @@ uint32_t context_switch_c(uint32_t old_sp){
         //  IDK, zero I guess. Something something something...
         return 0;
     }
-    // map memory of new process so that the virtual memory points to its  where it should
-    
-    mmu_remap_section(  pcb->context_data.virtual_address,
-                        pcb->context_data.physical_address,
-	                    SET_FORMAT_SECTION
-	                  | SECTION_SHAREABLE
-	                  | SECTION_ACCESS_PL1_RW_PL0_RW
-	                  | SECTION_OUT_INN_WRITE_BACK__WRITE_ALOC
-	                  | SECTION_EXECUTE_ENABLE
-	                  | 0 << SECTION_DOMAIN // set the domain of this section to 0
-	                  | SECTION_GLOBAL
-	                  | SECTION_NON_SECURE);
-
+    memory_perform_process_mapping(current_running_process);
         // if no errors, return the stack pointer!
     return pcb->context_data.SP;
 }

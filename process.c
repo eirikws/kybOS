@@ -48,8 +48,8 @@ struct program_header{
     uint32_t p_offset;      // where segment lies in the file
     uint32_t p_vadder;      // where it should be put in virtual memory
     uint32_t undefined;
-    uint32_t p_filesz;
-    uint32_t p_memsz;
+    uint32_t p_filesz;      // size of segment in file
+    uint32_t p_memsz;       // size of segment in memory
     uint32_t flags;
     uint32_t alignment;
 };
@@ -113,13 +113,11 @@ int process_load(const char* file_path, size_t priority, int mode, process_id_t 
     PCB_t pcb = {   .id = id, 
                     .state = READY, 
                     .priority = priority,
-                    .context_data.virtual_address = prog_header->p_vadder,
-                    .context_data.physical_address = (uint32_t)dest,
-                  //  .context_data.stack_start = (1 << 20)-0x1000,
+                    .physical_address = (uint32_t)dest,
     };
 
-    mmu_remap_section(  pcb.context_data.virtual_address,
-                        pcb.context_data.physical_address,
+    mmu_remap_section(  prog_header->p_vadder,
+                        (uint32_t)dest,
                         SET_FORMAT_SECTION
                       | SECTION_SHAREABLE
                       | SECTION_ACCESS_PL1_RW_PL0_NONE
@@ -128,21 +126,19 @@ int process_load(const char* file_path, size_t priority, int mode, process_id_t 
                       | 0 << SECTION_DOMAIN // set the domain of this section to 0
                       | SECTION_GLOBAL
                       | SECTION_NON_SECURE);
-        
-    
 
-    memset((void*)pcb.context_data.virtual_address, 0, prog_header->p_memsz);
-    memcpy((void*)pcb.context_data.virtual_address, buf + prog_header->p_offset , prog_header->p_filesz);
+    memset((void*)prog_header->p_vadder, 0, prog_header->p_memsz);
+    memcpy((void*)prog_header->p_vadder, buf + prog_header->p_offset , prog_header->p_filesz);
 
     // make PCB
-    pcb.context_data.stack_start = (1 << 20) - 0x1000 + pcb.context_data.virtual_address;
+    pcb.context_data.stack_start = (1 << 20) - 0x1000 + prog_header->p_vadder;
 
     pcb.context_data.SP = _process_stack_init(pcb.context_data.stack_start, myheader->program_entry, mode);
     
     pcb_insert(pcb);
-    
+    memory_add_mapping(id, prog_header->p_vadder, (uint32_t)dest);
     // unmap process now that we are done with it
-    mmu_remap_section(  pcb.context_data.virtual_address, 0,0);
+    mmu_remap_section(  prog_header->p_vadder, 0,0);
 
     free(buf);
 
@@ -159,15 +155,13 @@ int process_start( process_id_t id){
 }
 
 void process_kill( process_id_t id){
-    uart_puts("killing process\r\n");
     // empty msg queue
     ipc_flush_msg_queue(id);
     
     // free memory
-    memory_slot_free( (void*)pcb_get(id)->context_data.physical_address); 
+    memory_slot_free( (void*)pcb_get(id)->physical_address); 
 
     // remove pcb
     pcb_remove(id);
-    uart_puts("process kill done\r\n");
 }
 
