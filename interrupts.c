@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "process.h"
+#include "memory.h"
 #include "armtimer.h"
 #include "base.h"
 #include "gpio.h"
@@ -100,7 +101,7 @@ uint32_t software_interrupt_vector_c(void* arg0, void* arg1, void* arg2, void* a
         break;
         case MMAP:
         // void* memory_map(void' location);
-        //memory_mmap(arg1);
+        memory_map(arg1, (uint32_t)arg2, get_current_running_process());
         return 0;
         break;
     }

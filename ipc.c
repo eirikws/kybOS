@@ -85,9 +85,6 @@ static int ipc_msg_enqueue_priority(ipc_msg_t* node, process_id_t coid){
 int ipc_msg_enqueue(void* payload, uint32_t size, process_id_t coid, int flags){
     ipc_msg_t* node =  ipc_new_node(payload, size, flags);
     if (pcb_get(coid) == NULL){
-        uart_puts("ipc msg enqueue coid_pcb == NULL     coid == ");
-        uart_put_uint32_t(coid.id_number, 10);
-        uart_puts("\r\n");
         return -1;
     }
     return ipc_msg_enqueue_priority( node, coid);
@@ -120,14 +117,19 @@ process_id_t ipc_receive(void* rmsg, int size){
 */
 
 // ipc send call flag bits
-#define WAITING_SEND   (1 << 0)
+#define WAITING_SEND        (1 << 0)
+#define COID_NOT_FOUND      (1 << 1)
 
 void system_send(void* payload, ipc_msg_config_t *config){
     //  setup for IPC
         // send message
         // wake up receiving thread
         // block the sending thread            
-    ipc_msg_enqueue(payload, config->size, config->coid, config->flags);
+    if(ipc_msg_enqueue(payload, config->size, config->coid, config->flags) == -1){
+        config->flags |= COID_NOT_FOUND;
+        return;
+    }
+
     if(config->flags & WAITING_SEND){
         pcb_get( get_current_running_process() )->state = BLOCKED_SENDING;
 
@@ -172,6 +174,7 @@ void ipc_flush_msg_queue( process_id_t id){
     while( msg = ipc_dequeue(id), msg != NULL){
         if (pcb_get(msg->sender)->state == BLOCKED_SENDING){
             pcb_get(msg->sender)->state = READY;
+            scheduler_enqueue(msg->sender);
         }
         free(msg);
     }

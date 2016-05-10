@@ -13,6 +13,7 @@ typedef struct process_id{
 
 // ipc send flag bits
 #define WAITING_SEND            (1 << 0)
+#define COID_NOT_FOUND          (1 << 1)
 typedef struct ipc_msg_config{
     process_id_t coid;
     int flags;

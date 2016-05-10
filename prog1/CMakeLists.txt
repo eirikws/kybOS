@@ -23,4 +23,6 @@ add_executable( prog1.elf
     ../program_library/cstubs.c
     ../program_library/ipc.c
     ../program_library/ipc.h
+    ../program_library/memory.c
+    ../program_library/memory.h
    )

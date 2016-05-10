@@ -5,7 +5,7 @@
 
 
 
-static volatile __attribute__ ((aligned (0x4000))) uint32_t page_table[4096];
+static volatile __attribute__ ((aligned (0x4000))) uint32_t page_table[VIRT_MEM_SIZE/MMU_PAGE_SIZE];
 
 void mmu_init_table(void) {
 	uint32_t base = 0;
@@ -28,15 +28,7 @@ void mmu_init_table(void) {
     // the next ones are for processes. they are not loaded yet,
     // so should be only accessable by PL1
 	for (; base < 1024-16; base++) {
-	    page_table[base] = 0; /*  SET_FORMAT_SECTION
-	                        | base << SECTION_BASE_ADDRESS_OFFSET
-	                        | SECTION_SHAREABLE
-	                        | SECTION_ACCESS_PL1_RW_PL0_NONE
-	                        | SECTION_OUT_INN_WRITE_BACK__WRITE_ALOC
-	                        | SECTION_EXECUTE_ENABLE
-	                        | 0 << SECTION_DOMAIN // set the domain of this section to 0
-	                        | SECTION_GLOBAL
-	                        | SECTION_NON_SECURE;*/
+	    page_table[base] = 0;
 	}
 	
 	// 16 MB peripherals at 0x3F000000-3ffffffff
@@ -44,7 +36,7 @@ void mmu_init_table(void) {
 	    page_table[base] =      SET_FORMAT_SECTION
 	                          | base << SECTION_BASE_ADDRESS_OFFSET
 	                          | SECTION_SHAREABLE
-	                          | SECTION_ACCESS_PL1_RW_PL0_RW
+	                          | SECTION_ACCESS_PL1_RW_PL0_NONE
 	                          | SECTION_DEVICE_SHAREABLE
 	                          | SECTION_EXECUTE_NEVER
 	                          | 0 << SECTION_DOMAIN

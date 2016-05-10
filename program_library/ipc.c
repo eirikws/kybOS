@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "system_calls.h"
-#include "system_calls.h"
 #include "ipc.h"
 
 // ipc receive call flags
@@ -17,8 +16,6 @@ typedef struct ipc_msg{
     struct ipc_msg* prev;
     char payload[0];
 } ipc_msg_t;
-
-void extern _SYSTEM_CALL(system_call_t arg0, void* arg1, void* arg2, void* arg3);
 
 /*
     send msg rmsg to coid

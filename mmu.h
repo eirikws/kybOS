@@ -43,6 +43,11 @@
 #define SECTION_OUT_INN_WRITE_BACK__WRITE_ALOC    ((1 << SECTION_TEX) | (1 << SECTION_C) | (1 << SECTION_B))
 #define SECTION_DEVICE_NON_SHAREABLE    ((2 << SECTION_TEX) | (0 << SECTION_C) | (0 << SECTION_B))
 
+
+#define VIRT_MEM_SIZE       0x40000000
+#define PHYS_MEM_SIZE       (1 << 30)       // 1 GB memory
+#define MMU_PAGE_SIZE       (1 << 20)       // 1 MB
+
 void mmu_init(void);
 void mmu_configure(void);
 void mmu_init_table(void);
