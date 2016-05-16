@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#include "drivers.h"
 #include "system_calls.h"
 #include "process.h"
 #include "memory.h"
@@ -16,7 +17,6 @@
 #include "fs.h"
 #include "time.h"
 #include "control.h"
-#include "threading.h"
 #include "emmc.h"
 
 extern void _enable_interrupts(void);
@@ -40,6 +40,7 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     uart_init();
     _enable_interrupts();
     uart_puts("kernel start!\r\n");
+    drivers_init();
 
     // enable jtag for debugging
     jtag_enable();
@@ -52,9 +53,6 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     time_delay_microseconds(1000);
     uart_puts("you should now have waited 1 second\r\n");
 
-    //delay(10000000);
-    
-    //init_pri_array();
     uart_puts("starting mmu\r\n");
     mmu_init_table();
     mmu_configure();
@@ -94,7 +92,7 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     process_start( (process_id_t){3});
     
 
-    scheduling_set(0);
+    scheduling_set(1);
     _SYSTEM_CALL(YIELD,0,0,0);
     
      /* Never exit as there is no OS to exit to! */

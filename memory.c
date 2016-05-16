@@ -4,7 +4,6 @@
 
 #include "base.h"
 #include "mmu.h"
-#include "uart.h"
 #include "memory.h"
 
 
@@ -70,9 +69,6 @@ void* virtual_memory_slot_get(process_id_t id){
     // select a 
     for(i = 0; i < VIRT_MEM_SIZE/MMU_PAGE_SIZE; i++){
         if(is_occupied[i] == MEM_VACANT){
-            uart_puts("virt mem slot get returns with slot i: ");
-            uart_put_uint32_t(i, 16);
-            uart_puts("\r\n");
             free(is_occupied);
             return (void*)(i << SECTION_BASE_ADDRESS_OFFSET);
         }
@@ -139,7 +135,8 @@ int memory_perform_process_mapping(process_id_t id){
             
 	        mmu_remap_section(      node->virtual_address,
                                     node->physical_address, 
-	                                SECTION_SHAREABLE
+                                    SET_FORMAT_SECTION
+	                              | SECTION_SHAREABLE
 	                              | SECTION_ACCESS_PL1_RW_PL0_RW
 	                              | SECTION_DEVICE_SHAREABLE
 	                              | SECTION_EXECUTE_NEVER

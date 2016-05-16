@@ -61,6 +61,8 @@ add_executable( kybOS
     memory.h
     process.c
     process.h
+    drivers.c
+    drivers.h
     dirent.h)
 
 add_custom_command(

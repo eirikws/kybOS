@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "scheduler.h"
+#include "drivers.h"
 #include "ipc.h"
 #include "uart.h"
 #include "control.h"
@@ -67,6 +68,12 @@ struct section_header{
 int process_load(const char* file_path, size_t priority, int mode, process_id_t id){
     // read first segment of the file.
     // this contains the elf header and program header
+    
+    if( ( pcb_id_compare(id, NULL_ID)) || pcb_get(id) != NULL){
+        uart_puts("Process load: ID is reserved\r\n");
+        return -1;
+    }
+
     uint8_t *buf = (uint8_t*)malloc(0x20000);
     int ret = fs_get()->fs_load(file_path, buf, 0x20000);
     if(ret == -1){
@@ -157,10 +164,10 @@ int process_start( process_id_t id){
 void process_kill( process_id_t id){
     // empty msg queue
     ipc_flush_msg_queue(id);
-    
     // free memory
     memory_slot_free( (void*)pcb_get(id)->physical_address); 
-
+    //free driver
+    driver_remove(id);
     // remove pcb
     pcb_remove(id);
 }

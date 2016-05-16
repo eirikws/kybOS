@@ -10,6 +10,8 @@ typedef struct process_id{
     int id_number;
 } process_id_t;
 
+#define NULL_ID ((process_id_t){0})
+
 typedef enum{
     BLOCKED_SENDING,
     BLOCKED_RECEIVING,

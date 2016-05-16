@@ -18,18 +18,8 @@ typedef struct priority_list{
 } priority_list_t;
 
 static priority_list_t priority_array[NUM_PRIORITIES];
-static process_id_t current_running_process = {-1};
+static process_id_t current_running_process = {0};
 static process_id_t previous_running_process;
-
-
-
-void init_pri_array(void){
-    int i;
-    for ( i=0; i<NUM_PRIORITIES; i++){
-        priority_array[i].head = NULL;
-        priority_array[i].tail = NULL;
-    }
-}
 
 static priority_node_t* newNode(process_id_t id){
     priority_node_t *newNode = malloc(sizeof(priority_node_t));
@@ -153,7 +143,7 @@ void reschedule(void){
     // this always selects the highest priority
     // and round robin on those with equal priority
     int err = 0;
-    if (!pcb_id_compare( current_running_process, (process_id_t){-1})){
+    if (!pcb_id_compare( current_running_process, NULL_ID)){
         err = scheduler_enqueue(current_running_process);
         if (err == -1){
  //           uart_puts("ERROR: Scheduler enqueuing error\r\n");
@@ -174,9 +164,7 @@ void reschedule(void){
 // save old sp, return new sp, do MMU things
 uint32_t context_switch_c(uint32_t old_sp){
     PCB_t* pcb = pcb_get( previous_running_process);
-    if (pcb == NULL){
-        uart_puts("KERN Error: Save process context_switch_c\r\n");
-    } else {
+    if(pcb != NULL){
         // if no errors, save old sp
         pcb->context_data.SP = old_sp;
         memory_perform_process_unmapping(previous_running_process);

@@ -16,6 +16,7 @@
 #include "system_calls.h"
 #include "pcb.h"
 #include "time.h"
+#include "drivers.h"
 #define INTERRUPT_CONTROLLER_BASE   ( PERIPHERAL_BASE + 0xB200 )
 
 
@@ -104,6 +105,11 @@ uint32_t software_interrupt_vector_c(void* arg0, void* arg1, void* arg2, void* a
         memory_map(arg1, (uint32_t)arg2, get_current_running_process());
         return 0;
         break;
+        case DRIVER_REGISTER:
+        // register a new driver
+        driver_register(get_current_running_process(), (char*)arg1, (int*)arg2);
+        return 0;
+        break;
     }
     uart_puts("Software irq vector c: did not find source of exception!\r\n");
     return 0;
@@ -133,50 +139,24 @@ void data_abort_vector_c( uint32_t origin, uint32_t stack ){
     uart_puts("\r\n");
 }
 
-
 /*
     IRQ handler
 */
 uint32_t interrupt_vector_c(void){
-   /****************************************   OLD
-    char c;
-    static int lit = 0;
-    if( lit ){
-        get_gpio()->LED_GPSET = (1 << LED_GPIO_BIT);
-        lit = 0;
-    } else {
-        get_gpio()->LED_GPCLR = (1 << LED_GPIO_BIT);
-        lit = 1;
-    }
-
-    
-    if (GetIrqController()->IRQ_pending_2 & UART_IRQ){
-    
-        uart_get()->ICR = RECEIVE_CLEAR;
-        c = uart_getc();
-        uart_puts("interrupt\r\n");
-    
-        // do uart stuff
-        uart_get()->ICR = RECEIVE_CLEAR;
-        c = uart_getc();
-        if (c == '\r'){
-            uart_putc('\n');
-            uart_putc(c);
-        }else{   uart_putc(c);}
-    
-    }   OLD       ***********************/
-
 //  find irq source
 
     irq_controller_t *irq_flags = irq_controller_get();
     //  timer
     if( irq_flags->IRQ_basic_pending & ARM_TIMER_IRQ ){
         // Do all timer things
+        // message timer irq driver
+        ipc_kernel_send(NULL, 0, driver_irq_get(DRIVER_TIMER));
         return time_handler();
     }
     // uart
     if ( irq_flags->IRQ_pending_2 & UART_IRQ){
         // Do all uart things
+        ipc_kernel_send(NULL, 0, driver_irq_get(DRIVER_UART));
         return uart_handler();
     }
     return 0;
@@ -193,3 +173,4 @@ void __attribute__((interrupt("FIQ"))) fast_interrupt_vector(void){
 int _get_yield_val(void){
     return YIELD;
 }
+

@@ -9,7 +9,7 @@
 #include "uart.h"
 #include "ipc.h"
 
-static ipc_msg_t* ipc_new_node(void* payload, uint32_t size, int flags){
+static ipc_msg_t* ipc_new_node(void* payload, uint32_t size, int flags, process_id_t sender){
     ipc_msg_t *newNode = malloc(sizeof(ipc_msg_t) + size);
     if (newNode == NULL){
         uart_puts("Failed to allocate new IPC priority_node!\r\n");
@@ -18,7 +18,7 @@ static ipc_msg_t* ipc_new_node(void* payload, uint32_t size, int flags){
     newNode->payload_size = size;
     newNode->flags = flags;
     memcpy( &(newNode->payload), payload, size);
-    newNode->sender = get_current_running_process();
+    newNode->sender = sender;
     newNode->next = NULL;
     newNode->prev = NULL;
     return newNode;
@@ -82,39 +82,13 @@ static int ipc_msg_enqueue_priority(ipc_msg_t* node, process_id_t coid){
     }
 }
 
-int ipc_msg_enqueue(void* payload, uint32_t size, process_id_t coid, int flags){
-    ipc_msg_t* node =  ipc_new_node(payload, size, flags);
+int ipc_msg_enqueue(void* payload, uint32_t size, process_id_t coid, int flags, process_id_t sender){
+    ipc_msg_t* node =  ipc_new_node(payload, size, flags, sender);
     if (pcb_get(coid) == NULL){
         return -1;
     }
     return ipc_msg_enqueue_priority( node, coid);
 }
-
-/*
-    send msg rmsg to coid
-*/
-/*  OLD. NEW IN program_library folder!
-int ipc_send(process_id_t* coid, const void* smsg, int size){
-    _SYSTEM_CALL(IPC_SEND,(void*)smsg, (void*)size, (void*)coid);
-   // _SYSTEM_CALL(YIELD, NULL, NULL, NULL);
-    return 1;
-}
-
-process_id_t ipc_receive(void* rmsg, int size){
-    process_id_t sender;
-    int success = 0;
-    ipc_msg_t* recv_msg = malloc( sizeof(ipc_msg_t) + size);
-    _SYSTEM_CALL(IPC_RECV, recv_msg, (void*)size, &success);
-    if( !success){
-        _SYSTEM_CALL(YIELD, NULL, NULL, NULL);
-        _SYSTEM_CALL(IPC_RECV, recv_msg, (void*)size, &success);
-    }
-    memcpy(rmsg, recv_msg->payload, size);
-    sender = recv_msg->sender;
-    free(recv_msg);
-    return sender;
-}
-*/
 
 // ipc send call flag bits
 #define WAITING_SEND        (1 << 0)
@@ -125,7 +99,7 @@ void system_send(void* payload, ipc_msg_config_t *config){
         // send message
         // wake up receiving thread
         // block the sending thread            
-    if(ipc_msg_enqueue(payload, config->size, config->coid, config->flags) == -1){
+    if(ipc_msg_enqueue(payload, config->size, config->coid, config->flags, get_current_running_process()) == -1){
         config->flags |= COID_NOT_FOUND;
         return;
     }
@@ -138,6 +112,19 @@ void system_send(void* payload, ipc_msg_config_t *config){
         pcb_get(config->coid)->state = READY;
         scheduler_enqueue(config->coid);
     }
+}
+/*
+ *  much the same as system send, except that should not block, and sender is kernel
+ */
+int ipc_kernel_send(void* payload, size_t size, process_id_t coid){
+    if(ipc_msg_enqueue(payload, size, coid, 0, NULL_ID) == -1){
+        return 0;
+    }
+    if (pcb_get(coid)->state == BLOCKED_RECEIVING){
+        pcb_get(coid)->state = READY;
+        scheduler_enqueue(coid);
+    }
+    return 1;
 }
 
 // ipc receive call flags bits
@@ -178,4 +165,5 @@ void ipc_flush_msg_queue( process_id_t id){
         }
         free(msg);
     }
-}   
+}
+
