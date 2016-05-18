@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+#include "drivers.h"
+
 typedef struct process_id{
     int id_number;
 } process_id_t;
@@ -20,7 +22,14 @@ typedef struct ipc_msg_config{
     size_t size;
 }ipc_msg_config_t;
 
+typedef struct ipc_msg_config_driver{
+    char name[DRIVER_NAME_SIZE];
+    int flags;
+    size_t size;
+}ipc_msg_config_driver_t;
+
 int ipc_send(void* smsg, ipc_msg_config_t *config);
 process_id_t ipc_receive(void* rmesg, size_t buf_size, int* flags );
+int ipc_send_driver(void* smsg, ipc_msg_config_driver_t *config);
 
 #endif

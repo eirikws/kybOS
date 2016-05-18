@@ -1,4 +1,3 @@
-
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -93,17 +92,11 @@ int ipc_msg_enqueue(void* payload, uint32_t size, process_id_t coid, int flags, 
 // ipc send call flag bits
 #define WAITING_SEND        (1 << 0)
 #define COID_NOT_FOUND      (1 << 1)
-
 void system_send(void* payload, ipc_msg_config_t *config){
-    //  setup for IPC
-        // send message
-        // wake up receiving thread
-        // block the sending thread            
     if(ipc_msg_enqueue(payload, config->size, config->coid, config->flags, get_current_running_process()) == -1){
         config->flags |= COID_NOT_FOUND;
         return;
     }
-
     if(config->flags & WAITING_SEND){
         pcb_get( get_current_running_process() )->state = BLOCKED_SENDING;
 
@@ -113,6 +106,7 @@ void system_send(void* payload, ipc_msg_config_t *config){
         scheduler_enqueue(config->coid);
     }
 }
+
 /*
  *  much the same as system send, except that should not block, and sender is kernel
  */
@@ -127,6 +121,20 @@ int ipc_kernel_send(void* payload, size_t size, process_id_t coid){
     return 1;
 }
 
+void system_send_driver(void* payload, ipc_msg_config_driver_t *config){
+    process_id_t coid = driver_get(config->name);
+    if(ipc_msg_enqueue(payload, config->size, coid, config->flags, get_current_running_process()) == -1){
+        config->flags |= COID_NOT_FOUND;
+        return;
+    }
+    if(config->flags & WAITING_SEND){
+        pcb_get( get_current_running_process() )->state = BLOCKED_SENDING;
+    }
+    if (pcb_get(coid)->state == BLOCKED_RECEIVING){
+        pcb_get(coid)->state = READY;
+        scheduler_enqueue(coid);
+    }
+}
 // ipc receive call flags bits
 #define QUEUE_EMPTY         (1 << 0)
 #define BUF_TOO_SMALL       (1 << 1)

@@ -3,6 +3,8 @@
 
 #include "pcb.h"
 
+#define DRIVER_NAME_SIZE        20
+
 typedef enum{
     DRIVER_TIMER,
     DRIVER_GPIO,

@@ -129,3 +129,4 @@ void cpu_fpu_enable(void){
     __asm volatile ("mov r3, #0x40000000");
     __asm volatile ("vmsr fpexc, r3");
 }
+

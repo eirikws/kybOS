@@ -25,6 +25,14 @@ int ipc_send(void* smsg, ipc_msg_config_t *config){
     return 1;
 }
 
+/*
+    send msg rmsg to driver-name
+*/
+int ipc_send_driver(void* smsg, ipc_msg_config_driver_t *config){
+    _SYSTEM_CALL(IPC_SEND_DRIVER,(void*)smsg, (void*)config, NULL);
+    return 1;
+}
+
 process_id_t ipc_receive(void* rmsg, size_t buf_size, int* flags){
     process_id_t sender;
     ipc_msg_t* recv_msg = malloc( sizeof(ipc_msg_t) + buf_size);

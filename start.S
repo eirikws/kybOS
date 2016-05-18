@@ -11,7 +11,7 @@
 .global _generate_yield
 .global _init_branch
 .global _gpio_fsel
-
+.global _fpu_enable
 //  STATUS/MODE REGISTER
 .equ    CPSR_MODE_FILTER,       0x1F 
 .equ    CPSR_MODE_USER,         0x10
@@ -152,7 +152,7 @@ build_context_stack_user:
     mov r1, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r1
     
-    b update_stack    
+    b context_switch
 
 build_context_stack_svr:
     push {r0}
@@ -173,9 +173,9 @@ build_context_stack_svr:
     mov r0, sp  // save SP so we can use it as parameter in the handler
     mov r1, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r1
-    b update_stack
+    b context_switch
 
-update_stack:
+context_switch:
     bl context_switch_c // givecontext_switchent, returns with a new sp
 
     mov r1, sp  // irq mode sp
@@ -288,7 +288,7 @@ software_interrupt_vector:
     // there is now zero stack used
     // check if to context switch
     // software_interrupt_vector_c returns with 1 or 0.
-    // 1 means to context swith!
+    // 1 means to context switch!
     cmp r0, #0
     bne software_context_switch
     // if not, return
@@ -306,6 +306,11 @@ prefetch_abort_vector:
     mov r1, sp
     msr cpsr_c, r3
     bl prefetch_abort_vector_c
+    // reschedule. dont have to save stack
+        
+    //b abort_reschedule
+
+
     ldm sp!, {r0-r3, ip, pc}^
 
 
@@ -435,3 +440,20 @@ _enable_interrupts:
     bic     r0, r0, #0x80
     msr     cpsr_c, r0
     mov     pc, lr
+
+_fpu_enable:
+    push {r0, r1, r2, r3, lr}
+    mrc p15, 0, r0, c1, c1, 2
+    orr r0, r0, #0xc00
+    mcr p15, 0, r0, c1, c1, 2
+    mov r0, #0xf00000
+    mcr p15, 0, r0, c1, c0, 2
+    mov r3, #0x40000000
+    vmsr fpexc, r3
+    pop {r0, r1, r2, r3, pc}
+
+.global _get_scr
+_get_scr:
+    mrc p15, 0, r0, c1, c1, 0
+    bx lr
+

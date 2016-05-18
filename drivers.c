@@ -20,8 +20,6 @@ void drivers_init(void){
     irq_drivers.uart = NULL_ID;
 }    
 
-#define DRIVER_NAME_SIZE        20
-
 typedef struct driver{
     char name[DRIVER_NAME_SIZE];
     process_id_t id;

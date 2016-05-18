@@ -136,13 +136,6 @@ void uart_put_uint32_t(uint32_t in, int base){
     uart_puts(uart_itoa(in,c,base));
 }
 
-void print_alot(void){
-    int i;
-    for (i=0; i<20; i++){
-        uart_puts("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\r\n");
-    }
-}
-
 uint32_t uart_handler(void){
     static int lit = 0;
     if( lit ){
@@ -155,9 +148,3 @@ uint32_t uart_handler(void){
     return 0;
 }
 
-void p_d(void){
-    static int i;
-    uart_put_uint32_t(i++, 10);
-    uart_puts("\r\n");
-}
-    

@@ -34,7 +34,6 @@ uint32_t time_handler(void){
     }
     // Check if we want to schedule
     if ( time_for_reschedule() ){
-        reschedule();
         return 1;
     } else {
         return 0;

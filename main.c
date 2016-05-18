@@ -21,6 +21,9 @@
 
 extern void _enable_interrupts(void);
 void extern _SYSTEM_CALL(system_call_t arg0, void* arg1, void* arg2, void* arg3);
+void extern _fpu_enable(void);
+int extern _get_scr(void);
+
 
 void loop_forever_and_ever(void){
     int volatile i = 0;
@@ -41,11 +44,10 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     _enable_interrupts();
     uart_puts("kernel start!\r\n");
     drivers_init();
-
+    
+    uart_puts("enabling jtag and fpu\r\n");
     // enable jtag for debugging
     jtag_enable();
-    // enable floting point module   
-    cpu_fpu_enable();
     // initiate the OS clock
     uart_puts("initiating system clock and doing a wait for 1 seconds to check if it works\r\n");
     arm_timer_set_freq(1000);
@@ -93,8 +95,6 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     
 
     scheduling_set(1);
+    /*  call yield and never return*/
     _SYSTEM_CALL(YIELD,0,0,0);
-    
-     /* Never exit as there is no OS to exit to! */
-    loop_forever_and_ever();
 }

@@ -34,13 +34,6 @@ irq_controller_t* irq_controller_get( void ){
     return IRQController;
 }
 
-/*
-    Reset handler
-*/
-void __attribute__((interrupt("ABORT"))) reset_vector(void){
-    uart_puts("ABORT_interrupt!!\r\n");
-    
-}
 
 /*
     Undefined interrupt handler
@@ -48,10 +41,11 @@ void __attribute__((interrupt("ABORT"))) reset_vector(void){
 void __attribute__((interrupt("UNDEF"))) undefined_instruction_vector(void){
     uint32_t origin;
     __asm volatile ("mov %[out], lr" : [out] "=r" (origin) ::);
+    origin -= 4;
     uart_puts("undefined mode from: ");
     uart_put_uint32_t(origin , 16);
     uart_puts("\r\n");
-    
+    process_kill( get_current_running_process());   
 }
 
 
@@ -65,13 +59,16 @@ uint32_t software_interrupt_vector_c(void* arg0, void* arg1, void* arg2, void* a
         case IPC_SEND: 
         // system_send(void* payload, uint32_t size, process_id_t coid)
         system_send(arg1, (ipc_msg_config_t*)arg2);
-        reschedule();
+        return 1;
+        break;
+        case IPC_SEND_DRIVER:
+        // send a msg to driver
+        system_send_driver(arg1, (ipc_msg_config_driver_t*)arg2);
         return 1;
         break;
         case IPC_RECV:
         // system_receive(ipc_msg_t *recv_msg, uint32_t size, int* success)
         system_receive(arg1, (uint32_t)arg2, (int*)arg3);
-        reschedule();
         return 1;
         break;
         case DUMMY:
@@ -79,7 +76,6 @@ uint32_t software_interrupt_vector_c(void* arg0, void* arg1, void* arg2, void* a
         return 0;
         break;
         case YIELD:
-        reschedule();
         return 1;
         break;
         case PRINT_STR:
@@ -92,11 +88,9 @@ uint32_t software_interrupt_vector_c(void* arg0, void* arg1, void* arg2, void* a
         break;
         case EXIT:
         process_kill( get_current_running_process() );
-        reschedule();
         return 1;
         break;
         case KILL:
-        reschedule();
         process_kill( *(process_id_t*)arg1);
         return 1;
         break;
@@ -125,8 +119,8 @@ void prefetch_abort_vector_c( uint32_t origin, uint32_t stack ){
     uart_puts(" with stack: ");
     uart_put_uint32_t(stack, 16);
     uart_puts("\r\n");
+    process_kill( get_current_running_process() );
 }
-
 
 /*
     Data abort interrupt handler
@@ -137,6 +131,7 @@ void data_abort_vector_c( uint32_t origin, uint32_t stack ){
     uart_puts(" with stack: ");
     uart_put_uint32_t(stack, 16);
     uart_puts("\r\n");
+    process_kill( get_current_running_process() );
 }
 
 /*
@@ -168,9 +163,5 @@ uint32_t interrupt_vector_c(void){
 */
 void __attribute__((interrupt("FIQ"))) fast_interrupt_vector(void){
     uart_puts("FIQ\r\n");
-}
-
-int _get_yield_val(void){
-    return YIELD;
 }
 

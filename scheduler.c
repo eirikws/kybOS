@@ -150,12 +150,11 @@ void reschedule(void){
         }
     }
     process_id_t retval;
-  //  priority_print_list();
     while(  retval = pop_highest_priority(), pcb_get(retval) == NULL){ /* do northing*/}
     pcb_get(retval)->is_queued = 0;
     previous_running_process = current_running_process;
     current_running_process = retval;
- /*   uart_puts("Scheduling to process: ");
+/*    uart_puts("Scheduling to process: ");
     uart_put_uint32_t(retval.id_number, 10);
     uart_puts("\r\n"); */
     return;
@@ -163,6 +162,7 @@ void reschedule(void){
 
 // save old sp, return new sp, do MMU things
 uint32_t context_switch_c(uint32_t old_sp){
+    reschedule();
     PCB_t* pcb = pcb_get( previous_running_process);
     if(pcb != NULL){
         // if no errors, save old sp

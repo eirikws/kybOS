@@ -30,6 +30,8 @@
 
 # Debug files
 *.dSYM/
+*.asm
+*.nm
 
 #Swap files
 *.swp
@@ -43,5 +45,4 @@ CMakeCache.txt
 */CMakeFiles
 kernel.img
 build/kybOS
-
 

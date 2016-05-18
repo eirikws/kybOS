@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-
+#include "uart.h"
 #include "base.h"
 #include "mmu.h"
 #include "memory.h"
