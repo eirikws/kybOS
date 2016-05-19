@@ -17,15 +17,14 @@
 #include "pcb.h"
 #include "time.h"
 #include "drivers.h"
-#define INTERRUPT_CONTROLLER_BASE   ( PERIPHERAL_BASE + 0xB200 )
 
+#define INTERRUPT_CONTROLLER_BASE   ( PERIPHERAL_BASE + 0xB200 )
 
 /*
     Put the interupt controller peripheral at it's base address
 */
 static irq_controller_t* IRQController =
         (irq_controller_t*)INTERRUPT_CONTROLLER_BASE;
-
 
 /*
      Return the IRQ Controller register set
@@ -34,70 +33,49 @@ irq_controller_t* irq_controller_get( void ){
     return IRQController;
 }
 
-
-/*
-    Undefined interrupt handler
-*/
-void __attribute__((interrupt("UNDEF"))) undefined_instruction_vector(void){
-    uint32_t origin;
-    __asm volatile ("mov %[out], lr" : [out] "=r" (origin) ::);
-    origin -= 4;
-    uart_puts("undefined mode from: ");
-    uart_put_uint32_t(origin , 16);
-    uart_puts("\r\n");
-    process_kill( get_current_running_process());   
-}
-
-
 /*
     Software interrupt handler.
     return 1 for context switch
     return 0 for no context switch
 */
-uint32_t software_interrupt_vector_c(void* arg0, void* arg1, void* arg2, void* arg3){
+scheduling_type_t software_interrupt_vector_c(void* arg0, void* arg1, void* arg2, void* arg3){
     switch( (system_call_t)arg0) {
         case IPC_SEND: 
         // system_send(void* payload, uint32_t size, process_id_t coid)
-        system_send(arg1, (ipc_msg_config_t*)arg2);
-        return 1;
+        return system_send(arg1, (ipc_msg_config_t*)arg2);
         break;
         case IPC_SEND_DRIVER:
         // send a msg to driver
-        system_send_driver(arg1, (ipc_msg_config_driver_t*)arg2);
-        return 1;
+        return system_send_driver(arg1, (ipc_msg_config_driver_t*)arg2);
         break;
         case IPC_RECV:
         // system_receive(ipc_msg_t *recv_msg, uint32_t size, int* success)
-        system_receive(arg1, (uint32_t)arg2, (int*)arg3);
-        return 1;
+        return system_receive(arg1, (uint32_t)arg2, (int*)arg3);
         break;
         case DUMMY:
         uart_puts("DUMMY CALL!!!\r\n");
-        return 0;
+        return NO_RESCHEDULE;
         break;
         case YIELD:
-        return 1;
+        return RESCHEDULE;
         break;
         case PRINT_STR:
         uart_puts((char*)arg1);
-        return 0;
+        return NO_RESCHEDULE;
         break;
         case PRINT_INT:
         uart_put_uint32_t((int)arg1, 10);
-        return 0;
+        return NO_RESCHEDULE;
         break;
         case EXIT:
-        process_kill( get_current_running_process() );
-        return 1;
+        return process_kill( get_current_running_process() );
         break;
         case KILL:
-        process_kill( *(process_id_t*)arg1);
-        return 1;
+        return process_kill( *(process_id_t*)arg1);
         break;
         case MMAP:
         // void* memory_map(void' location);
-        memory_map(arg1, (uint32_t)arg2, get_current_running_process());
-        return 0;
+        return memory_map(arg1, (uint32_t)arg2, get_current_running_process());
         break;
         case DRIVER_REGISTER:
         // register a new driver
@@ -108,7 +86,6 @@ uint32_t software_interrupt_vector_c(void* arg0, void* arg1, void* arg2, void* a
     uart_puts("Software irq vector c: did not find source of exception!\r\n");
     return 0;
 }
-
 
 /*
     Pefetch abort interrupt handler
@@ -132,6 +109,16 @@ void data_abort_vector_c( uint32_t origin, uint32_t stack ){
     uart_put_uint32_t(stack, 16);
     uart_puts("\r\n");
     process_kill( get_current_running_process() );
+}
+
+/*
+    Undefined interrupt handler
+*/
+void undefined_instruction_vector_c(uint32_t origin, uint32_t stack){
+    uart_puts("undefined mode from: ");
+    uart_put_uint32_t(origin , 16);
+    uart_puts("\r\n");
+    process_kill( get_current_running_process());   
 }
 
 /*

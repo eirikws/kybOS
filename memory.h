@@ -2,6 +2,7 @@
 #define MEMORY_H
 
 #include <stdint.h>
+#include "scheduler.h"
 #include "pcb.h"
 
 void memory_init(void);
@@ -13,5 +14,5 @@ int memory_perform_process_unmapping(process_id_t id);
 int memory_add_mapping(process_id_t id, uint32_t virtual, uint32_t physical);
 int memory_remove_mapping(process_id_t id, uint32_t virtual, uint32_t physical);
 int memory_remove_all_mappings(process_id_t id);
-void memory_map(void* retval, uint32_t address, process_id_t id); 
+scheduling_type_t memory_map(void* retval, uint32_t address, process_id_t id); 
 #endif

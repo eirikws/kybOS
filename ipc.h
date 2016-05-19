@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include "drivers.h"
+#include "scheduler.h"
 #include "pcb.h"
 
 // used by system calls
@@ -22,13 +23,13 @@ typedef struct ipc_msg_config_driver{
 /*
  * kernel side of ipc_send
  */
-void system_send(void* payload, ipc_msg_config_t *config);
+scheduling_type_t system_send(void* payload, ipc_msg_config_t *config);
 
-void system_send_driver(void* payload, ipc_msg_config_driver_t *config);
+scheduling_type_t system_send_driver(void* payload, ipc_msg_config_driver_t *config);
 /*
  * kernel side of ipc_receive
  */
-void system_receive(ipc_msg_t *recv_msg, size_t buf_size, int* flags);
+scheduling_type_t system_receive(ipc_msg_t *recv_msg, size_t buf_size, int* flags);
 
 /*
  * flush the receive queue

@@ -8,10 +8,7 @@
 .global _SYSTEM_CALL
 .global _init_thr_stack
 .global _push_stack_pointer
-.global _generate_yield
-.global _init_branch
-.global _gpio_fsel
-.global _fpu_enable
+
 //  STATUS/MODE REGISTER
 .equ    CPSR_MODE_FILTER,       0x1F 
 .equ    CPSR_MODE_USER,         0x10
@@ -116,7 +113,13 @@ interrupt_vector:
     cmp r0, #0          // if r0 is zero, do not perform context switch
     ldmeq sp!, {r0-r3, ip, pc}^
     // if not, branch to context switch with correct mode
+    cmp r0, #2
     pop {r0-r3, ip, lr}
+    // if r0 == 2, branch to a context switch, but dont build a return stack
+    moveq sp, #(STACK_IRQ)
+    beq context_switch_no_build_stack
+    // if interrupt vector returns with 1, do a context switch
+    // and build a return stack
 find_origin_context_switch:
     push {r0}
     mrs r0, spsr
@@ -129,7 +132,6 @@ find_origin_context_switch:
     beq build_context_stack_svr    //else from supervisor
     // add more as needed. at this point of time interrupts
     // are only enabled in svr and usr mode  
-
 
 build_context_stack_user:
     // save r0-r12, lr, pc, cpsr on the stack, in that sequence
@@ -197,9 +199,6 @@ pop_return_stack_user:
     mov r0, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r0
     mov sp, r4
-    
-    
-    
     pop {r0-r2}     // spsr, pc, lr
     mov lr, r2
     mov r3, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
@@ -220,10 +219,8 @@ pop_return_stack_user:
     msr cpsr_c, r1
     push {r0}
     
-    
     ldm sp!, {r0-r12, pc}^
     
-
 pop_return_stack_svr:
     // build the return stack
     mov r0, #(CPSR_MODE_SVR | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
@@ -289,12 +286,24 @@ software_interrupt_vector:
     // check if to context switch
     // software_interrupt_vector_c returns with 1 or 0.
     // 1 means to context switch!
-    cmp r0, #0
-    bne software_context_switch
+    // 2 means to context switch without saving the context
+    cmp r0, #1
+    beq software_context_switch
+    cmp r0, #2
+    moveq sp, #(STACK_SVR)
+    beq context_switch_no_build_stack
     // if not, return
     push {lr}
     ldm sp!,{pc}^
 
+
+    // stack should already be set to appropriate value
+    // SP given to context_switch can be garbage
+context_switch_no_build_stack:
+    // move to irq modus
+    mov r1, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT)
+    msr cpsr_c, r2
+    b context_switch
 
 prefetch_abort_vector:
     sub lr, lr, #4
@@ -306,17 +315,12 @@ prefetch_abort_vector:
     mov r1, sp
     msr cpsr_c, r3
     bl prefetch_abort_vector_c
-    // reschedule. dont have to save stack
-        
-    //b abort_reschedule
-
-
-    ldm sp!, {r0-r3, ip, pc}^
-
+    
+    mov sp, #(STACK_ABORT)
 
 data_abort_vector:
     sub lr, lr, #8
-    push {r0, r1, r2, r3, ip, lr}
+    push {r0-r3, ip, lr}
     mov r0, lr
     mrs r3, cpsr
     mrs r2, spsr
@@ -324,7 +328,21 @@ data_abort_vector:
     mov r1, sp
     msr cpsr_c, r3
     bl data_abort_vector_c
-    ldm sp!, {r0-r3, ip, pc}^
+    mov sp, #(STACK_ABORT)
+    b context_switch_no_build_stack
+
+undefined_instruction_vector:
+    sub lr, lr, #4
+    push {r0-r3, ip, lr}
+    mov r0, lr
+    mrs r3, cpsr
+    mrs r2, spsr
+    msr cpsr_c, r2 
+    mov r1, sp
+    msr cpsr_c, r3
+    bl undefined_instruction_vector_c
+    mov sp, #(STACK_UNDEF)
+    b context_switch_no_build_stack
 
     //  used in Cstubs code. SP is returned in r0.
 _get_stack_pointer:

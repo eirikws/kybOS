@@ -51,13 +51,13 @@ driver_t* driver_create(process_id_t id, char* name){
     return node;
 }
 
-void driver_register(process_id_t id, char* name, int* errors){
+scheduling_type_t driver_register(process_id_t id, char* name, int* errors){
     // allocate space
     driver_t *node = driver_create(id, name);
     if( node == NULL){
         uart_puts("driver_add: failed to initialize node\r\n");
         *errors = 1;
-        return;
+        return NO_RESCHEDULE;
     }
     node->next = os_drivers;
     os_drivers = node;
@@ -70,7 +70,7 @@ void driver_register(process_id_t id, char* name, int* errors){
         irq_drivers.gpio = id;
     }
     *errors = 0;
-    return;
+    return NO_RESCHEDULE;
 }
 
 int driver_remove(process_id_t id){

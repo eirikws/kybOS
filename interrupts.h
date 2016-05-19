@@ -18,8 +18,6 @@
 #define UART_IRQ              (1 << 25)
 
 
-
-
 /*
     The interrupt controller memory mapped register set
 */

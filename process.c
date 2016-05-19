@@ -161,7 +161,7 @@ int process_start( process_id_t id){
     return scheduler_enqueue(id);
 }
 
-void process_kill( process_id_t id){
+scheduling_type_t process_kill( process_id_t id){
     // empty msg queue
     ipc_flush_msg_queue(id);
     // free memory
@@ -170,5 +170,10 @@ void process_kill( process_id_t id){
     driver_remove(id);
     // remove pcb
     pcb_remove(id);
+    if( pcb_id_compare(id, get_current_running_process()) == 1){
+        return RESCHEDULE_DONT_SAVE_CONTEXT;
+    }else{
+        return RESCHEDULE;
+    }
 }
 

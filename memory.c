@@ -182,7 +182,7 @@ int memory_remove_all_mappings(process_id_t id){
     return 1;   
 }
 
-void memory_map(void* retval, uint32_t address, process_id_t id){
+scheduling_type_t memory_map(void* retval, uint32_t address, process_id_t id){
     // check if region already is mapped
     PCB_t* pcb = pcb_get(id);
     mem_mapping_t *node = pcb->mem_next;
@@ -206,6 +206,7 @@ void memory_map(void* retval, uint32_t address, process_id_t id){
     // adjust for the rest!
     ret += address % MMU_PAGE_SIZE;
     *(uint32_t*)retval = ret;
+    return NO_RESCHEDULE;
 }
 
 

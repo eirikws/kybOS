@@ -92,10 +92,10 @@ int ipc_msg_enqueue(void* payload, uint32_t size, process_id_t coid, int flags, 
 // ipc send call flag bits
 #define WAITING_SEND        (1 << 0)
 #define COID_NOT_FOUND      (1 << 1)
-void system_send(void* payload, ipc_msg_config_t *config){
+scheduling_type_t system_send(void* payload, ipc_msg_config_t *config){
     if(ipc_msg_enqueue(payload, config->size, config->coid, config->flags, get_current_running_process()) == -1){
         config->flags |= COID_NOT_FOUND;
-        return;
+        return NO_RESCHEDULE;
     }
     if(config->flags & WAITING_SEND){
         pcb_get( get_current_running_process() )->state = BLOCKED_SENDING;
@@ -105,6 +105,7 @@ void system_send(void* payload, ipc_msg_config_t *config){
         pcb_get(config->coid)->state = READY;
         scheduler_enqueue(config->coid);
     }
+    return RESCHEDULE;
 }
 
 /*
@@ -121,11 +122,11 @@ int ipc_kernel_send(void* payload, size_t size, process_id_t coid){
     return 1;
 }
 
-void system_send_driver(void* payload, ipc_msg_config_driver_t *config){
+scheduling_type_t system_send_driver(void* payload, ipc_msg_config_driver_t *config){
     process_id_t coid = driver_get(config->name);
     if(ipc_msg_enqueue(payload, config->size, coid, config->flags, get_current_running_process()) == -1){
         config->flags |= COID_NOT_FOUND;
-        return;
+        return NO_RESCHEDULE;
     }
     if(config->flags & WAITING_SEND){
         pcb_get( get_current_running_process() )->state = BLOCKED_SENDING;
@@ -134,12 +135,13 @@ void system_send_driver(void* payload, ipc_msg_config_driver_t *config){
         pcb_get(coid)->state = READY;
         scheduler_enqueue(coid);
     }
+    return RESCHEDULE;
 }
 // ipc receive call flags bits
 #define QUEUE_EMPTY         (1 << 0)
 #define BUF_TOO_SMALL       (1 << 1)
 
-void system_receive(ipc_msg_t *recv_msg, size_t buf_size, int* flags){
+scheduling_type_t system_receive(ipc_msg_t *recv_msg, size_t buf_size, int* flags){
     int cpy_bytes;
     PCB_t* my_pcb = pcb_get( get_current_running_process() );
     ipc_msg_t* popped_msg = ipc_dequeue(get_current_running_process());
@@ -162,6 +164,7 @@ void system_receive(ipc_msg_t *recv_msg, size_t buf_size, int* flags){
         my_pcb->state = BLOCKED_RECEIVING;
         *flags |= QUEUE_EMPTY;
     }
+    return RESCHEDULE;
 }
 
 void ipc_flush_msg_queue( process_id_t id){

@@ -152,8 +152,9 @@ void reschedule(void){
 
 // save old sp, return new sp, do MMU things
 uint32_t context_switch_c(uint32_t old_sp){
+    // save old id
     process_id_t previous_running_process = get_current_running_process();
-    
+    // reschedule for new id
     reschedule();
     PCB_t* pcb = pcb_get( previous_running_process);
     if(pcb != NULL){
@@ -162,7 +163,6 @@ uint32_t context_switch_c(uint32_t old_sp){
         memory_perform_process_unmapping(previous_running_process);
        // unmap memory of old process
     }
-
     // load new sp
     pcb = pcb_get( current_running_process);
     if (pcb == NULL){

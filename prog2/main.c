@@ -21,6 +21,9 @@ int main(void){
         _SYSTEM_CALL(4, (void*)"Program 2 sending\r\n", NULL, NULL);
         ipc_send_driver(NULL, &config);
         _SYSTEM_CALL(4, (void*)"Program 2 finised sending\r\n", NULL, NULL);
+        if(++i == 10){
+            return 0;
+        }
     }
     return 0;
 }
