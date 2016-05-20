@@ -161,7 +161,7 @@ uint32_t context_switch_c(uint32_t old_sp){
         // if no errors, save old sp
         pcb->context_data.SP = old_sp;
         memory_perform_process_unmapping(previous_running_process);
-       // unmap memory of old process
+        // unmap memory of old process
     }
     // load new sp
     pcb = pcb_get( current_running_process);

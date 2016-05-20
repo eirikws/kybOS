@@ -307,17 +307,74 @@ context_switch_no_build_stack:
 
 prefetch_abort_vector:
     sub lr, lr, #4
-    push {r0-r3, ip, lr}
+    push {r0-r4, ip, lr}
     mov r0, lr
     mrs r3, cpsr
     mrs r2, spsr
-    msr cpsr_c, r2 
+    and r4, r2, #(CPSR_MODE_FILTER)
+    
+    cmp r4, #(CPSR_MODE_USER)
+    // if from user mode, go back to system mode!
+    msreq cpsr_c, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT)
+    orrne r4, #(CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT)
+    msrne cpsr_c, r4
     mov r1, sp
     msr cpsr_c, r3
-    bl prefetch_abort_vector_c
+    mvn r4, #(CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT)
     
+    // os prefetch_abort_vector_c(link_reg, stack_pointer)
+    bl prefetch_abort_vector_c
     mov sp, #(STACK_ABORT)
+    b context_switch_no_build_stack
+    // ldm sp! {r0-r4, ip, pc}^
 
+
+data_abort_vector:
+    sub lr, lr, #4
+    push {r0-r4, ip, lr}
+    mov r0, lr
+    mrs r3, cpsr
+    mrs r2, spsr
+    and r4, r2, #(CPSR_MODE_FILTER)
+    
+    cmp r4, #(CPSR_MODE_USER)
+    // if from user mode, go back to system mode!
+    msreq cpsr_c, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT)
+    orrne r4, #(CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT)
+    msrne cpsr_c, r4
+    mov r1, sp
+    msr cpsr_c, r3
+    mvn r4, #(CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT)
+    
+    // os data_abort_vector_c(link_reg, stack_pointer)
+    bl data_abort_vector_c
+    mov sp, #(STACK_ABORT)
+    b context_switch_no_build_stack
+    // ldm sp! {r0-r4, ip, pc}^
+
+undefined_instruction_vector:
+    sub lr, lr, #4
+    push {r0-r4, ip, lr}
+    mov r0, lr
+    mrs r3, cpsr
+    mrs r2, spsr
+    and r4, r2, #(CPSR_MODE_FILTER)
+    
+    cmp r4, #(CPSR_MODE_USER)
+    // if from user mode, go back to system mode!
+    msreq cpsr_c, #(CPSR_MODE_SYSTEM | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT)
+    orrne r4, #(CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT)
+    msrne cpsr_c, r4
+    mov r1, sp
+    msr cpsr_c, r3
+    mvn r4, #(CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT)
+    
+    // os undefined_interrupt_vector_c(link_reg, stack_pointer)
+    bl undefined_instruction_vector_c
+    mov sp, #(STACK_UNDEF)
+    b context_switch_no_build_stack
+    // ldm sp! {r0-r4, ip, pc}^
+/*
 data_abort_vector:
     sub lr, lr, #8
     push {r0-r3, ip, lr}
@@ -343,7 +400,7 @@ undefined_instruction_vector:
     bl undefined_instruction_vector_c
     mov sp, #(STACK_UNDEF)
     b context_switch_no_build_stack
-
+*/
     //  used in Cstubs code. SP is returned in r0.
 _get_stack_pointer:
     // Return the stack pointer value

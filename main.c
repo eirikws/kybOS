@@ -79,9 +79,11 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     }
 
         
-    uart_puts("loading processes\r\n");
+    uart_puts("loading process 1\r\n");
     process_load("prog1.elf", 20, CPSR_MODE_USER, (process_id_t){1});
+    uart_puts("loading process 2\r\n");
     process_load("prog2.elf", 20, CPSR_MODE_USER, (process_id_t){2});
+    uart_puts("loading process 3\r\n");
     process_load("prog3.elf",  0, CPSR_MODE_USER, (process_id_t){3});
 
 

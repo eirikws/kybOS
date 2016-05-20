@@ -4,8 +4,8 @@
 
 int main(void){
     int i = 0;
-    int flags;
     ipc_msg_config_driver_t config  = { "test", WAITING_SEND, 0 };
+    volatile int *ptr = (int*)0x5000000;
     while(1){
  /*       _SYSTEM_CALL(4, (void*)"Program 2 calling receive\r\n", NULL, NULL);
         flags = 0;
@@ -22,7 +22,8 @@ int main(void){
         ipc_send_driver(NULL, &config);
         _SYSTEM_CALL(4, (void*)"Program 2 finised sending\r\n", NULL, NULL);
         if(++i == 10){
-            return 0;
+            _SYSTEM_CALL(4, (void*)"Program 2 writing to bad loc\r\n", NULL, NULL);
+            *ptr = 14;
         }
     }
     return 0;
