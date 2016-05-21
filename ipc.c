@@ -82,10 +82,10 @@ static int ipc_msg_enqueue_priority(ipc_msg_t* node, process_id_t coid){
 }
 
 int ipc_msg_enqueue(void* payload, uint32_t size, process_id_t coid, int flags, process_id_t sender){
-    ipc_msg_t* node =  ipc_new_node(payload, size, flags, sender);
     if (pcb_get(coid) == NULL){
         return -1;
     }
+    ipc_msg_t* node =  ipc_new_node(payload, size, flags, sender);
     return ipc_msg_enqueue_priority( node, coid);
 }
 

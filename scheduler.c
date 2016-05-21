@@ -162,7 +162,16 @@ uint32_t context_switch_c(uint32_t old_sp){
         pcb->context_data.SP = old_sp;
         memory_perform_process_unmapping(previous_running_process);
         // unmap memory of old process
+    }else{
+        // if a process is killed, the pcb will be NULL here.
+        // if so, we don't know which slots to unmap.
+        // this can be solved. Quick fix: initiate all of the page table again.
+        // not efficient. but works.
+        mmu_init_table();
+        mmu_table_update();
     }
+
+
     // load new sp
     pcb = pcb_get( current_running_process);
     if (pcb == NULL){

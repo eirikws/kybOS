@@ -3,6 +3,7 @@
 .global _start
 .global _get_stack_pointer
 .global _enable_interrupts
+.global _disable_interrupts
 .global _get_cpsr
 .global _set_cpu_mode
 .global _SYSTEM_CALL
@@ -513,6 +514,12 @@ _set_cpu_mode:
 _enable_interrupts:
     mrs     r0, cpsr
     bic     r0, r0, #0x80
+    msr     cpsr_c, r0
+    mov     pc, lr
+
+_disable_interrupts:
+    mrs     r0, cpsr
+    orr     r0, r0, #0x80
     msr     cpsr_c, r0
     mov     pc, lr
 

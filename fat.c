@@ -385,11 +385,9 @@ static size_t fat_read(struct fat_fs *filesystem, uint32_t cluster_no, uint8_t *
 struct dirent *fat_read_dir(struct fat_fs *fs, struct dirent *d){
 	int root = 0;
 	struct fat_fs *fat = fs;
-
 	if(d == NULL){
 		root = 1;
     }
-    
 	uint32_t cur_cluster;
 	uint32_t cur_root_cluster_offset = 0;
 	if(root){
@@ -410,10 +408,8 @@ struct dirent *fat_read_dir(struct fat_fs *fs, struct dirent *d){
 		uint32_t first_data_sector = fat->first_data_sector;
 		if(!root)
 			first_data_sector = fat->first_non_root_sector;
-		
 		int br_ret = sd_read( buf, cluster_size, 
 				abs_cluster * fat->sectors_per_cluster + first_data_sector);
-
 		if(br_ret < 0){
 			return (void*)0;
 		}
@@ -440,11 +436,9 @@ struct dirent *fat_read_dir(struct fat_fs *fs, struct dirent *d){
 			int name_index = 0;
 			int ext = 0;
 			int has_ext = 0;
-			for(int i = 0; i < 11; i++)
-			{
+			for(int i = 0; i < 11; i++){
 				char cur_v = (char)buf[ptr + i];
-				if(i == 8)
-				{
+				if(i == 8){
 					ext = 1;
 					de->name[name_index++] = '.';
 				}
@@ -518,7 +512,6 @@ int fat_load(const char *path, uint8_t *buf, uint32_t buf_size){
     while(1){
         if(*c == '/'){ c++;}
         offset = fat_get_next_path(c);
-        
         char* path_buf = (char*)malloc(sizeof(char) * offset + 1);
         memcpy(path_buf, c, offset);
         path_buf[offset] = '\0';
@@ -526,7 +519,6 @@ int fat_load(const char *path, uint8_t *buf, uint32_t buf_size){
         // search for it!
         // delete all the other nodes in the linked list
         node = fat_read_dir( (struct fat_fs*)filesys, current_node);
-
         while(node){
             if( !strcmp( node->name, path_buf) ){
                 current_node = node;
@@ -538,7 +530,6 @@ int fat_load(const char *path, uint8_t *buf, uint32_t buf_size){
             }
         }
         if( current_node == NULL)   { return -1; }
-
         // current_node now contains the dirent for the next path segment
         if(current_node->is_dir){
         }else{
@@ -550,12 +541,9 @@ int fat_load(const char *path, uint8_t *buf, uint32_t buf_size){
     //  do something to load the file
     
     if( current_node->byte_size > buf_size){
-        uart_puts("FS load: buffer too small for file size ");
         uart_put_uint32_t(current_node->byte_size, 10);
-        uart_puts(" \r\n");
         return -1;
     }
-
 
     int ret = fat_read(     (struct fat_fs*)filesys,
                             current_node->cluster_no,

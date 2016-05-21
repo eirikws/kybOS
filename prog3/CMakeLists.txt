@@ -27,4 +27,6 @@ add_executable( prog3.elf
     ../program_library/memory.h
     ../program_library/drivers.c
     ../program_library/drivers.h
+    ../program_library/process.c
+    ../program_library/process.h
    )

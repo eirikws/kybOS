@@ -1,6 +1,7 @@
 
 #include <stdint.h>
 #include "armtimer.h"
+#include "uart.h"
 #include "interrupts.h"
 
 #define ARMTIMER_BASE               ( PERIPHERAL_BASE + 0xB400 )
@@ -36,7 +37,6 @@ void arm_timer_set_freq(int freq){
 void arm_timer_init(void){
     //  enable the timer interrupt IRQ
     irq_controller_get()->Enable_Basic_IRQs |= ARM_TIMER_IRQ;
-    
     arm_timer_get()->Control =
             ARMTIMER_CTRL_23BIT |
             ARMTIMER_CTRL_ENABLE |

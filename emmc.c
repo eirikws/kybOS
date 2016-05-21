@@ -631,10 +631,9 @@ static void emmc_command_single(        struct emmc_dev *dev,
                                         uint32_t timeout){
     dev->last_cmd_reg = cmd_reg;
     dev->last_cmd_success = 0;
-
-    while(emmc_get()->STATUS & 0x1)
+    while(emmc_get()->STATUS & 0x1){
         time_delay_microseconds(1);
-
+    }
     // Is the command busy?
     if((cmd_reg & SD_CMD_RSPNS_TYPE_MASK) == SD_CMD_RSPNS_TYPE_48B){
         if((cmd_reg & SD_CMD_TYPE_MASK) != SD_CMD_TYPE_ABORT){
@@ -657,10 +656,9 @@ static void emmc_command_single(        struct emmc_dev *dev,
 
     // Set argument 1 reg
     emmc_get()->ARG1 = argument;
-
+    
     // Set command reg
     emmc_get()->CMDTM = cmd_reg;
-
     time_delay_microseconds(2);
 
     // Wait for command complete interrupt
@@ -744,7 +742,7 @@ static void emmc_command_single(        struct emmc_dev *dev,
             cur_block++;
         }
     }
-
+    
     // Wait for transfer complete (set if read/write transfer or with busy)
     if(((cmd_reg & SD_CMD_RSPNS_TYPE_MASK) == SD_CMD_RSPNS_TYPE_48B) ||
        (cmd_reg & SD_CMD_ISDATA)){
@@ -825,7 +823,6 @@ static int emmc_command(        struct emmc_dev *dev,
                                 uint32_t timeout){
     // First, handle any pending interrupts
     emmc_handle_interrupts(dev);
-
     // Stop the command issue if it was the card remove interrupt that was
     //  handled
     if(dev->card_removal){
@@ -857,7 +854,6 @@ static int emmc_command(        struct emmc_dev *dev,
             dev->last_cmd_success = 0;
             return -1;
         }
-
         dev->last_cmd = command;
         emmc_command_single(dev, emmc_commands[command], argument, timeout);
     }

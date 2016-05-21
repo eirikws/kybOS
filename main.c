@@ -21,19 +21,6 @@
 
 extern void _enable_interrupts(void);
 void extern _SYSTEM_CALL(system_call_t arg0, void* arg1, void* arg2, void* arg3);
-void extern _fpu_enable(void);
-int extern _get_scr(void);
-
-
-void loop_forever_and_ever(void){
-    int volatile i = 0;
-    while(1){
-        i++;   // do nothing
-        if (i % 100000 == 0){
-            uart_puts("loooooooooooooooooping in kernel forever and ever!\r\n");
-        }
-    }
-}
 
 
 
@@ -45,7 +32,7 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     uart_puts("kernel start!\r\n");
     drivers_init();
     
-    uart_puts("enabling jtag and fpu\r\n");
+    uart_puts("enabling jtag\r\n");
     // enable jtag for debugging
     jtag_enable();
     // initiate the OS clock
@@ -83,8 +70,8 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     process_load("prog1.elf", 20, CPSR_MODE_USER, (process_id_t){1});
     uart_puts("loading process 2\r\n");
     process_load("prog2.elf", 20, CPSR_MODE_USER, (process_id_t){2});
-    uart_puts("loading process 3\r\n");
-    process_load("prog3.elf",  0, CPSR_MODE_USER, (process_id_t){3});
+  //  uart_puts("loading process 3\r\n");
+   // process_load("prog3.elf",  0, CPSR_MODE_USER, (process_id_t){3});
 
 
     
@@ -93,7 +80,7 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     //  starting them
     process_start( (process_id_t){2});
     process_start( (process_id_t){1});
-    process_start( (process_id_t){3});
+ //   process_start( (process_id_t){3});
     
 
     scheduling_set(1);

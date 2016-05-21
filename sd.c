@@ -9,12 +9,9 @@
 int sd_read(uint8_t *buf, size_t buf_size, uint32_t block_no){
     int buf_offset = 0;
 	uint32_t block_offset = 0;
-
     if( emmc_get_multiblock_read_support() && ((buf_size/emmc_get_dev_block_size() ) > 1)){
-        uart_puts("SD read multiblock\r\n");
         return emmc_read(buf, buf_size, block_no);
     }
-
     do{
         size_t to_read = buf_size;
         if( to_read > emmc_get_dev_block_size()){

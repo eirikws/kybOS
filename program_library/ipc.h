@@ -5,10 +5,7 @@
 #include <stdint.h>
 
 #include "drivers.h"
-
-typedef struct process_id{
-    int id_number;
-} process_id_t;
+#include "system_calls.h"
 
 // ipc receive flag bits
 #define BUF_TOO_SMALL           (1 << 1)

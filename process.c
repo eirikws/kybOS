@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "time.h"
 #include "scheduler.h"
 #include "drivers.h"
 #include "ipc.h"
@@ -80,7 +81,6 @@ int process_load(const char* file_path, size_t priority, int mode, process_id_t 
         uart_puts("Process load: file not valid\r\n");
         return -1;
     }
-    
     struct elf_header *myheader = (struct elf_header*)buf;
 
     // read elf header
@@ -123,6 +123,9 @@ int process_load(const char* file_path, size_t priority, int mode, process_id_t 
                     .physical_address = (uint32_t)dest,
     };
 
+    // save the old mapping for p_vadder
+    uint32_t old_mapping = mmu_get_mapping(prog_header->p_vadder);
+
     mmu_remap_section(  prog_header->p_vadder,
                         (uint32_t)dest,
                         SET_FORMAT_SECTION
@@ -145,7 +148,8 @@ int process_load(const char* file_path, size_t priority, int mode, process_id_t 
     pcb_insert(pcb);
     memory_add_mapping(id, prog_header->p_vadder, (uint32_t)dest);
     // unmap process now that we are done with it
-    mmu_remap_section(  prog_header->p_vadder, 0,0);
+
+    mmu_remap_section(  prog_header->p_vadder, 0, old_mapping);
 
     free(buf);
 
@@ -159,6 +163,44 @@ int process_start( process_id_t id){
         return -1;
     }
     return scheduler_enqueue(id);
+}
+
+#define SPAWN_MODE_ERROR        (1 << 0)
+#define SPAWN_LOAD_ERROR        (1 << 1)
+#define SPAWN_ID_OCCUPIED       (1 << 2)
+extern void _enable_interrupts(void);
+extern void _disable_interrupts(void);
+
+scheduling_type_t process_spawn( spawn_args_t *args){
+    int mode;
+    process_id_t id = args->id;
+    if(args->mode == SPAWN_USER){
+        mode = CPSR_MODE_USER;
+    }else if(args->mode == SPAWN_SUPERVISOR){
+        mode = CPSR_MODE_SVR;
+    }else{
+        args->flags |= SPAWN_MODE_ERROR;
+        return NO_RESCHEDULE;
+    }
+    if( pcb_get(args->id) != NULL){
+        args->flags |= SPAWN_ID_OCCUPIED;
+    }
+    // enable interrupts because process load requires time interrupts
+    // should be moved out to a driver-process, but alas, time...
+    // disable rescheduling for time interrupts
+    scheduling_set(0);
+    _enable_interrupts();
+    if( process_load( args->path, args->priority, mode, args->id)  != 1){
+        args->flags |= SPAWN_LOAD_ERROR;
+        _disable_interrupts();
+        scheduling_set(1);
+        return RESCHEDULE;
+    }
+    _disable_interrupts();
+    scheduling_set(1);
+    // disable interrupts
+    process_start(id);
+    return RESCHEDULE;
 }
 
 scheduling_type_t process_kill( process_id_t id){

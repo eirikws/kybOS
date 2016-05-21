@@ -7,6 +7,10 @@
 
 static volatile __attribute__ ((aligned (0x4000))) uint32_t page_table[VIRT_MEM_SIZE/MMU_PAGE_SIZE];
 
+uint32_t mmu_get_mapping(uint32_t virtual){
+    return page_table[virtual >> SECTION_BASE_ADDRESS_OFFSET];
+}
+
 void mmu_init_table(void) {
 	uint32_t base = 0;
 	// initialize page_table
@@ -133,10 +137,18 @@ void mmu_remap_section(uint32_t virt, uint32_t physical, uint32_t config_flags){
     barrier_data_sync();
 }
 
+void mmu_table_update(void){
+    barrier_data_sync();
+    __asm volatile ("mcr p15, 0, %0, c8, c7, 0" :: "r" (0));
+    barrier_data_sync();
+    __asm volatile ("mcr p15, 0, %0, c8, c7, 0" :: "r" (0));
+    barrier_data_sync();
+}
 
 void mmu_cache_invalidate(uint32_t address){
     __asm volatile ("mcr p15, 0, %0, c7, c14, 1"::"r"(address));
     barrier_data_mem();
     barrier_data_sync();
 }
+
 
