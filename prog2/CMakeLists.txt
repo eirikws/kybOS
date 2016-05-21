@@ -20,7 +20,6 @@ add_executable( prog2.elf
     main.c
     ../program_library/start.S
     ../program_library/cstartup.c
-    ../program_library/cstubs.c
     ../program_library/ipc.c
     ../program_library/ipc.h
     ../program_library/memory.c

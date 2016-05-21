@@ -22,9 +22,9 @@ int main(void){
 
         _SYSTEM_CALL(4, (void*)"Program 2 sending\r\n", NULL, NULL);
         ipc_send_driver(NULL, &config);
-        _SYSTEM_CALL(4, (void*)"Program 2 finised sending\r\n", NULL, NULL);
+        _SYSTEM_CALL(4, (void*)"Program 2 finished sending\r\n", NULL, NULL);
         if(++i == 10){
-            _SYSTEM_CALL(4, (void*)"Program 2 callng spawn\r\n", NULL, NULL);
+            _SYSTEM_CALL(4, (void*)"Program 2 calling spawn\r\n", NULL, NULL);
             process_spawn( &spawn_arg);
             _SYSTEM_CALL(4, (void*)"Program 2 writing to bad loc\r\n", NULL, NULL);
             *ptr = 14;

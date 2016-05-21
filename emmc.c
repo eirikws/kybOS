@@ -8,12 +8,12 @@
 #include "time.h"
 #include "emmc.h"
 
-// SD Clock Frequencies (in Hz)
-#define SD_CLOCK_ID         400000
-#define SD_CLOCK_NORMAL     25000000
-#define SD_CLOCK_HIGH       50000000
-#define SD_CLOCK_100        100000000
-#define SD_CLOCK_208        208000000
+// EMMC Clock Frequencies (in Hz)
+#define EMMC_CLOCK_ID         400000
+#define EMMC_CLOCK_NORMAL     25000000
+#define EMMC_CLOCK_HIGH       50000000
+#define EMMC_CLOCK_100        100000000
+#define EMMC_CLOCK_208        208000000
 
 
 typedef struct{
@@ -42,7 +42,7 @@ typedef struct{
      volatile uint32_t EXRDFIFO_CFG;  // Extension fifo configuration           80-84
      volatile uint32_t EXRDFIFO_EN;   // Extension FIFO enable              //  84-88
      volatile uint32_t TUNE_STEP;     // Delay per card clock tuning step   //  88-8c
-     volatile uint32_t TUNE_STEP_STD; // Card clock tuning steps for SDR        8c-90
+     volatile uint32_t TUNE_STEP_STD; // Card clock tuning steps for EMMCR        8c-90
      volatile uint32_t TUNE_STEP_DDR; // Card clock tuning steps for DDR        90-94
      volatile uint32_t padding4[23]; //94-9c                                    94-ec
      volatile uint32_t SPI_INT_SPT;   // SPI interrupt support                  f0-f4
@@ -68,7 +68,6 @@ static int timeout_wait(volatile uint32_t *reg, uint32_t mask, int value, uint32
     return -1;
 }
 
-
 static uint32_t sd_version = 0;
 
 struct emmc_scr{
@@ -85,9 +84,6 @@ struct emmc_dev{
 	uint32_t last_interrupt;
 	uint32_t last_error;
     
-	int supports_multiple_block_read;
-	int supports_multiple_block_write;
-	
 	struct emmc_scr *scr;
 
 	int failed_voltage_switch;
@@ -108,79 +104,79 @@ struct emmc_dev{
 };
 
 
-#define SD_CMD_INDEX(a)		((a) << 24)
-#define SD_CMD_TYPE_NORMAL	0x0
-#define SD_CMD_TYPE_SUSPEND	(1 << 22)
-#define SD_CMD_TYPE_RESUME	(2 << 22)
-#define SD_CMD_TYPE_ABORT	(3 << 22)
-#define SD_CMD_TYPE_MASK    (3 << 22)
-#define SD_CMD_ISDATA		(1 << 21)
-#define SD_CMD_IXCHK_EN		(1 << 20)
-#define SD_CMD_CRCCHK_EN	(1 << 19)
-#define SD_CMD_RSPNS_TYPE_NONE	0			// For no response
-#define SD_CMD_RSPNS_TYPE_136	(1 << 16)		// For response R2 (with CRC), R3,4 (no CRC)
-#define SD_CMD_RSPNS_TYPE_48	(2 << 16)		// For responses R1, R5, R6, R7 (with CRC)
-#define SD_CMD_RSPNS_TYPE_48B	(3 << 16)		// For responses R1b, R5b (with CRC)
-#define SD_CMD_RSPNS_TYPE_MASK  (3 << 16)
-#define SD_CMD_MULTI_BLOCK	(1 << 5)
-#define SD_CMD_DAT_DIR_HC	0
-#define SD_CMD_DAT_DIR_CH	(1 << 4)
-#define SD_CMD_AUTO_CMD_EN_NONE	0
-#define SD_CMD_AUTO_CMD_EN_CMD12	(1 << 2)
-#define SD_CMD_AUTO_CMD_EN_CMD23	(2 << 2)
-#define SD_CMD_BLKCNT_EN		(1 << 1)
-#define SD_CMD_DMA          1
+#define EMMC_CMD_INDEX(a)		        ((a) << 24)
+#define EMMC_CMD_TYPE_NORMAL	        (0 << 0)
+#define EMMC_CMD_TYPE_SUSPEND	        (1 << 22)
+#define EMMC_CMD_TYPE_RESUME	        (2 << 22)
+#define EMMC_CMD_TYPE_ABORT	            (3 << 22)
+#define EMMC_CMD_TYPE_MASK              (3 << 22)
+#define EMMC_CMD_IEMMCATA		        (1 << 21)
+#define EMMC_CMD_IXCHK_EN		        (1 << 20)
+#define EMMC_CMD_CRCCHK_EN	            (1 << 19)
+#define EMMC_CMD_RSPNS_TYPE_NONE	    (0 << 0)    // For no response
+#define EMMC_CMD_RSPNS_TYPE_136	        (1 << 16)	// For response R2 (with CRC), R3,4 (no CRC)
+#define EMMC_CMD_RSPNS_TYPE_48	        (2 << 16)	// For responses R1, R5, R6, R7 (with CRC)
+#define EMMC_CMD_RSPNS_TYPE_48B	        (3 << 16)	// For responses R1b, R5b (with CRC)
+#define EMMC_CMD_RSPNS_TYPE_MASK        (3 << 16)
+#define EMMC_CMD_MULTI_BLOCK	        (1 << 5)
+#define EMMC_CMD_DAT_DIR_HC	            (0 << 0)
+#define EMMC_CMD_DAT_DIR_CH	            (1 << 4)
+#define EMMC_CMD_AUTO_CMD_EN_NONE	    (0 << 0)
+#define EMMC_CMD_AUTO_CMD_EN_CMD12	    (1 << 2)
+#define EMMC_CMD_AUTO_CMD_EN_CMD23	    (2 << 2)
+#define EMMC_CMD_BLKCNT_EN		        (1 << 1)
+#define EMMC_CMD_DMA                    (1 << 0)
 
-#define SD_ERR_CMD_TIMEOUT	0
-#define SD_ERR_CMD_CRC		1
-#define SD_ERR_CMD_END_BIT	2
-#define SD_ERR_CMD_INDEX	3
-#define SD_ERR_DATA_TIMEOUT	4
-#define SD_ERR_DATA_CRC		5
-#define SD_ERR_DATA_END_BIT	6
-#define SD_ERR_CURRENT_LIMIT	7
-#define SD_ERR_AUTO_CMD12	8
-#define SD_ERR_ADMA		9
-#define SD_ERR_TUNING		10
-#define SD_ERR_RSVD		11
+#define EMMC_ERR_CMD_TIMEOUT	        0
+#define EMMC_ERR_CMD_CRC		        1
+#define EMMC_ERR_CMD_END_BIT	        2
+#define EMMC_ERR_CMD_INDEX	            3
+#define EMMC_ERR_DATA_TIMEOUT	        4
+#define EMMC_ERR_DATA_CRC		        5
+#define EMMC_ERR_DATA_END_BIT	        6
+#define EMMC_ERR_CURRENT_LIMIT	        7
+#define EMMC_ERR_AUTO_CMD12	            8
+#define EMMC_ERR_ADMA		            9
+#define EMMC_ERR_TUNING		            10
+#define EMMC_ERR_RSVD		            11
 
-#define SD_ERR_MASK_CMD_TIMEOUT		(1 << (16 + SD_ERR_CMD_TIMEOUT))
-#define SD_ERR_MASK_CMD_CRC		(1 << (16 + SD_ERR_CMD_CRC))
-#define SD_ERR_MASK_CMD_END_BIT		(1 << (16 + SD_ERR_CMD_END_BIT))
-#define SD_ERR_MASK_CMD_INDEX		(1 << (16 + SD_ERR_CMD_INDEX))
-#define SD_ERR_MASK_DATA_TIMEOUT	(1 << (16 + SD_ERR_CMD_TIMEOUT))
-#define SD_ERR_MASK_DATA_CRC		(1 << (16 + SD_ERR_CMD_CRC))
-#define SD_ERR_MASK_DATA_END_BIT	(1 << (16 + SD_ERR_CMD_END_BIT))
-#define SD_ERR_MASK_CURRENT_LIMIT	(1 << (16 + SD_ERR_CMD_CURRENT_LIMIT))
-#define SD_ERR_MASK_AUTO_CMD12		(1 << (16 + SD_ERR_CMD_AUTO_CMD12))
-#define SD_ERR_MASK_ADMA		(1 << (16 + SD_ERR_CMD_ADMA))
-#define SD_ERR_MASK_TUNING		(1 << (16 + SD_ERR_CMD_TUNING))
+#define EMMC_ERR_MASK_CMD_TIMEOUT		(1 << (16 + EMMC_ERR_CMD_TIMEOUT))
+#define EMMC_ERR_MASK_CMD_CRC		    (1 << (16 + EMMC_ERR_CMD_CRC))
+#define EMMC_ERR_MASK_CMD_END_BIT		(1 << (16 + EMMC_ERR_CMD_END_BIT))
+#define EMMC_ERR_MASK_CMD_INDEX		    (1 << (16 + EMMC_ERR_CMD_INDEX))
+#define EMMC_ERR_MASK_DATA_TIMEOUT	    (1 << (16 + EMMC_ERR_CMD_TIMEOUT))
+#define EMMC_ERR_MASK_DATA_CRC		    (1 << (16 + EMMC_ERR_CMD_CRC))
+#define EMMC_ERR_MASK_DATA_END_BIT	    (1 << (16 + EMMC_ERR_CMD_END_BIT))
+#define EMMC_ERR_MASK_CURRENT_LIMIT	    (1 << (16 + EMMC_ERR_CMD_CURRENT_LIMIT))
+#define EMMC_ERR_MASK_AUTO_CMD12		(1 << (16 + EMMC_ERR_CMD_AUTO_CMD12))
+#define EMMC_ERR_MASK_ADMA		        (1 << (16 + EMMC_ERR_CMD_ADMA))
+#define EMMC_ERR_MASK_TUNING		    (1 << (16 + EMMC_ERR_CMD_TUNING))
 
-#define SD_COMMAND_COMPLETE     1
-#define SD_TRANSFER_COMPLETE    (1 << 1)
-#define SD_BLOCK_GAP_EVENT      (1 << 2)
-#define SD_DMA_INTERRUPT        (1 << 3)
-#define SD_BUFFER_WRITE_READY   (1 << 4)
-#define SD_BUFFER_READ_READY    (1 << 5)
-#define SD_CARD_INSERTION       (1 << 6)
-#define SD_CARD_REMOVAL         (1 << 7)
-#define SD_CARD_INTERRUPT       (1 << 8)
+#define EMMC_COMMAND_COMPLETE     (1 << 0)
+#define EMMC_TRANSFER_COMPLETE    (1 << 1)
+#define EMMC_BLOCK_GAP_EVENT      (1 << 2)
+#define EMMC_DMA_INTERRUPT        (1 << 3)
+#define EMMC_BUFFER_WRITE_READY   (1 << 4)
+#define EMMC_BUFFER_READ_READY    (1 << 5)
+#define EMMC_CARD_INSERTION       (1 << 6)
+#define EMMC_CARD_REMOVAL         (1 << 7)
+#define EMMC_CARD_INTERRUPT       (1 << 8)
 
-#define SD_RESP_NONE        SD_CMD_RSPNS_TYPE_NONE
-#define SD_RESP_R1          (SD_CMD_RSPNS_TYPE_48 | SD_CMD_CRCCHK_EN)
-#define SD_RESP_R1b         (SD_CMD_RSPNS_TYPE_48B | SD_CMD_CRCCHK_EN)
-#define SD_RESP_R2          (SD_CMD_RSPNS_TYPE_136 | SD_CMD_CRCCHK_EN)
-#define SD_RESP_R3          SD_CMD_RSPNS_TYPE_48
-#define SD_RESP_R4          SD_CMD_RSPNS_TYPE_136
-#define SD_RESP_R5          (SD_CMD_RSPNS_TYPE_48 | SD_CMD_CRCCHK_EN)
-#define SD_RESP_R5b         (SD_CMD_RSPNS_TYPE_48B | SD_CMD_CRCCHK_EN)
-#define SD_RESP_R6          (SD_CMD_RSPNS_TYPE_48 | SD_CMD_CRCCHK_EN)
-#define SD_RESP_R7          (SD_CMD_RSPNS_TYPE_48 | SD_CMD_CRCCHK_EN)
+#define EMMC_RESP_NONE        EMMC_CMD_RSPNS_TYPE_NONE
+#define EMMC_RESP_R1          (EMMC_CMD_RSPNS_TYPE_48 | EMMC_CMD_CRCCHK_EN)
+#define EMMC_RESP_R1b         (EMMC_CMD_RSPNS_TYPE_48B | EMMC_CMD_CRCCHK_EN)
+#define EMMC_RESP_R2          (EMMC_CMD_RSPNS_TYPE_136 | EMMC_CMD_CRCCHK_EN)
+#define EMMC_RESP_R3          EMMC_CMD_RSPNS_TYPE_48
+#define EMMC_RESP_R4          EMMC_CMD_RSPNS_TYPE_136
+#define EMMC_RESP_R5          (EMMC_CMD_RSPNS_TYPE_48 | EMMC_CMD_CRCCHK_EN)
+#define EMMC_RESP_R5b         (EMMC_CMD_RSPNS_TYPE_48B | EMMC_CMD_CRCCHK_EN)
+#define EMMC_RESP_R6          (EMMC_CMD_RSPNS_TYPE_48 | EMMC_CMD_CRCCHK_EN)
+#define EMMC_RESP_R7          (EMMC_CMD_RSPNS_TYPE_48 | EMMC_CMD_CRCCHK_EN)
 
-#define SD_DATA_READ        (SD_CMD_ISDATA | SD_CMD_DAT_DIR_CH)
-#define SD_DATA_WRITE       (SD_CMD_ISDATA | SD_CMD_DAT_DIR_HC)
+#define EMMC_DATA_READ        (EMMC_CMD_IEMMCATA | EMMC_CMD_DAT_DIR_CH)
+#define EMMC_DATA_WRITE       (EMMC_CMD_IEMMCATA | EMMC_CMD_DAT_DIR_HC)
 
-#define SD_CMD_RESERVED(a)  0xffffffff
+#define EMMC_CMD_RESERVED(a)  0xffffffff
 
 #define SUCCESS(a)          (a->last_cmd_success)
 #define FAIL(a)             (a->last_cmd_success == 0)
@@ -197,145 +193,145 @@ struct emmc_dev{
 #define ADMA_ERROR(a)       (FAIL(a) && (a->last_error & (1 << 25)))
 #define TUNING_ERROR(a)     (FAIL(a) && (a->last_error & (1 << 26)))
 
-#define SD_VER_UNKNOWN      0
-#define SD_VER_1            1
-#define SD_VER_1_1          2
-#define SD_VER_2            3
-#define SD_VER_3            4
-#define SD_VER_4            5
+#define EMMC_VER_UNKNOWN      0
+#define EMMC_VER_1            1
+#define EMMC_VER_1_1          2
+#define EMMC_VER_2            3
+#define EMMC_VER_3            4
+#define EMMC_VER_4            5
 
 static uint32_t emmc_commands[] = {
-    SD_CMD_INDEX(0),
-    SD_CMD_RESERVED(1),
-    SD_CMD_INDEX(2) | SD_RESP_R2,
-    SD_CMD_INDEX(3) | SD_RESP_R6,
-    SD_CMD_INDEX(4),
-    SD_CMD_INDEX(5) | SD_RESP_R4,
-    SD_CMD_INDEX(6) | SD_RESP_R1,
-    SD_CMD_INDEX(7) | SD_RESP_R1b,
-    SD_CMD_INDEX(8) | SD_RESP_R7,
-    SD_CMD_INDEX(9) | SD_RESP_R2,
-    SD_CMD_INDEX(10) | SD_RESP_R2,
-    SD_CMD_INDEX(11) | SD_RESP_R1,
-    SD_CMD_INDEX(12) | SD_RESP_R1b | SD_CMD_TYPE_ABORT,
-    SD_CMD_INDEX(13) | SD_RESP_R1,
-    SD_CMD_RESERVED(14),
-    SD_CMD_INDEX(15),
-    SD_CMD_INDEX(16) | SD_RESP_R1,
-    SD_CMD_INDEX(17) | SD_RESP_R1 | SD_DATA_READ,
-    SD_CMD_INDEX(18) | SD_RESP_R1 | SD_DATA_READ | SD_CMD_MULTI_BLOCK | SD_CMD_BLKCNT_EN,
-    SD_CMD_INDEX(19) | SD_RESP_R1 | SD_DATA_READ,
-    SD_CMD_INDEX(20) | SD_RESP_R1b,
-    SD_CMD_RESERVED(21),
-    SD_CMD_RESERVED(22),
-    SD_CMD_INDEX(23) | SD_RESP_R1,
-    SD_CMD_INDEX(24) | SD_RESP_R1 | SD_DATA_WRITE,
-    SD_CMD_INDEX(25) | SD_RESP_R1 | SD_DATA_WRITE | SD_CMD_MULTI_BLOCK | SD_CMD_BLKCNT_EN,
-    SD_CMD_RESERVED(26),
-    SD_CMD_INDEX(27) | SD_RESP_R1 | SD_DATA_WRITE,
-    SD_CMD_INDEX(28) | SD_RESP_R1b,
-    SD_CMD_INDEX(29) | SD_RESP_R1b,
-    SD_CMD_INDEX(30) | SD_RESP_R1 | SD_DATA_READ,
-    SD_CMD_RESERVED(31),
-    SD_CMD_INDEX(32) | SD_RESP_R1,
-    SD_CMD_INDEX(33) | SD_RESP_R1,
-    SD_CMD_RESERVED(34),
-    SD_CMD_RESERVED(35),
-    SD_CMD_RESERVED(36),
-    SD_CMD_RESERVED(37),
-    SD_CMD_INDEX(38) | SD_RESP_R1b,
-    SD_CMD_RESERVED(39),
-    SD_CMD_RESERVED(40),
-    SD_CMD_RESERVED(41),
-    SD_CMD_RESERVED(42) | SD_RESP_R1,
-    SD_CMD_RESERVED(43),
-    SD_CMD_RESERVED(44),
-    SD_CMD_RESERVED(45),
-    SD_CMD_RESERVED(46),
-    SD_CMD_RESERVED(47),
-    SD_CMD_RESERVED(48),
-    SD_CMD_RESERVED(49),
-    SD_CMD_RESERVED(50),
-    SD_CMD_RESERVED(51),
-    SD_CMD_RESERVED(52),
-    SD_CMD_RESERVED(53),
-    SD_CMD_RESERVED(54),
-    SD_CMD_INDEX(55) | SD_RESP_R1,
-    SD_CMD_INDEX(56) | SD_RESP_R1 | SD_CMD_ISDATA,
-    SD_CMD_RESERVED(57),
-    SD_CMD_RESERVED(58),
-    SD_CMD_RESERVED(59),
-    SD_CMD_RESERVED(60),
-    SD_CMD_RESERVED(61),
-    SD_CMD_RESERVED(62),
-    SD_CMD_RESERVED(63)
+    EMMC_CMD_INDEX(0),
+    EMMC_CMD_RESERVED(1),
+    EMMC_CMD_INDEX(2) | EMMC_RESP_R2,
+    EMMC_CMD_INDEX(3) | EMMC_RESP_R6,
+    EMMC_CMD_INDEX(4),
+    EMMC_CMD_INDEX(5) | EMMC_RESP_R4,
+    EMMC_CMD_INDEX(6) | EMMC_RESP_R1,
+    EMMC_CMD_INDEX(7) | EMMC_RESP_R1b,
+    EMMC_CMD_INDEX(8) | EMMC_RESP_R7,
+    EMMC_CMD_INDEX(9) | EMMC_RESP_R2,
+    EMMC_CMD_INDEX(10) | EMMC_RESP_R2,
+    EMMC_CMD_INDEX(11) | EMMC_RESP_R1,
+    EMMC_CMD_INDEX(12) | EMMC_RESP_R1b | EMMC_CMD_TYPE_ABORT,
+    EMMC_CMD_INDEX(13) | EMMC_RESP_R1,
+    EMMC_CMD_RESERVED(14),
+    EMMC_CMD_INDEX(15),
+    EMMC_CMD_INDEX(16) | EMMC_RESP_R1,
+    EMMC_CMD_INDEX(17) | EMMC_RESP_R1 | EMMC_DATA_READ,
+    EMMC_CMD_INDEX(18) | EMMC_RESP_R1 | EMMC_DATA_READ | EMMC_CMD_MULTI_BLOCK | EMMC_CMD_BLKCNT_EN,
+    EMMC_CMD_INDEX(19) | EMMC_RESP_R1 | EMMC_DATA_READ,
+    EMMC_CMD_INDEX(20) | EMMC_RESP_R1b,
+    EMMC_CMD_RESERVED(21),
+    EMMC_CMD_RESERVED(22),
+    EMMC_CMD_INDEX(23) | EMMC_RESP_R1,
+    EMMC_CMD_INDEX(24) | EMMC_RESP_R1 | EMMC_DATA_WRITE,
+    EMMC_CMD_INDEX(25) | EMMC_RESP_R1 | EMMC_DATA_WRITE | EMMC_CMD_MULTI_BLOCK | EMMC_CMD_BLKCNT_EN,
+    EMMC_CMD_RESERVED(26),
+    EMMC_CMD_INDEX(27) | EMMC_RESP_R1 | EMMC_DATA_WRITE,
+    EMMC_CMD_INDEX(28) | EMMC_RESP_R1b,
+    EMMC_CMD_INDEX(29) | EMMC_RESP_R1b,
+    EMMC_CMD_INDEX(30) | EMMC_RESP_R1 | EMMC_DATA_READ,
+    EMMC_CMD_RESERVED(31),
+    EMMC_CMD_INDEX(32) | EMMC_RESP_R1,
+    EMMC_CMD_INDEX(33) | EMMC_RESP_R1,
+    EMMC_CMD_RESERVED(34),
+    EMMC_CMD_RESERVED(35),
+    EMMC_CMD_RESERVED(36),
+    EMMC_CMD_RESERVED(37),
+    EMMC_CMD_INDEX(38) | EMMC_RESP_R1b,
+    EMMC_CMD_RESERVED(39),
+    EMMC_CMD_RESERVED(40),
+    EMMC_CMD_RESERVED(41),
+    EMMC_CMD_RESERVED(42) | EMMC_RESP_R1,
+    EMMC_CMD_RESERVED(43),
+    EMMC_CMD_RESERVED(44),
+    EMMC_CMD_RESERVED(45),
+    EMMC_CMD_RESERVED(46),
+    EMMC_CMD_RESERVED(47),
+    EMMC_CMD_RESERVED(48),
+    EMMC_CMD_RESERVED(49),
+    EMMC_CMD_RESERVED(50),
+    EMMC_CMD_RESERVED(51),
+    EMMC_CMD_RESERVED(52),
+    EMMC_CMD_RESERVED(53),
+    EMMC_CMD_RESERVED(54),
+    EMMC_CMD_INDEX(55) | EMMC_RESP_R1,
+    EMMC_CMD_INDEX(56) | EMMC_RESP_R1 | EMMC_CMD_IEMMCATA,
+    EMMC_CMD_RESERVED(57),
+    EMMC_CMD_RESERVED(58),
+    EMMC_CMD_RESERVED(59),
+    EMMC_CMD_RESERVED(60),
+    EMMC_CMD_RESERVED(61),
+    EMMC_CMD_RESERVED(62),
+    EMMC_CMD_RESERVED(63)
 };
 
 static uint32_t emmc_acommands[] = {
-    SD_CMD_RESERVED(0),
-    SD_CMD_RESERVED(1),
-    SD_CMD_RESERVED(2),
-    SD_CMD_RESERVED(3),
-    SD_CMD_RESERVED(4),
-    SD_CMD_RESERVED(5),
-    SD_CMD_INDEX(6) | SD_RESP_R1,
-    SD_CMD_RESERVED(7),
-    SD_CMD_RESERVED(8),
-    SD_CMD_RESERVED(9),
-    SD_CMD_RESERVED(10),
-    SD_CMD_RESERVED(11),
-    SD_CMD_RESERVED(12),
-    SD_CMD_INDEX(13) | SD_RESP_R1,
-    SD_CMD_RESERVED(14),
-    SD_CMD_RESERVED(15),
-    SD_CMD_RESERVED(16),
-    SD_CMD_RESERVED(17),
-    SD_CMD_RESERVED(18),
-    SD_CMD_RESERVED(19),
-    SD_CMD_RESERVED(20),
-    SD_CMD_RESERVED(21),
-    SD_CMD_INDEX(22) | SD_RESP_R1 | SD_DATA_READ,
-    SD_CMD_INDEX(23) | SD_RESP_R1,
-    SD_CMD_RESERVED(24),
-    SD_CMD_RESERVED(25),
-    SD_CMD_RESERVED(26),
-    SD_CMD_RESERVED(27),
-    SD_CMD_RESERVED(28),
-    SD_CMD_RESERVED(29),
-    SD_CMD_RESERVED(30),
-    SD_CMD_RESERVED(31),
-    SD_CMD_RESERVED(32),
-    SD_CMD_RESERVED(33),
-    SD_CMD_RESERVED(34),
-    SD_CMD_RESERVED(35),
-    SD_CMD_RESERVED(36),
-    SD_CMD_RESERVED(37),
-    SD_CMD_RESERVED(38),
-    SD_CMD_RESERVED(39),
-    SD_CMD_RESERVED(40),
-    SD_CMD_INDEX(41) | SD_RESP_R3,
-    SD_CMD_INDEX(42) | SD_RESP_R1,
-    SD_CMD_RESERVED(43),
-    SD_CMD_RESERVED(44),
-    SD_CMD_RESERVED(45),
-    SD_CMD_RESERVED(46),
-    SD_CMD_RESERVED(47),
-    SD_CMD_RESERVED(48),
-    SD_CMD_RESERVED(49),
-    SD_CMD_RESERVED(50),
-    SD_CMD_INDEX(51) | SD_RESP_R1 | SD_DATA_READ,
-    SD_CMD_RESERVED(52),
-    SD_CMD_RESERVED(53),
-    SD_CMD_RESERVED(54),
-    SD_CMD_RESERVED(55),
-    SD_CMD_RESERVED(56),
-    SD_CMD_RESERVED(57),
-    SD_CMD_RESERVED(58),
-    SD_CMD_RESERVED(59),
-    SD_CMD_RESERVED(60),
-    SD_CMD_RESERVED(61),
-    SD_CMD_RESERVED(62),
-    SD_CMD_RESERVED(63)
+    EMMC_CMD_RESERVED(0),
+    EMMC_CMD_RESERVED(1),
+    EMMC_CMD_RESERVED(2),
+    EMMC_CMD_RESERVED(3),
+    EMMC_CMD_RESERVED(4),
+    EMMC_CMD_RESERVED(5),
+    EMMC_CMD_INDEX(6) | EMMC_RESP_R1,
+    EMMC_CMD_RESERVED(7),
+    EMMC_CMD_RESERVED(8),
+    EMMC_CMD_RESERVED(9),
+    EMMC_CMD_RESERVED(10),
+    EMMC_CMD_RESERVED(11),
+    EMMC_CMD_RESERVED(12),
+    EMMC_CMD_INDEX(13) | EMMC_RESP_R1,
+    EMMC_CMD_RESERVED(14),
+    EMMC_CMD_RESERVED(15),
+    EMMC_CMD_RESERVED(16),
+    EMMC_CMD_RESERVED(17),
+    EMMC_CMD_RESERVED(18),
+    EMMC_CMD_RESERVED(19),
+    EMMC_CMD_RESERVED(20),
+    EMMC_CMD_RESERVED(21),
+    EMMC_CMD_INDEX(22) | EMMC_RESP_R1 | EMMC_DATA_READ,
+    EMMC_CMD_INDEX(23) | EMMC_RESP_R1,
+    EMMC_CMD_RESERVED(24),
+    EMMC_CMD_RESERVED(25),
+    EMMC_CMD_RESERVED(26),
+    EMMC_CMD_RESERVED(27),
+    EMMC_CMD_RESERVED(28),
+    EMMC_CMD_RESERVED(29),
+    EMMC_CMD_RESERVED(30),
+    EMMC_CMD_RESERVED(31),
+    EMMC_CMD_RESERVED(32),
+    EMMC_CMD_RESERVED(33),
+    EMMC_CMD_RESERVED(34),
+    EMMC_CMD_RESERVED(35),
+    EMMC_CMD_RESERVED(36),
+    EMMC_CMD_RESERVED(37),
+    EMMC_CMD_RESERVED(38),
+    EMMC_CMD_RESERVED(39),
+    EMMC_CMD_RESERVED(40),
+    EMMC_CMD_INDEX(41) | EMMC_RESP_R3,
+    EMMC_CMD_INDEX(42) | EMMC_RESP_R1,
+    EMMC_CMD_RESERVED(43),
+    EMMC_CMD_RESERVED(44),
+    EMMC_CMD_RESERVED(45),
+    EMMC_CMD_RESERVED(46),
+    EMMC_CMD_RESERVED(47),
+    EMMC_CMD_RESERVED(48),
+    EMMC_CMD_RESERVED(49),
+    EMMC_CMD_RESERVED(50),
+    EMMC_CMD_INDEX(51) | EMMC_RESP_R1 | EMMC_DATA_READ,
+    EMMC_CMD_RESERVED(52),
+    EMMC_CMD_RESERVED(53),
+    EMMC_CMD_RESERVED(54),
+    EMMC_CMD_RESERVED(55),
+    EMMC_CMD_RESERVED(56),
+    EMMC_CMD_RESERVED(57),
+    EMMC_CMD_RESERVED(58),
+    EMMC_CMD_RESERVED(59),
+    EMMC_CMD_RESERVED(60),
+    EMMC_CMD_RESERVED(61),
+    EMMC_CMD_RESERVED(62),
+    EMMC_CMD_RESERVED(63)
 };
 
 // The actual command indices
@@ -349,7 +345,7 @@ static uint32_t emmc_acommands[] = {
 #define DESELECT_CARD           7
 #define SELECT_DESELECT_CARD    7
 #define SEND_IF_COND            8
-#define SEND_CSD                9
+#define SEND_CEMMC              9
 #define SEND_CID                10
 #define VOLTAGE_SWITCH          11
 #define STOP_TRANSMISSION       12
@@ -363,7 +359,7 @@ static uint32_t emmc_acommands[] = {
 #define SET_BLOCK_COUNT         23
 #define WRITE_BLOCK             24
 #define WRITE_MULTIPLE_BLOCK    25
-#define PROGRAM_CSD             27
+#define PROGRAM_CEMMC           27
 #define SET_WRITE_PROT          28
 #define CLR_WRITE_PROT          29
 #define SEND_WRITE_PROT         30
@@ -377,26 +373,26 @@ static uint32_t emmc_acommands[] = {
 #define IS_APP_CMD              0x80000000
 #define ACMD(a)                 (a | IS_APP_CMD)
 #define SET_BUS_WIDTH           (6 | IS_APP_CMD)
-#define SD_STATUS               (13 | IS_APP_CMD)
+#define EMMC_STATUS             (13 | IS_APP_CMD)
 #define SEND_NUM_WR_BLOCKS      (22 | IS_APP_CMD)
 #define SET_WR_BLK_ERASE_COUNT  (23 | IS_APP_CMD)
-#define SD_SEND_OP_COND         (41 | IS_APP_CMD)
+#define EMMC_SEND_OP_COND       (41 | IS_APP_CMD)
 #define SET_CLR_CARD_DETECT     (42 | IS_APP_CMD)
 #define SEND_SCR                (51 | IS_APP_CMD)
 
-#define SD_RESET_CMD            (1 << 25)
-#define SD_RESET_DAT            (1 << 26)
-#define SD_RESET_ALL            (1 << 24)
+#define EMMC_RESET_CMD            (1 << 25)
+#define EMMC_RESET_DAT            (1 << 26)
+#define EMMC_RESET_ALL            (1 << 24)
 
-#define SD_GET_CLOCK_DIVIDER_FAIL	0xffffffff
+#define EMMC_GET_CLOCK_DIVIDER_FAIL	0xffffffff
 
+
+// convert little endianess
 static uint32_t byte_swap(unsigned int in){
-    uint32_t b0 = in & 0xFF;
-    uint32_t b1 = (in >> 8) & 0xFF;
-    uint32_t b2 = (in >> 16) & 0xFF;
-    uint32_t b3 = (in >> 24) & 0xFF;
-    uint32_t ret = (b0 << 24) | (b1 << 16) | (b2 << 8) | b3;
-    return ret;
+    return            ((in & 0xFF) << 24) 
+                    | (((in >> 8) & 0xFF) << 16)
+                    | (((in >> 16) & 0xFF) << 8)
+                    | ((in >> 24) & 0xFF);
 }
 
 static void write_word(uint32_t val, uint8_t* buf, int offset){
@@ -415,9 +411,9 @@ static uint32_t read_word(uint8_t* buf, int offset){
 }
 
 static void emmc_power_off(void){
-    /* Power off the SD card */
+    /* Power off the EMMC card */
     uint32_t control0 = emmc_get()->CONTROL0;
-    control0 &= ~(1 << 8);    // Set SD Bus Power bit off in Power Control Register
+    control0 &= ~(1 << 8);    // Set EMMC Bus Power bit off in Power Control Register
     emmc_get()->CONTROL0, control0;
 }
 
@@ -520,7 +516,9 @@ static int bcm_power_on(void){
     return 0;
 }
 
-static int bcm_power_cycle(void){
+
+
+static int bcm_emmc_power_cycle(void){
     if(bcm_power_off() < 0){
         return -1;
     }
@@ -570,7 +568,7 @@ static uint32_t emmc_get_clock_divider(uint32_t base_clock, uint32_t target_rate
         return ret;
     }
     else{
-        return SD_GET_CLOCK_DIVIDER_FAIL;
+        return EMMC_GET_CLOCK_DIVIDER_FAIL;
     }
 }
 
@@ -578,7 +576,7 @@ static uint32_t emmc_get_clock_divider(uint32_t base_clock, uint32_t target_rate
 static int emmc_switch_clock_rate(uint32_t base_clock, uint32_t target_rate){
     // get divider
     uint32_t div = emmc_get_clock_divider(base_clock, target_rate);
-    if(div == SD_GET_CLOCK_DIVIDER_FAIL){
+    if(div == EMMC_GET_CLOCK_DIVIDER_FAIL){
         return -1;
     }
     // wait for cmd and dat inhibit to clear
@@ -609,20 +607,20 @@ static int emmc_switch_clock_rate(uint32_t base_clock, uint32_t target_rate){
 // Reset the CMD line
 static int emmc_reset_cmd(void){
     uint32_t control1 = emmc_get()->CONTROL1;
-    control1 |= SD_RESET_CMD;
+    control1 |= EMMC_RESET_CMD;
     emmc_get()->CONTROL1 = control1;
-    timeout_wait( &(emmc_get()->CONTROL1), SD_RESET_CMD, 0, 1000);
-    if( (emmc_get()->CONTROL1 & SD_RESET_CMD) != 0){    return -1;}
+    timeout_wait( &(emmc_get()->CONTROL1), EMMC_RESET_CMD, 0, 1000);
+    if( (emmc_get()->CONTROL1 & EMMC_RESET_CMD) != 0){    return -1;}
     return 0;
 }
 
-// Reset the CMD line
+// Reset the DATA line
 static int emmc_reset_dat(void){
     uint32_t control1 = emmc_get()->CONTROL1;
-    control1 |= SD_RESET_DAT;
+    control1 |= EMMC_RESET_DAT;
     emmc_get()->CONTROL1 = control1;
-    timeout_wait( &(emmc_get()->CONTROL1), SD_RESET_DAT, 0, 1000);
-    if(( emmc_get()->CONTROL1 & SD_RESET_DAT) != 0)  {return -1;}
+    timeout_wait( &(emmc_get()->CONTROL1), EMMC_RESET_DAT, 0, 1000);
+    if(( emmc_get()->CONTROL1 & EMMC_RESET_DAT) != 0)  {return -1;}
     return 0;
 }
 
@@ -635,8 +633,8 @@ static void emmc_command_single(        struct emmc_dev *dev,
         time_delay_microseconds(1);
     }
     // Is the command busy?
-    if((cmd_reg & SD_CMD_RSPNS_TYPE_MASK) == SD_CMD_RSPNS_TYPE_48B){
-        if((cmd_reg & SD_CMD_TYPE_MASK) != SD_CMD_TYPE_ABORT){
+    if((cmd_reg & EMMC_CMD_RSPNS_TYPE_MASK) == EMMC_CMD_RSPNS_TYPE_48B){
+        if((cmd_reg & EMMC_CMD_TYPE_MASK) != EMMC_CMD_TYPE_ABORT){
             // Wait for the data line to be free
             while( emmc_get()->STATUS & 0x2){
                 time_delay_microseconds(1);
@@ -646,7 +644,7 @@ static void emmc_command_single(        struct emmc_dev *dev,
 
     // Set block size and block count
     // For now, block size = 512 bytes, block count = 1,
-    //  host SDMA buffer boundary = 4 kiB
+    //  host EMMCMA buffer boundary = 4 kiB
     if(dev->blocks_to_transfer > 0xffff){
         dev->last_cmd_success = 0;
         return;
@@ -663,29 +661,27 @@ static void emmc_command_single(        struct emmc_dev *dev,
 
     // Wait for command complete interrupt
     timeout_wait( &(emmc_get()->INTERRUPT), 0x8001, 1, timeout);
-    uint32_t irpts = emmc_get()->INTERRUPT;
+    uint32_t interrupts = emmc_get()->INTERRUPT;
 
     // Clear command complete status
     emmc_get()->INTERRUPT = 0xffff0001;
 
     // Test for errors
-    if((irpts & 0xffff0001) != 0x1)
-    {
-        dev->last_error = irpts & 0xffff0000;
-        dev->last_interrupt = irpts;
+    if((interrupts & 0xffff0001) != 0x1){
+        dev->last_error = interrupts & 0xffff0000;
+        dev->last_interrupt = interrupts;
         return;
     }
 
     time_delay_microseconds(2);
 
     // Get response data
-    switch(cmd_reg & SD_CMD_RSPNS_TYPE_MASK){
-        case SD_CMD_RSPNS_TYPE_48:
-        case SD_CMD_RSPNS_TYPE_48B:
+    switch(cmd_reg & EMMC_CMD_RSPNS_TYPE_MASK){
+        case EMMC_CMD_RSPNS_TYPE_48:
+        case EMMC_CMD_RSPNS_TYPE_48B:
             dev->last_r0 = emmc_get()->RESP0;
             break;
-
-        case SD_CMD_RSPNS_TYPE_136:
+        case EMMC_CMD_RSPNS_TYPE_136:
             dev->last_r0 = emmc_get()->RESP0;
             dev->last_r1 = emmc_get()->RESP1;
             dev->last_r2 = emmc_get()->RESP2;
@@ -694,73 +690,62 @@ static void emmc_command_single(        struct emmc_dev *dev,
     }
 
     // If with data, wait for the appropriate interrupt
-    if(cmd_reg & SD_CMD_ISDATA){
+    if(cmd_reg & EMMC_CMD_IEMMCATA){
         uint32_t wr_irpt;
         int is_write = 0;
-        if(cmd_reg & SD_CMD_DAT_DIR_CH)
+        if(cmd_reg & EMMC_CMD_DAT_DIR_CH){
             wr_irpt = (1 << 5);     // read
-        else
-        {
+        }else{
             is_write = 1;
             wr_irpt = (1 << 4);     // write
         }
 
         int cur_block = 0;
         uint32_t *cur_buf_addr = (uint32_t *)dev->buf;
-        while(cur_block < dev->blocks_to_transfer)
-        {
-
+        while(cur_block < dev->blocks_to_transfer){
             timeout_wait( &(emmc_get()->INTERRUPT), wr_irpt | 0x8000, 1, timeout);
-            irpts = emmc_get()->INTERRUPT;
+            interrupts = emmc_get()->INTERRUPT;
             emmc_get()->INTERRUPT = 0xffff0000 | wr_irpt;
 
-            if((irpts & (0xffff0000 | wr_irpt)) != wr_irpt)
-            {
-                dev->last_error = irpts & 0xffff0000;
-                dev->last_interrupt = irpts;
+            if((interrupts & (0xffff0000 | wr_irpt)) != wr_irpt){
+                dev->last_error = interrupts & 0xffff0000;
+                dev->last_interrupt = interrupts;
                 return;
             }
 
             // Transfer the block
             size_t cur_byte_no = 0;
-            while(cur_byte_no < dev->block_size)
-            {
-                if(is_write)
-				{
+            while(cur_byte_no < dev->block_size){
+                if(is_write){
 					uint32_t data = read_word((uint8_t *)cur_buf_addr, 0);
                     emmc_get()->DATA = data;
-				}
-                else
-				{
+				}else{
 					uint32_t data = emmc_get()->DATA;
                     write_word(data, (uint8_t *)cur_buf_addr, 0);
 				}
                 cur_byte_no += 4;
                 cur_buf_addr++;
             }
-
             cur_block++;
         }
     }
     
     // Wait for transfer complete (set if read/write transfer or with busy)
-    if(((cmd_reg & SD_CMD_RSPNS_TYPE_MASK) == SD_CMD_RSPNS_TYPE_48B) ||
-       (cmd_reg & SD_CMD_ISDATA)){
+    if(((cmd_reg & EMMC_CMD_RSPNS_TYPE_MASK) == EMMC_CMD_RSPNS_TYPE_48B) ||
+       (cmd_reg & EMMC_CMD_IEMMCATA)){
         // First check command inhibit (DAT) is not already 0
-        if( ((emmc_get()->STATUS) & 0x2) == 0)
+        if( ((emmc_get()->STATUS) & 0x2) == 0){
             emmc_get()->INTERRUPT = 0xffff0002;
-        else
-        {
+        }else{
             timeout_wait( &(emmc_get()->INTERRUPT), 0x8002, 1, timeout);
-            irpts = emmc_get()->INTERRUPT;
+            interrupts = emmc_get()->INTERRUPT;
             emmc_get()->INTERRUPT = 0xffff0002;
 
             // Handle the case where both data timeout and transfer complete
             //  are set - transfer complete overrides data timeout: HCSS 2.2.17
-            if(((irpts & 0xffff0002) != 0x2) && ((irpts & 0xffff0002) != 0x100002))
-            {
-                dev->last_error = irpts & 0xffff0000;
-                dev->last_interrupt = irpts;
+            if(((interrupts & 0xffff0002) != 0x2) && ((interrupts & 0xffff0002) != 0x100002)){
+                dev->last_error = interrupts & 0xffff0000;
+                dev->last_interrupt = interrupts;
                 return;
             }
             emmc_get()->INTERRUPT = 0xffff0002;
@@ -772,47 +757,49 @@ static void emmc_command_single(        struct emmc_dev *dev,
 
 static void emmc_handle_card_interrupt(struct emmc_dev *dev){
     // Handle a card interrupt
-    if(dev->card_rca)
-        emmc_command_single(dev, emmc_commands[SEND_STATUS], dev->card_rca << 16,
-                         500);
+    if(dev->card_rca){
+        emmc_command_single(dev, emmc_commands[SEND_STATUS], dev->card_rca << 16,500);
+    }
 }
 
 static void emmc_handle_interrupts(struct emmc_dev *dev){
-    uint32_t irpts = emmc_get()->INTERRUPT;
+    uint32_t interrupts = emmc_get()->INTERRUPT;
     uint32_t reset_mask = 0;
 
-    if(irpts & SD_COMMAND_COMPLETE)
-        reset_mask |= SD_COMMAND_COMPLETE;
-    if(irpts & SD_TRANSFER_COMPLETE)
-        reset_mask |= SD_TRANSFER_COMPLETE;
-    if(irpts & SD_BLOCK_GAP_EVENT)
-        reset_mask |= SD_BLOCK_GAP_EVENT;
-    if(irpts & SD_DMA_INTERRUPT)
-        reset_mask |= SD_DMA_INTERRUPT;
-    if(irpts & SD_BUFFER_WRITE_READY)
-    {
-        reset_mask |= SD_BUFFER_WRITE_READY;
+    if(interrupts & EMMC_COMMAND_COMPLETE){
+        reset_mask |= EMMC_COMMAND_COMPLETE;
+    }
+    if(interrupts & EMMC_TRANSFER_COMPLETE){
+        reset_mask |= EMMC_TRANSFER_COMPLETE;
+    }
+    if(interrupts & EMMC_BLOCK_GAP_EVENT){
+        reset_mask |= EMMC_BLOCK_GAP_EVENT;
+    }
+    if(interrupts & EMMC_DMA_INTERRUPT){
+        reset_mask |= EMMC_DMA_INTERRUPT;
+    }
+    if(interrupts & EMMC_BUFFER_WRITE_READY){
+        reset_mask |= EMMC_BUFFER_WRITE_READY;
         emmc_reset_dat();
     }
-    if(irpts & SD_BUFFER_READ_READY)
-    {
-        reset_mask |= SD_BUFFER_READ_READY;
+    if(interrupts & EMMC_BUFFER_READ_READY){
+        reset_mask |= EMMC_BUFFER_READ_READY;
         emmc_reset_dat();
     }
-    if(irpts & SD_CARD_INSERTION)
-        reset_mask |= SD_CARD_INSERTION;
-    if(irpts & SD_CARD_REMOVAL)
-    {
-        reset_mask |= SD_CARD_REMOVAL;
+    if(interrupts & EMMC_CARD_INSERTION){
+        reset_mask |= EMMC_CARD_INSERTION;
+    }
+    if(interrupts & EMMC_CARD_REMOVAL){
+        reset_mask |= EMMC_CARD_REMOVAL;
         dev->card_removal = 1;
     }
-    if(irpts & SD_CARD_INTERRUPT)
-    {
+    if(interrupts & EMMC_CARD_INTERRUPT){
         emmc_handle_card_interrupt(dev);
-        reset_mask |= SD_CARD_INTERRUPT;
+        reset_mask |= EMMC_CARD_INTERRUPT;
     }
-    if(irpts & 0x8000)
+    if(interrupts & 0x8000){
         reset_mask |= 0xffff0000;
+    }
     emmc_get()->INTERRUPT = reset_mask;
 }
 
@@ -834,7 +821,7 @@ static int emmc_command(        struct emmc_dev *dev,
     if(command & IS_APP_CMD){
         command &= 0xff;
 
-        if(emmc_acommands[command] == SD_CMD_RESERVED(0)){
+        if(emmc_acommands[command] == EMMC_CMD_RESERVED(0)){
             dev->last_cmd_success = 0;
             return -1;
         }
@@ -850,7 +837,7 @@ static int emmc_command(        struct emmc_dev *dev,
             emmc_command_single(dev, emmc_acommands[command], argument, timeout);
         }
     }else{
-        if(emmc_commands[command] == SD_CMD_RESERVED(0)){
+        if(emmc_commands[command] == EMMC_CMD_RESERVED(0)){
             dev->last_cmd_success = 0;
             return -1;
         }
@@ -863,7 +850,7 @@ static int emmc_command(        struct emmc_dev *dev,
 static int emmc_card_init(struct emmc_dev **dev){
 
 	// Power cycle the card to ensure its in its startup state
-	if(bcm_power_cycle() != 0){
+	if(bcm_emmc_power_cycle() != 0){
         return -1;
 	}
 
@@ -910,8 +897,8 @@ static int emmc_card_init(struct emmc_dev **dev){
     control1 |= 1;            // enable clock
 
 	// Set to identification frequency (400 kHz)
-	uint32_t f_id = emmc_get_clock_divider(base_clock, SD_CLOCK_ID);
-    if(f_id == SD_GET_CLOCK_DIVIDER_FAIL)
+	uint32_t f_id = emmc_get_clock_divider(base_clock, EMMC_CLOCK_ID);
+    if(f_id == EMMC_GET_CLOCK_DIVIDER_FAIL)
         return -1;
     control1 |= f_id;
 
@@ -922,7 +909,7 @@ static int emmc_card_init(struct emmc_dev **dev){
         return -1;
     }
 
-	// Enable the SD clock
+	// Enable the EMMC clock
 	time_delay_microseconds(2);
     control1 = emmc_get()->CONTROL1;
     control1 |= 4;
@@ -934,8 +921,8 @@ static int emmc_card_init(struct emmc_dev **dev){
 	// Reset interrupts
 	emmc_get()->INTERRUPT = 0xffffffff;
 	// Have all interrupts sent to the INTERRUPT register
-	uint32_t irpt_mask = 0xffffffff & (~SD_CARD_INTERRUPT);
-    irpt_mask |= SD_CARD_INTERRUPT;
+	uint32_t irpt_mask = 0xffffffff & (~EMMC_CARD_INTERRUPT);
+    irpt_mask |= EMMC_CARD_INTERRUPT;
 	emmc_get()->IRPT_MASK = irpt_mask;
 
 	time_delay_microseconds(2);
@@ -963,7 +950,7 @@ static int emmc_card_init(struct emmc_dev **dev){
 	if(TIMEOUT(ret)){   v2 = 0; }
     else if(CMD_TIMEOUT(ret)){
         if(emmc_reset_cmd() == -1){     return -1; }
-        emmc_get()->INTERRUPT = SD_ERR_MASK_CMD_TIMEOUT;
+        emmc_get()->INTERRUPT = EMMC_ERR_MASK_CMD_TIMEOUT;
         v2 = 0;
     }
     else if(FAIL(ret)){     return -1; }
@@ -977,12 +964,12 @@ static int emmc_card_init(struct emmc_dev **dev){
     }
 
     // Here we are supposed to check the response to CMD5 (HCSS 3.6)
-    // It only returns if the card is a SDIO card
+    // It only returns if the card is a EMMCIO card
     emmc_command(ret, IO_SET_OP_COND, 0, 10);
     if(!TIMEOUT(ret)){
         if(CMD_TIMEOUT(ret)){
             if(emmc_reset_cmd() == -1){ return -1;}
-            emmc_get()->INTERRUPT = SD_ERR_MASK_CMD_TIMEOUT;
+            emmc_get()->INTERRUPT = EMMC_ERR_MASK_CMD_TIMEOUT;
         }else{
             return -1;
         }
@@ -997,7 +984,7 @@ static int emmc_card_init(struct emmc_dev **dev){
 	while(card_is_busy){
 	    uint32_t v2_flags = 0;
 	    if(v2){
-	        // Set SDHC support
+	        // Set EMMCHC support
 	        v2_flags |= (1 << 30);
 
 	        // Set 1.8v support
@@ -1005,7 +992,7 @@ static int emmc_card_init(struct emmc_dev **dev){
                 v2_flags |= (1 << 24);
             }
 
-            // Enable SDXC maximum performance
+            // Enable EMMCXC maximum performance
             v2_flags |= (1 << 28);
 	    }
 
@@ -1030,7 +1017,7 @@ static int emmc_card_init(struct emmc_dev **dev){
 	    }
 	}
 
-    emmc_switch_clock_rate(base_clock, SD_CLOCK_NORMAL);
+    emmc_switch_clock_rate(base_clock, EMMC_CLOCK_NORMAL);
 
 	// A small wait before the voltage switch
 	time_delay_microseconds(5);
@@ -1048,7 +1035,7 @@ static int emmc_card_init(struct emmc_dev **dev){
 	        return emmc_card_init(&ret);
 	    }
 
-	    // Disable SD clock
+	    // Disable EMMC clock
 	    control1 = emmc_get()->CONTROL1;
         control1 &= ~(1 << 2);
         emmc_get()->CONTROL1 = control1;
@@ -1078,7 +1065,7 @@ static int emmc_card_init(struct emmc_dev **dev){
 	        return emmc_card_init(&ret);
 	    }
 
-	    // Re-enable the SD clock
+	    // Re-enable the EMMC clock
 	    control1 = emmc_get()->CONTROL1;
         control1 |= (1 << 2);
         emmc_get()->CONTROL1 = control1;
@@ -1099,7 +1086,7 @@ static int emmc_card_init(struct emmc_dev **dev){
 	// Send CMD2 to get the cards CID
 	emmc_command(ret, ALL_SEND_CID, 0, 500);
 	if(FAIL(ret)){
-	    uart_puts("SD: error sending ALL_SEND_CID\n");
+	    uart_puts("EMMC: error sending ALL_SEND_CID\n");
 	    return -1;
 	}
 	uint32_t card_cid_0 = ret->last_r0;
@@ -1165,11 +1152,11 @@ static int emmc_card_init(struct emmc_dev **dev){
 		return -1;
 	}
 
-	// If not an SDHC card, ensure BLOCKLEN is 512 bytes
+	// If not an EMMCHC card, ensure BLOCKLEN is 512 bytes
 	if(!ret->card_supports_sdhc){
 	    emmc_command(ret, SET_BLOCKLEN, 512, 500);
 	    if(FAIL(ret)){
-	        uart_puts("SD: error sending SET_BLOCKLEN\n\r");
+	        uart_puts("EMMC: error sending SET_BLOCKLEN\n\r");
 	        free(ret);
 	        return -1;
 	    }
@@ -1188,7 +1175,7 @@ static int emmc_card_init(struct emmc_dev **dev){
 	emmc_command(ret, SEND_SCR, 0, 500);
 	ret->block_size = 512;
 	if(FAIL(ret)){
-	    uart_puts("SD: error sending SEND_SCR\n\r");
+	    uart_puts("EMMC: error sending SEND_SCR\n\r");
 	    free(ret->scr);
         free(ret);
 	    return -1;
@@ -1197,20 +1184,20 @@ static int emmc_card_init(struct emmc_dev **dev){
 	// Determine card version
 	// Note that the SCR is big-endian
 	uint32_t scr0 = byte_swap(ret->scr->scr[0]);
-	ret->scr->sd_version = SD_VER_UNKNOWN;
+	ret->scr->sd_version = EMMC_VER_UNKNOWN;
 	uint32_t emmc_spec = (scr0 >> (56 - 32)) & 0xf;
 	uint32_t emmc_spec3 = (scr0 >> (47 - 32)) & 0x1;
 	uint32_t emmc_spec4 = (scr0 >> (42 - 32)) & 0x1;
 	ret->scr->sd_bus_widths = (scr0 >> (48 - 32)) & 0xf;
-	if(emmc_spec == 0)      { ret->scr->sd_version = SD_VER_1; }
-    else if(emmc_spec == 1) { ret->scr->sd_version = SD_VER_1_1; }
+	if(emmc_spec == 0)      { ret->scr->sd_version = EMMC_VER_1; }
+    else if(emmc_spec == 1) { ret->scr->sd_version = EMMC_VER_1_1; }
     else if(emmc_spec == 2) {
-        if(emmc_spec3 == 0) {ret->scr->sd_version = SD_VER_2; }
+        if(emmc_spec3 == 0) {ret->scr->sd_version = EMMC_VER_2; }
         else if(emmc_spec3 == 1){
             if(emmc_spec4 == 0){
-                ret->scr->sd_version = SD_VER_3;
+                ret->scr->sd_version = EMMC_VER_3;
             }else if(emmc_spec4 == 1){
-                ret->scr->sd_version = SD_VER_4;
+                ret->scr->sd_version = EMMC_VER_4;
             }
         }
     }
@@ -1255,7 +1242,7 @@ static int emmc_ensure_data_mode(struct emmc_dev *edev){
 
     emmc_command(edev, SEND_STATUS, edev->card_rca << 16, 500);
     if(FAIL(edev)){
-        uart_puts("SD: ensure_data_mode() error sending CMD13\n");
+        uart_puts("EMMC: ensure_data_mode() error sending CMD13\n");
         edev->card_rca = 0;
         return -1;
     }
@@ -1266,7 +1253,7 @@ static int emmc_ensure_data_mode(struct emmc_dev *edev){
 		// Currently in the stand-by state - select it
 		emmc_command(edev, SELECT_CARD, edev->card_rca << 16, 500);
 		if(FAIL(edev)){
-			uart_puts("SD: ensure_data_mode() no response from CMD17\n");
+			uart_puts("EMMC: ensure_data_mode() no response from CMD17\n");
 			edev->card_rca = 0;
 			return -1;
 		}
@@ -1302,7 +1289,6 @@ static int emmc_ensure_data_mode(struct emmc_dev *edev){
 			return -1;
 		}
 	}
-
 	return 0;
 }
 
@@ -1310,7 +1296,7 @@ static int emmc_do_data_command(        struct emmc_dev *edev,
                                         int is_write, uint8_t *buf,
                                         size_t buf_size,
                                         uint32_t block_no){
-	// PLSS table 4.20 - SDSC cards use byte addresses rather than block addresses
+	// PLSS table 4.20 - EMMCSC cards use byte addresses rather than block addresses
 	if(!edev->card_supports_sdhc)   {block_no *= 512; }
     
 	// This is as per HCSS 3.7.2.1
@@ -1338,9 +1324,7 @@ static int emmc_do_data_command(        struct emmc_dev *edev,
 	int retry_count = 0;
 	int max_retries = 3;
 	while(retry_count < max_retries){
-
         emmc_command(edev, command, block_no, 500);
-
         if(SUCCESS(edev)){
             break;
         }else{
@@ -1351,10 +1335,8 @@ static int emmc_do_data_command(        struct emmc_dev *edev,
         edev->card_rca = 0;
         return -1;
     }
-
     return 0;
 }
-
 
 static struct emmc_dev *device;
 
@@ -1385,6 +1367,3 @@ size_t emmc_get_dev_block_size(void){
     return device->block_size;
 }
 
-int emmc_get_multiblock_read_support(void){
-    return device->supports_multiple_block_read;
-}

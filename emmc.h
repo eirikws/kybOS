@@ -7,9 +7,7 @@
 
 
 int emmc_init(void);
-size_t emmc_get_dev_block_size(void);
-int emmc_get_multiblock_read_support(void);
 int emmc_read(uint8_t *buf, size_t buf_size, uint32_t block_no);
 int emmc_write(uint8_t *buf, size_t buf_size, uint32_t block_no);
-
+size_t emmc_get_dev_block_size(void);
 #endif

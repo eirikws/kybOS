@@ -19,7 +19,6 @@ set( CMAKE_EXE_LINKER_FLAGS "-Wl,-T,${PROJECT_SOURCE_DIR}/linker.ld" )
 add_executable( kybOS
     main.c
     cstartup.c
-    cstubs.c
     start.S
     armtimer.c
     armtimer.h
