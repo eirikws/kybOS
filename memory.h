@@ -15,4 +15,5 @@ int memory_add_mapping(process_id_t id, uint32_t virtual, uint32_t physical);
 int memory_remove_mapping(process_id_t id, uint32_t virtual, uint32_t physical);
 int memory_remove_all_mappings(process_id_t id);
 scheduling_type_t memory_map(void* retval, uint32_t address, process_id_t id); 
+scheduling_type_t memory_srbk( int incr, process_id_t id);
 #endif

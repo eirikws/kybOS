@@ -52,6 +52,7 @@ typedef struct PCB{
     process_state_t state;
     uint32_t priority;
     context_data_t context_data;
+    uint32_t heap_end;
     mem_mapping_t *mem_next;
     uint32_t physical_address;
     struct PCB* next;

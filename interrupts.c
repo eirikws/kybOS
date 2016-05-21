@@ -84,6 +84,9 @@ scheduling_type_t software_interrupt_vector_c(void* arg0, void* arg1, void* arg2
         case SPAWN:
         return process_spawn( (spawn_args_t*)arg1); 
         break;
+        case SRBK:
+        return memory_srbk( (int)arg1, get_current_running_process());
+        break;
     }
     uart_puts("Software irq vector c: did not find source of exception!\r\n");
     return 0;
