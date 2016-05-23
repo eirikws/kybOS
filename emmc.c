@@ -103,6 +103,65 @@ struct emmc_dev{
 	uint32_t base_clock;
 };
 
+// BLKSIZECNT
+#define BLOCKCNT(a)                     (a << 16)
+#define BLKSIZE(a)                    (a << 0)
+
+
+// control0 bit offsets
+#define ALT_BOOT_EN                     (1 << 22)
+#define BOOT_EN                         (1 << 21)
+#define SPI_MODE                        (1 << 20)
+#define GAP_IEN                         (1 << 19)
+#define READWAIT_EN                     (1 << 18)
+#define GAP_RESTART                     (1 << 17)
+#define GAP_STOP                        (1 << 16)
+#define ENABLE_1_8V                     (1 << 8)
+#define HCTL_8BIT                       (1 << 5)
+#define HCTL_HS_EN                      (1 << 2)
+#define HCTL_DWIDTH                     (1 << 1)
+
+// control1 bit offsets
+#define SRST_DATA                       (1 << 26)
+#define SRST_CMD                        (1 << 25)
+#define SRST_HC                         (1 << 24)
+#define DATA_TOUNIT(a)                  (a << 16)
+#define CLK_FREQ8(a)                    (a << 8)
+#define CLK_FREQ_MS2(a)                 (a << 6)
+#define CLK_GENSEL                      (1 << 5)
+#define CLK_EN                          (1 << 2)
+#define CLK_STABLE                      (1 << 1)
+#define CLK_INTLEN                      (1 << 0)
+
+// INTERRUPTS bit offsets
+#define ACMD_ERR                        (1 << 24)
+#define DEND_ERR                        (1 << 22)
+#define DCRC_ERR                        (1 << 21)
+#define DTO_ERR                         (1 << 20)
+#define CBAD_ERR                        (1 << 19)
+#define CEND_ERR                        (1 << 18)
+#define CCRC_ERR                        (1 << 17)
+#define CTO_ERR                         (1 << 16)
+#define ERR                             (1 << 15)
+#define ENDBOOT                         (1 << 14)
+#define BOOTACK                         (1 << 13)
+#define RETUNE                          (1 << 12)
+#define CARD                            (1 << 8)
+#define READ_RDY                        (1 << 5)
+#define WRITE_RDY                       (1 << 4)
+#define BLOCK_GAP                       (1 << 2)
+#define DATA_DONE                       (1 << 1)
+#define CMD_DONE                        (1 << 0)
+#define ERROR_MASK                      (0xffff0000)
+
+// STATUS bit offsets
+#define CMD_LEVEL                       (1 << 24)
+#define VALID_CARD                      (1 << 16)
+#define READ_TRANSFER                   (1 << 9)
+#define WRITE_TRANSFER                  (1 << 8)
+#define DAT_ACTIVE                      (1 << 2)
+#define DAT_INHIBIT                     (1 << 1)
+#define CMD_INHIBIT                     (1 << 0)
 
 #define EMMC_CMD_INDEX(a)		        ((a) << 24)
 #define EMMC_CMD_TYPE_NORMAL	        (0 << 0)
@@ -126,41 +185,6 @@ struct emmc_dev{
 #define EMMC_CMD_AUTO_CMD_EN_CMD23	    (2 << 2)
 #define EMMC_CMD_BLKCNT_EN		        (1 << 1)
 #define EMMC_CMD_DMA                    (1 << 0)
-
-#define EMMC_ERR_CMD_TIMEOUT	        0
-#define EMMC_ERR_CMD_CRC		        1
-#define EMMC_ERR_CMD_END_BIT	        2
-#define EMMC_ERR_CMD_INDEX	            3
-#define EMMC_ERR_DATA_TIMEOUT	        4
-#define EMMC_ERR_DATA_CRC		        5
-#define EMMC_ERR_DATA_END_BIT	        6
-#define EMMC_ERR_CURRENT_LIMIT	        7
-#define EMMC_ERR_AUTO_CMD12	            8
-#define EMMC_ERR_ADMA		            9
-#define EMMC_ERR_TUNING		            10
-#define EMMC_ERR_RSVD		            11
-
-#define EMMC_ERR_MASK_CMD_TIMEOUT		(1 << (16 + EMMC_ERR_CMD_TIMEOUT))
-#define EMMC_ERR_MASK_CMD_CRC		    (1 << (16 + EMMC_ERR_CMD_CRC))
-#define EMMC_ERR_MASK_CMD_END_BIT		(1 << (16 + EMMC_ERR_CMD_END_BIT))
-#define EMMC_ERR_MASK_CMD_INDEX		    (1 << (16 + EMMC_ERR_CMD_INDEX))
-#define EMMC_ERR_MASK_DATA_TIMEOUT	    (1 << (16 + EMMC_ERR_CMD_TIMEOUT))
-#define EMMC_ERR_MASK_DATA_CRC		    (1 << (16 + EMMC_ERR_CMD_CRC))
-#define EMMC_ERR_MASK_DATA_END_BIT	    (1 << (16 + EMMC_ERR_CMD_END_BIT))
-#define EMMC_ERR_MASK_CURRENT_LIMIT	    (1 << (16 + EMMC_ERR_CMD_CURRENT_LIMIT))
-#define EMMC_ERR_MASK_AUTO_CMD12		(1 << (16 + EMMC_ERR_CMD_AUTO_CMD12))
-#define EMMC_ERR_MASK_ADMA		        (1 << (16 + EMMC_ERR_CMD_ADMA))
-#define EMMC_ERR_MASK_TUNING		    (1 << (16 + EMMC_ERR_CMD_TUNING))
-
-#define EMMC_COMMAND_COMPLETE     (1 << 0)
-#define EMMC_TRANSFER_COMPLETE    (1 << 1)
-#define EMMC_BLOCK_GAP_EVENT      (1 << 2)
-#define EMMC_DMA_INTERRUPT        (1 << 3)
-#define EMMC_BUFFER_WRITE_READY   (1 << 4)
-#define EMMC_BUFFER_READ_READY    (1 << 5)
-#define EMMC_CARD_INSERTION       (1 << 6)
-#define EMMC_CARD_REMOVAL         (1 << 7)
-#define EMMC_CARD_INTERRUPT       (1 << 8)
 
 #define EMMC_RESP_NONE        EMMC_CMD_RSPNS_TYPE_NONE
 #define EMMC_RESP_R1          (EMMC_CMD_RSPNS_TYPE_48 | EMMC_CMD_CRCCHK_EN)
@@ -233,7 +257,6 @@ static uint32_t emmc_commands[] = {
     EMMC_CMD_INDEX(29) | EMMC_RESP_R1b,
     EMMC_CMD_INDEX(30) | EMMC_RESP_R1 | EMMC_DATA_READ,
     EMMC_CMD_RESERVED(31),
-    EMMC_CMD_INDEX(32) | EMMC_RESP_R1,
     EMMC_CMD_INDEX(33) | EMMC_RESP_R1,
     EMMC_CMD_RESERVED(34),
     EMMC_CMD_RESERVED(35),
@@ -334,7 +357,7 @@ static uint32_t emmc_acommands[] = {
     EMMC_CMD_RESERVED(63)
 };
 
-// The actual command indices
+// The commands
 #define GO_IDLE_STATE           0
 #define ALL_SEND_CID            2
 #define SEND_RELATIVE_ADDR      3
@@ -380,8 +403,6 @@ static uint32_t emmc_acommands[] = {
 #define SET_CLR_CARD_DETECT     (42 | IS_APP_CMD)
 #define SEND_SCR                (51 | IS_APP_CMD)
 
-#define EMMC_RESET_CMD            (1 << 25)
-#define EMMC_RESET_DAT            (1 << 26)
 #define EMMC_RESET_ALL            (1 << 24)
 
 #define EMMC_GET_CLOCK_DIVIDER_FAIL	0xffffffff
@@ -580,23 +601,24 @@ static int emmc_switch_clock_rate(uint32_t base_clock, uint32_t target_rate){
         return -1;
     }
     // wait for cmd and dat inhibit to clear
-    while( emmc_get()->STATUS & 0x3){
+    while( emmc_get()->STATUS & (DAT_INHIBIT | CMD_INHIBIT)){
         time_delay_microseconds(1);
     }
     // Set the emmc clock off
     uint32_t control1 = emmc_get()->CONTROL1;
-    control1 &= ~(1 << 2);
+    control1 &= ~CLK_EN;
     emmc_get()->CONTROL1 = control1;
     time_delay_microseconds(2);
 
     // Write the new divider
-    control1 &= ~0xffe0;        // Clear old
+ //   control1 &= ~0xffe0;        // Clear old
+    control1 &= ~( CLK_GENSEL | CLK_FREQ_MS2(3) | CLK_FREQ8(0xff));
     control1 |= div;
     emmc_get()->CONTROL1 = control1;
     time_delay_microseconds(2);
 
     // Enable the emmc clock
-    control1 |= (1 << 2);
+    control1 |= CLK_EN;
     emmc_get()->CONTROL1 = control1;
     time_delay_microseconds(2);
 
@@ -607,20 +629,20 @@ static int emmc_switch_clock_rate(uint32_t base_clock, uint32_t target_rate){
 // Reset the CMD line
 static int emmc_reset_cmd(void){
     uint32_t control1 = emmc_get()->CONTROL1;
-    control1 |= EMMC_RESET_CMD;
+    control1 |= SRST_CMD;
     emmc_get()->CONTROL1 = control1;
-    timeout_wait( &(emmc_get()->CONTROL1), EMMC_RESET_CMD, 0, 1000);
-    if( (emmc_get()->CONTROL1 & EMMC_RESET_CMD) != 0){    return -1;}
+    timeout_wait( &(emmc_get()->CONTROL1), SRST_CMD, 0, 1000);
+    if( (emmc_get()->CONTROL1 & SRST_CMD) != 0){    return -1;}
     return 0;
 }
 
 // Reset the DATA line
 static int emmc_reset_dat(void){
     uint32_t control1 = emmc_get()->CONTROL1;
-    control1 |= EMMC_RESET_DAT;
+    control1 |= SRST_DATA;
     emmc_get()->CONTROL1 = control1;
-    timeout_wait( &(emmc_get()->CONTROL1), EMMC_RESET_DAT, 0, 1000);
-    if(( emmc_get()->CONTROL1 & EMMC_RESET_DAT) != 0)  {return -1;}
+    timeout_wait( &(emmc_get()->CONTROL1), SRST_DATA, 0, 1000);
+    if(( emmc_get()->CONTROL1 & SRST_DATA) != 0)  {return -1;}
     return 0;
 }
 
@@ -629,22 +651,21 @@ static void emmc_command_single(        struct emmc_dev *dev,
                                         uint32_t timeout){
     dev->last_cmd_reg = cmd_reg;
     dev->last_cmd_success = 0;
-    while(emmc_get()->STATUS & 0x1){
+    while(emmc_get()->STATUS & CMD_INHIBIT){
         time_delay_microseconds(1);
     }
-    // Is the command busy?
+    // Is the command with busy?
     if((cmd_reg & EMMC_CMD_RSPNS_TYPE_MASK) == EMMC_CMD_RSPNS_TYPE_48B){
         if((cmd_reg & EMMC_CMD_TYPE_MASK) != EMMC_CMD_TYPE_ABORT){
             // Wait for the data line to be free
-            while( emmc_get()->STATUS & 0x2){
+            while( emmc_get()->STATUS & DAT_INHIBIT){
                 time_delay_microseconds(1);
             }
         }
     }
 
     // Set block size and block count
-    // For now, block size = 512 bytes, block count = 1,
-    //  host EMMCMA buffer boundary = 4 kiB
+    // block size = 512 bytes, block count = 1,
     if(dev->blocks_to_transfer > 0xffff){
         dev->last_cmd_success = 0;
         return;
@@ -659,16 +680,16 @@ static void emmc_command_single(        struct emmc_dev *dev,
     emmc_get()->CMDTM = cmd_reg;
     time_delay_microseconds(2);
 
-    // Wait for command complete interrupt
-    timeout_wait( &(emmc_get()->INTERRUPT), 0x8001, 1, timeout);
+    // Wait for command complete or error
+    timeout_wait( &(emmc_get()->INTERRUPT), (ERR | CMD_DONE), 1, timeout);
     uint32_t interrupts = emmc_get()->INTERRUPT;
 
     // Clear command complete status
     emmc_get()->INTERRUPT = 0xffff0001;
 
     // Test for errors
-    if((interrupts & 0xffff0001) != 0x1){
-        dev->last_error = interrupts & 0xffff0000;
+    if((interrupts & (ERROR_MASK | CMD_DONE)) != CMD_DONE){
+        dev->last_error = interrupts & ERROR_MASK;
         dev->last_interrupt = interrupts;
         return;
     }
@@ -691,24 +712,24 @@ static void emmc_command_single(        struct emmc_dev *dev,
 
     // If with data, wait for the appropriate interrupt
     if(cmd_reg & EMMC_CMD_IEMMCATA){
-        uint32_t wr_irpt;
+        uint32_t wr_irq;
         int is_write = 0;
         if(cmd_reg & EMMC_CMD_DAT_DIR_CH){
-            wr_irpt = (1 << 5);     // read
+            wr_irq = READ_RDY;
         }else{
             is_write = 1;
-            wr_irpt = (1 << 4);     // write
+            wr_irq = WRITE_RDY;
         }
 
         int cur_block = 0;
         uint32_t *cur_buf_addr = (uint32_t *)dev->buf;
         while(cur_block < dev->blocks_to_transfer){
-            timeout_wait( &(emmc_get()->INTERRUPT), wr_irpt | 0x8000, 1, timeout);
+            timeout_wait( &(emmc_get()->INTERRUPT), wr_irq | ERR, 1, timeout);
             interrupts = emmc_get()->INTERRUPT;
-            emmc_get()->INTERRUPT = 0xffff0000 | wr_irpt;
-
-            if((interrupts & (0xffff0000 | wr_irpt)) != wr_irpt){
-                dev->last_error = interrupts & 0xffff0000;
+            emmc_get()->INTERRUPT = ERROR_MASK | wr_irq;
+            // check for error
+            if((interrupts & (ERROR_MASK | wr_irq)) != wr_irq){
+                dev->last_error = interrupts & ERROR_MASK;
                 dev->last_interrupt = interrupts;
                 return;
             }
@@ -734,21 +755,21 @@ static void emmc_command_single(        struct emmc_dev *dev,
     if(((cmd_reg & EMMC_CMD_RSPNS_TYPE_MASK) == EMMC_CMD_RSPNS_TYPE_48B) ||
        (cmd_reg & EMMC_CMD_IEMMCATA)){
         // First check command inhibit (DAT) is not already 0
-        if( ((emmc_get()->STATUS) & 0x2) == 0){
-            emmc_get()->INTERRUPT = 0xffff0002;
+        if( ((emmc_get()->STATUS) & DAT_INHIBIT) == 0){
+            emmc_get()->INTERRUPT = ERROR_MASK | DATA_DONE;
         }else{
-            timeout_wait( &(emmc_get()->INTERRUPT), 0x8002, 1, timeout);
+            timeout_wait( &(emmc_get()->INTERRUPT), ERR | DATA_DONE, 1, timeout);
             interrupts = emmc_get()->INTERRUPT;
-            emmc_get()->INTERRUPT = 0xffff0002;
+            emmc_get()->INTERRUPT = ERROR_MASK | DATA_DONE;
 
             // Handle the case where both data timeout and transfer complete
             //  are set - transfer complete overrides data timeout: HCSS 2.2.17
-            if(((interrupts & 0xffff0002) != 0x2) && ((interrupts & 0xffff0002) != 0x100002)){
-                dev->last_error = interrupts & 0xffff0000;
+            if(((interrupts & (ERROR_MASK | DATA_DONE)) != DATA_DONE) && ((interrupts & (ERROR_MASK | DATA_DONE)) != (DTO_ERR | DATA_DONE))){
+                dev->last_error = interrupts & ERROR_MASK;
                 dev->last_interrupt = interrupts;
                 return;
             }
-            emmc_get()->INTERRUPT = 0xffff0002;
+            emmc_get()->INTERRUPT = ERROR_MASK | DATA_DONE;
         }
     }
     // Return success
@@ -766,39 +787,29 @@ static void emmc_handle_interrupts(struct emmc_dev *dev){
     uint32_t interrupts = emmc_get()->INTERRUPT;
     uint32_t reset_mask = 0;
 
-    if(interrupts & EMMC_COMMAND_COMPLETE){
-        reset_mask |= EMMC_COMMAND_COMPLETE;
+    if(interrupts & CMD_DONE){
+        reset_mask |= CMD_DONE;
     }
-    if(interrupts & EMMC_TRANSFER_COMPLETE){
-        reset_mask |= EMMC_TRANSFER_COMPLETE;
+    if(interrupts & DATA_DONE){
+        reset_mask |= DATA_DONE;
     }
-    if(interrupts & EMMC_BLOCK_GAP_EVENT){
-        reset_mask |= EMMC_BLOCK_GAP_EVENT;
+    if(interrupts & BLOCK_GAP){
+        reset_mask |= BLOCK_GAP;
     }
-    if(interrupts & EMMC_DMA_INTERRUPT){
-        reset_mask |= EMMC_DMA_INTERRUPT;
-    }
-    if(interrupts & EMMC_BUFFER_WRITE_READY){
-        reset_mask |= EMMC_BUFFER_WRITE_READY;
+    if(interrupts & WRITE_RDY){
+        reset_mask |= WRITE_RDY;
         emmc_reset_dat();
     }
-    if(interrupts & EMMC_BUFFER_READ_READY){
-        reset_mask |= EMMC_BUFFER_READ_READY;
+    if(interrupts & READ_RDY){
+        reset_mask |= READ_RDY;
         emmc_reset_dat();
     }
-    if(interrupts & EMMC_CARD_INSERTION){
-        reset_mask |= EMMC_CARD_INSERTION;
-    }
-    if(interrupts & EMMC_CARD_REMOVAL){
-        reset_mask |= EMMC_CARD_REMOVAL;
-        dev->card_removal = 1;
-    }
-    if(interrupts & EMMC_CARD_INTERRUPT){
+    if(interrupts & CARD){
         emmc_handle_card_interrupt(dev);
-        reset_mask |= EMMC_CARD_INTERRUPT;
+        reset_mask |= CARD;
     }
-    if(interrupts & 0x8000){
-        reset_mask |= 0xffff0000;
+    if(interrupts & ERR){
+        reset_mask |= ERROR_MASK;
     }
     emmc_get()->INTERRUPT = reset_mask;
 }
@@ -818,6 +829,7 @@ static int emmc_command(        struct emmc_dev *dev,
     }
 
     // Now run the appropriate commands by calling emmc_issue_command_int()
+    // mask out IS_APP_CMD
     if(command & IS_APP_CMD){
         command &= 0xff;
 
@@ -865,22 +877,22 @@ static int emmc_card_init(struct emmc_dev **dev){
 
 	// Reset the controller
 	uint32_t control1 = emmc_get()->CONTROL1;
-    control1 |= (1 << 24);
+    control1 |= SRST_HC;
     // Disable clock
-    control1 &= ~(1 << 2);
-    control1 &= ~(1 << 0);
+    control1 &= ~CLK_EN;
+    control1 &= ~CLK_INTLEN;
     emmc_get()->CONTROL1 = control1;
-	if (timeout_wait( &(emmc_get()->CONTROL1), 7 << 24, 0, 10) < 0){
+	if (timeout_wait( &(emmc_get()->CONTROL1), SRST_DATA | SRST_CMD | SRST_HC, 0, 10) < 0){
 		return -1;
 	}
-    if((emmc_get()->CONTROL1 & (0x7 << 24)) != 0){
+    if((emmc_get()->CONTROL1 & (SRST_DATA | SRST_CMD | SRST_HC)) != 0){
         return -1;
     }
 
 	// Check for a valid card
-    timeout_wait( &(emmc_get()->STATUS), (1 << 16), 1, 500);
+    timeout_wait( &(emmc_get()->STATUS), VALID_CARD, 1, 500);
     uint32_t status_reg = emmc_get()->STATUS;
-    if((status_reg & (1 << 16)) == 0){
+    if((status_reg & VALID_CARD) == 0){
         return -1;
     }
 	// Clear control2
@@ -894,25 +906,26 @@ static int emmc_card_init(struct emmc_dev **dev){
     }
 	// Set clock rate to something slow
 	control1 = emmc_get()->CONTROL1;
-    control1 |= 1;            // enable clock
+    control1 |= CLK_INTLEN;    // enable clock
 
 	// Set to identification frequency (400 kHz)
 	uint32_t f_id = emmc_get_clock_divider(base_clock, EMMC_CLOCK_ID);
-    if(f_id == EMMC_GET_CLOCK_DIVIDER_FAIL)
+    if(f_id == EMMC_GET_CLOCK_DIVIDER_FAIL){
         return -1;
+    }
     control1 |= f_id;
 
-	control1 |= (7 << 16);		// data timeout = TMCLK * 2^10
+	control1 |= DATA_TOUNIT(7);		// data timeout = TMCLK * 2^10
     emmc_get()->CONTROL1 = control1;
-    timeout_wait( &(emmc_get()->CONTROL1), 0x2, 1, 0x100);
-    if((emmc_get()->CONTROL1 & 0x2) == 0){
+    timeout_wait( &(emmc_get()->CONTROL1), CLK_STABLE, 1, 0x100);
+    if((emmc_get()->CONTROL1 & CLK_STABLE) == 0){
         return -1;
     }
 
 	// Enable the EMMC clock
 	time_delay_microseconds(2);
     control1 = emmc_get()->CONTROL1;
-    control1 |= 4;
+    control1 |= CLK_EN;
     emmc_get()->CONTROL1 = control1;
     time_delay_microseconds(2);
 
@@ -921,8 +934,8 @@ static int emmc_card_init(struct emmc_dev **dev){
 	// Reset interrupts
 	emmc_get()->INTERRUPT = 0xffffffff;
 	// Have all interrupts sent to the INTERRUPT register
-	uint32_t irpt_mask = 0xffffffff & (~EMMC_CARD_INTERRUPT);
-    irpt_mask |= EMMC_CARD_INTERRUPT;
+	uint32_t irpt_mask = 0xffffffff & (~CARD);
+    irpt_mask |= CARD;
 	emmc_get()->IRPT_MASK = irpt_mask;
 
 	time_delay_microseconds(2);
@@ -950,7 +963,7 @@ static int emmc_card_init(struct emmc_dev **dev){
 	if(TIMEOUT(ret)){   v2 = 0; }
     else if(CMD_TIMEOUT(ret)){
         if(emmc_reset_cmd() == -1){     return -1; }
-        emmc_get()->INTERRUPT = EMMC_ERR_MASK_CMD_TIMEOUT;
+        emmc_get()->INTERRUPT = CTO_ERR;
         v2 = 0;
     }
     else if(FAIL(ret)){     return -1; }
@@ -969,7 +982,7 @@ static int emmc_card_init(struct emmc_dev **dev){
     if(!TIMEOUT(ret)){
         if(CMD_TIMEOUT(ret)){
             if(emmc_reset_cmd() == -1){ return -1;}
-            emmc_get()->INTERRUPT = EMMC_ERR_MASK_CMD_TIMEOUT;
+            emmc_get()->INTERRUPT = CTO_ERR;
         }else{
             return -1;
         }
@@ -1037,7 +1050,7 @@ static int emmc_card_init(struct emmc_dev **dev){
 
 	    // Disable EMMC clock
 	    control1 = emmc_get()->CONTROL1;
-        control1 &= ~(1 << 2);
+        control1 &= ~CLK_EN;
         emmc_get()->CONTROL1 = control1;
 
 	    // Check DAT[3:0]
@@ -1052,14 +1065,14 @@ static int emmc_card_init(struct emmc_dev **dev){
 
 	    // Set 1.8V signal enable to 1
 	    uint32_t control0 = emmc_get()->CONTROL0;
-        control0 |= (1 << 8);
+        control0 |= ENABLE_1_8V;
         emmc_get()->CONTROL0 = control0;
 	    // Wait 5 ms
 	    time_delay_microseconds(5);
 
 	    // Check the 1.8V signal enable is set
 	    control0 = emmc_get()->CONTROL0;
-	    if(((control0 >> 8) & 0x1) == 0){
+	    if((control0 & ENABLE_1_8V) == 0){
 	        ret->failed_voltage_switch = 1;
 			emmc_power_off();
 	        return emmc_card_init(&ret);
@@ -1067,7 +1080,7 @@ static int emmc_card_init(struct emmc_dev **dev){
 
 	    // Re-enable the EMMC clock
 	    control1 = emmc_get()->CONTROL1;
-        control1 |= (1 << 2);
+        control1 |= CLK_EN;
         emmc_get()->CONTROL1 = control1;
 
 	    // Wait 1 ms
@@ -1163,8 +1176,8 @@ static int emmc_card_init(struct emmc_dev **dev){
 	}
 	ret->block_size = 512;
 	uint32_t controller_block_size = emmc_get()->BLKSIZECNT;
-    controller_block_size &= (~0xfff);
-    controller_block_size |= 0x200;
+    controller_block_size &= ~BLKSIZE(0xfff);
+    controller_block_size |= BLKSIZE(0x200);
     emmc_get()->BLKSIZECNT = controller_block_size;
 
 	// Get the cards SCR register
@@ -1208,7 +1221,7 @@ static int emmc_card_init(struct emmc_dev **dev){
 
         // Disable card interrupt in host
         uint32_t old_irpt_mask = emmc_get()->IRPT_MASK;
-        uint32_t new_iprt_mask = old_irpt_mask & ~(1 << 8);
+        uint32_t new_iprt_mask = old_irpt_mask & ~CARD;
         emmc_get()->IRPT_MASK = new_iprt_mask;
 
         // Send ACMD6 to change the card's bit mode
@@ -1218,7 +1231,7 @@ static int emmc_card_init(struct emmc_dev **dev){
         }else{
             // Change bit mode for Host
             uint32_t control0 = emmc_get()->CONTROL0;
-            control0 |= 0x2;
+            control0 |= HCTL_DWIDTH;
             emmc_get()->CONTROL0 = control0;
 
             // Re-enable card interrupt in host
