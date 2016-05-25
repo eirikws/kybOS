@@ -16,7 +16,7 @@ void save_stack_ptr( process_id_t id, uint32_t stack_pointer){
         uart_puts("save stack ptr process not found\r\n");
         return;
     }
-    pcb->context_data.SP = stack_pointer;
+    pcb->stack_pointer = stack_pointer;
     return;
 }
 

@@ -18,11 +18,6 @@ typedef enum{
     READY,
 } process_state_t;
 
-typedef struct Context_Data{
-    uint32_t stack_start;
-    uint32_t SP;
-} context_data_t;
-
 typedef struct Mem_mapping{
     uint32_t physical_address;
     uint32_t virtual_address;
@@ -51,7 +46,8 @@ typedef struct PCB{
     process_id_t id;
     process_state_t state;
     uint32_t priority;
-    context_data_t context_data;
+    uint32_t stack_start;
+    uint32_t stack_pointer;
     uint32_t heap_end;
     mem_mapping_t *mem_next;
     uint32_t physical_address;

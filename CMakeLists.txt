@@ -33,8 +33,6 @@ add_executable( kybOS
     control.h
     pcb.c
     pcb.h
-    threading.c
-    threading.h
     scheduler.c
     scheduler.h
     ipc.c

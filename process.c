@@ -141,9 +141,9 @@ int process_load(const char* file_path, size_t priority, int mode, process_id_t 
     memcpy((void*)prog_header->p_vadder, buf + prog_header->p_offset , prog_header->p_filesz);
 
     // make PCB
-    pcb.context_data.stack_start = (1 << 20) - 0x1000 + prog_header->p_vadder;
+    pcb.stack_start = (1 << 20) - 0x1000 + prog_header->p_vadder;
 
-    pcb.context_data.SP = _process_stack_init(pcb.context_data.stack_start, myheader->program_entry, mode);
+    pcb.stack_pointer = _process_stack_init(pcb.stack_start, myheader->program_entry, mode);
     
     pcb_insert(pcb);
     memory_add_mapping(id, prog_header->p_vadder, (uint32_t)dest);

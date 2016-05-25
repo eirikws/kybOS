@@ -159,7 +159,7 @@ uint32_t context_switch_c(uint32_t old_sp){
     PCB_t* pcb = pcb_get( previous_running_process);
     if(pcb != NULL){
         // if no errors, save old sp
-        pcb->context_data.SP = old_sp;
+        pcb->stack_pointer = old_sp;
         memory_perform_process_unmapping(previous_running_process);
         // unmap memory of old process
     }else{
@@ -182,7 +182,7 @@ uint32_t context_switch_c(uint32_t old_sp){
     }
     memory_perform_process_mapping(current_running_process);
         // if no errors, return the stack pointer!
-    return pcb->context_data.SP;
+    return pcb->stack_pointer;
 }
 
 

@@ -257,6 +257,7 @@ static uint32_t emmc_commands[] = {
     EMMC_CMD_INDEX(29) | EMMC_RESP_R1b,
     EMMC_CMD_INDEX(30) | EMMC_RESP_R1 | EMMC_DATA_READ,
     EMMC_CMD_RESERVED(31),
+    EMMC_CMD_INDEX(32) | EMMC_RESP_R1,
     EMMC_CMD_INDEX(33) | EMMC_RESP_R1,
     EMMC_CMD_RESERVED(34),
     EMMC_CMD_RESERVED(35),
@@ -863,6 +864,7 @@ static int emmc_card_init(struct emmc_dev **dev){
 
 	// Power cycle the card to ensure its in its startup state
 	if(bcm_emmc_power_cycle() != 0){
+        uart_puts("EMMC init: failed power cycle\r\n");
         return -1;
 	}
 
@@ -872,6 +874,7 @@ static int emmc_card_init(struct emmc_dev **dev){
     sd_version = emmcversion;
 
 	if(sd_version < 2){
+        uart_puts("EMMC init: sd version not supported\r\n");
 		return -1;
 	}
 
@@ -883,9 +886,11 @@ static int emmc_card_init(struct emmc_dev **dev){
     control1 &= ~CLK_INTLEN;
     emmc_get()->CONTROL1 = control1;
 	if (timeout_wait( &(emmc_get()->CONTROL1), SRST_DATA | SRST_CMD | SRST_HC, 0, 10) < 0){
+        uart_puts("EMMC init: clock disable timout wait error\r\n");
 		return -1;
 	}
     if((emmc_get()->CONTROL1 & (SRST_DATA | SRST_CMD | SRST_HC)) != 0){
+        uart_puts("EMMC init: clock disable bits still high\r\n");
         return -1;
     }
 
@@ -893,6 +898,7 @@ static int emmc_card_init(struct emmc_dev **dev){
     timeout_wait( &(emmc_get()->STATUS), VALID_CARD, 1, 500);
     uint32_t status_reg = emmc_get()->STATUS;
     if((status_reg & VALID_CARD) == 0){
+        uart_puts("EMMC init: invalid card\r\n");
         return -1;
     }
 	// Clear control2
@@ -911,6 +917,7 @@ static int emmc_card_init(struct emmc_dev **dev){
 	// Set to identification frequency (400 kHz)
 	uint32_t f_id = emmc_get_clock_divider(base_clock, EMMC_CLOCK_ID);
     if(f_id == EMMC_GET_CLOCK_DIVIDER_FAIL){
+        uart_puts("EMMC init: get clock divider failed\r\n");
         return -1;
     }
     control1 |= f_id;
@@ -919,6 +926,7 @@ static int emmc_card_init(struct emmc_dev **dev){
     emmc_get()->CONTROL1 = control1;
     timeout_wait( &(emmc_get()->CONTROL1), CLK_STABLE, 1, 0x100);
     if((emmc_get()->CONTROL1 & CLK_STABLE) == 0){
+        uart_puts("EMMC init: clock adjustment timeout wait failed\r\n");
         return -1;
     }
 
@@ -953,7 +961,10 @@ static int emmc_card_init(struct emmc_dev **dev){
 
 	// Send CMD0 to the card (reset to idle state)
 	emmc_command(ret, GO_IDLE_STATE, 0, 500);
-	if(FAIL(ret))   {return -1;}
+	if(FAIL(ret)){
+        uart_puts("EMMC init: GO_IDLE_STATE failed\r\n");
+        return -1;
+    }
 
 	// Send CMD8 to the card
 	// Voltage supplied = 0x1 = 2.7-3.6V (standard)
@@ -962,12 +973,17 @@ static int emmc_card_init(struct emmc_dev **dev){
 	int v2 = 0;
 	if(TIMEOUT(ret)){   v2 = 0; }
     else if(CMD_TIMEOUT(ret)){
-        if(emmc_reset_cmd() == -1){     return -1; }
+        if(emmc_reset_cmd() == -1){
+            uart_puts("EMMC init: SEND_IF_COND reset cmd failed\r\n");
+            return -1; 
+        }
         emmc_get()->INTERRUPT = CTO_ERR;
         v2 = 0;
     }
-    else if(FAIL(ret)){     return -1; }
-    else{
+    else if(FAIL(ret)){
+        uart_puts("EMMC init; SEND_IF_COND failed!\r\n");
+        return -1; 
+    }else{
         if((ret->last_r0 & 0xfff) != 0x1aa){
             uart_puts("EMMC: not usable card\n");
             return -1;
@@ -981,16 +997,23 @@ static int emmc_card_init(struct emmc_dev **dev){
     emmc_command(ret, IO_SET_OP_COND, 0, 10);
     if(!TIMEOUT(ret)){
         if(CMD_TIMEOUT(ret)){
-            if(emmc_reset_cmd() == -1){ return -1;}
+            if(emmc_reset_cmd() == -1){ 
+                uart_puts("EMMC init: Set op cond reset cmd error\r\n");
+                return -1;
+            }
             emmc_get()->INTERRUPT = CTO_ERR;
         }else{
+            uart_puts("EMMC init: Set op cond error!\r\n");
             return -1;
         }
     }
 
     // Call an inquiry ACMD41 (voltage window = 0) to get the OCR
     emmc_command(ret, ACMD(41), 0, 500);
-    if(FAIL(ret)){   return -1;}
+    if(FAIL(ret)){
+        uart_puts("EMMC init: Get OCR failed\r\n");
+        return -1;
+    }
 
 	// Call initialization ACMD41
 	int card_is_busy = 1;
@@ -1117,6 +1140,7 @@ static int emmc_card_init(struct emmc_dev **dev){
 	emmc_command(ret, SEND_RELATIVE_ADDR, 0, 500000);
 	if(FAIL(ret)){
         free(ret);
+        uart_puts("EMMC init: enter data state error\r\n");
         return -1;
     }
 
@@ -1131,21 +1155,25 @@ static int emmc_card_init(struct emmc_dev **dev){
 
 	if(crc_error){
 		free(ret);
+        uart_puts("EMMC init: CRC error\r\n");
 		return -1;
 	}
 
 	if(illegal_cmd){
 		free(ret);
+        uart_puts("EMMC init: illegal command error\r\n");
 		return -1;
 	}
 
 	if(error){
 		free(ret);
+        uart_puts("EMMC init: error\r\n");
 		return -1;
 	}
 
 	if(!ready){
 		free(ret);
+        uart_puts("EMMC init: not ready! error\r\n");
 		return -1;
 	}
 
@@ -1154,6 +1182,7 @@ static int emmc_card_init(struct emmc_dev **dev){
 	emmc_command(ret, SELECT_CARD, ret->card_rca << 16, 500);
 	if(FAIL(ret)){
 	    free(ret);
+        uart_puts("EMMC init: Select card error\r\n");
 	    return -1;
 	}
 
@@ -1162,6 +1191,7 @@ static int emmc_card_init(struct emmc_dev **dev){
 
 	if((status != 3) && (status != 4)){
 		free(ret);
+        uart_puts("EMMC init: status error\r\n");
 		return -1;
 	}
 
@@ -1255,7 +1285,7 @@ static int emmc_ensure_data_mode(struct emmc_dev *edev){
 
     emmc_command(edev, SEND_STATUS, edev->card_rca << 16, 500);
     if(FAIL(edev)){
-        uart_puts("EMMC: ensure_data_mode() error sending CMD13\n");
+        uart_puts("EMMC: ensure_data_mode() error sending CMD13\n\r");
         edev->card_rca = 0;
         return -1;
     }
@@ -1266,7 +1296,7 @@ static int emmc_ensure_data_mode(struct emmc_dev *edev){
 		// Currently in the stand-by state - select it
 		emmc_command(edev, SELECT_CARD, edev->card_rca << 16, 500);
 		if(FAIL(edev)){
-			uart_puts("EMMC: ensure_data_mode() no response from CMD17\n");
+			uart_puts("EMMC: ensure_data_mode() no response from CMD17\r\n");
 			edev->card_rca = 0;
 			return -1;
 		}
