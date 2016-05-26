@@ -188,16 +188,16 @@ scheduling_type_t process_spawn( spawn_args_t *args){
     // enable interrupts because process load requires time interrupts
     // should be moved out to a driver-process, but alas, time...
     // disable rescheduling for time interrupts
-    scheduling_set(0);
+    set_preemptive_timer(0);
     _enable_interrupts();
     if( process_load( args->path, args->priority, mode, args->id)  != 1){
         args->flags |= SPAWN_LOAD_ERROR;
         _disable_interrupts();
-        scheduling_set(1);
+        set_preemptive_timer(1);
         return RESCHEDULE;
     }
     _disable_interrupts();
-    scheduling_set(1);
+    set_preemptive_timer(1);
     // disable interrupts
     process_start(id);
     return RESCHEDULE;

@@ -12,7 +12,7 @@ static time_unit_t system_time;
 
 static int scheduling_on = 0;
 
-void scheduling_set(int onOff){
+void set_preemptive_timer(int onOff){
     scheduling_on = onOff;
 }
 

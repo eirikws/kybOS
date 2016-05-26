@@ -83,7 +83,7 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
  //   process_start( (process_id_t){3});
     
 
-    scheduling_set(1);
+    set_preemptive_timer(1);
     /*  call yield and never return*/
     _SYSTEM_CALL(YIELD,0,0,0);
 }
