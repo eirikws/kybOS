@@ -59,9 +59,14 @@ static ipc_msg_t* ipc_dequeue(process_id_t id){
     return NULL;
 }
 
-static int ipc_msg_enqueue_priority(ipc_msg_t* node, process_id_t coid){
+static int ipc_msg_enqueue_priority(ipc_msg_t* node, process_id_t coid, process_id_t sender){
     PCB_t* coid_pcb = pcb_get(coid);
-    int priority = pcb_get( get_current_running_process() )->priority;
+    int priority;
+    if( pcb_id_compare(sender, NULL_ID) ){ 
+        priority = NUM_PRIORITIES;
+    }else{
+        priority = pcb_get(sender)->priority;
+    }
     //  check priority is within bounds
     if( priority < 0 || priority > NUM_PRIORITIES-1){ 
         uart_puts("IPC priority out of bounds\r\n");
@@ -86,7 +91,7 @@ int ipc_msg_enqueue(void* payload, uint32_t size, process_id_t coid, int flags, 
         return -1;
     }
     ipc_msg_t* node =  ipc_new_node(payload, size, flags, sender);
-    return ipc_msg_enqueue_priority( node, coid);
+    return ipc_msg_enqueue_priority( node, coid, sender);
 }
 
 // ipc send call flag bits
