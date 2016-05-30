@@ -79,6 +79,7 @@ int process_load(const char* file_path, size_t priority, int mode, process_id_t 
     int ret = fs_get()->fs_load(file_path, buf, 0x20000);
     if(ret == -1){
         uart_puts("Process load: file not valid\r\n");
+        free(buf);
         return -1;
     }
     struct elf_header *myheader = (struct elf_header*)buf;
@@ -93,21 +94,25 @@ int process_load(const char* file_path, size_t priority, int mode, process_id_t 
         uart_putc(buf[2]);
         uart_putc(buf[3]);
         uart_puts("\r\n");
+        free(buf);
         return -1;
     }
 
     if( myheader->word_size != 1){
         uart_puts("Process load: elf file not 32 bit\r\n");
+        free(buf);
         return -1;
     }
 
     if( myheader->type != 2){
         uart_puts("Process load: file not executable\r\n");
+        free(buf);
         return -1;
     }
 
     if( myheader->instruction_set != INSTR_SET_ARM ){
         uart_puts("Process load The instruction set is not ARM. Try to use another compiler\r\n");
+        free(buf);
         return -1;
     }
 
