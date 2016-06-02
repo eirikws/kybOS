@@ -169,7 +169,7 @@ struct emmc_dev{
 #define EMMC_CMD_TYPE_RESUME	        (2 << 22)
 #define EMMC_CMD_TYPE_ABORT	            (3 << 22)
 #define EMMC_CMD_TYPE_MASK              (3 << 22)
-#define EMMC_CMD_IEMMCATA		        (1 << 21)
+#define EMMC_CMD_WITH_DATA		        (1 << 21)
 #define EMMC_CMD_IXCHK_EN		        (1 << 20)
 #define EMMC_CMD_CRCCHK_EN	            (1 << 19)
 #define EMMC_CMD_RSPNS_TYPE_NONE	    (0 << 0)    // For no response
@@ -197,8 +197,8 @@ struct emmc_dev{
 #define EMMC_RESP_R6          (EMMC_CMD_RSPNS_TYPE_48 | EMMC_CMD_CRCCHK_EN)
 #define EMMC_RESP_R7          (EMMC_CMD_RSPNS_TYPE_48 | EMMC_CMD_CRCCHK_EN)
 
-#define EMMC_DATA_READ        (EMMC_CMD_IEMMCATA | EMMC_CMD_DAT_DIR_CH)
-#define EMMC_DATA_WRITE       (EMMC_CMD_IEMMCATA | EMMC_CMD_DAT_DIR_HC)
+#define EMMC_DATA_READ        (EMMC_CMD_WITH_DATA | EMMC_CMD_DAT_DIR_CH)
+#define EMMC_DATA_WRITE       (EMMC_CMD_WITH_DATA | EMMC_CMD_DAT_DIR_HC)
 
 #define EMMC_CMD_RESERVED(a)  0xffffffff
 
@@ -281,7 +281,7 @@ static uint32_t emmc_commands[] = {
     EMMC_CMD_RESERVED(53),
     EMMC_CMD_RESERVED(54),
     EMMC_CMD_INDEX(55) | EMMC_RESP_R1,
-    EMMC_CMD_INDEX(56) | EMMC_RESP_R1 | EMMC_CMD_IEMMCATA,
+    EMMC_CMD_INDEX(56) | EMMC_RESP_R1 | EMMC_CMD_WITH_DATA,
     EMMC_CMD_RESERVED(57),
     EMMC_CMD_RESERVED(58),
     EMMC_CMD_RESERVED(59),
@@ -712,7 +712,7 @@ static void emmc_command_single(        struct emmc_dev *dev,
     }
 
     // If with data, wait for the appropriate interrupt
-    if(cmd_reg & EMMC_CMD_IEMMCATA){
+    if(cmd_reg & EMMC_CMD_WITH_DATA){
         uint32_t wr_irq;
         int is_write = 0;
         if(cmd_reg & EMMC_CMD_DAT_DIR_CH){
@@ -754,7 +754,7 @@ static void emmc_command_single(        struct emmc_dev *dev,
     
     // Wait for transfer complete (set if read/write transfer or with busy)
     if(((cmd_reg & EMMC_CMD_RSPNS_TYPE_MASK) == EMMC_CMD_RSPNS_TYPE_48B) ||
-       (cmd_reg & EMMC_CMD_IEMMCATA)){
+       (cmd_reg & EMMC_CMD_WITH_DATA)){
         // First check command inhibit (DAT) is not already 0
         if( ((emmc_get()->STATUS) & DAT_INHIBIT) == 0){
             emmc_get()->INTERRUPT = ERROR_MASK | DATA_DONE;
