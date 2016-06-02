@@ -408,6 +408,40 @@ static uint32_t emmc_acommands[] = {
 
 #define EMMC_GET_CLOCK_DIVIDER_FAIL	0xffffffff
 
+// CARD status register
+#define AKE_SEQ_ERROR           (1 << 3)
+#define CARD_APP_CMD            (1 << 5)
+#define READY_FOR_DATA          (1 << 8)
+#define CURRENT_STATE(a)        ((a >> 9) & 0xf)
+#define ERASE_RESET             (1 << 13)
+#define CARD_ECC_DISABLED       (1 << 14)
+#define WP_ERASE_SKIP           (1 << 15)
+#define CSD_OVERWRITE           (1 << 16)
+#define CARD_ERROR              (1 << 19)
+#define CC_ERROR                (1 << 20)
+#define CARD_ECC_FAILED         (1 << 21)
+#define ILLEGAL_COMMAND         (1 << 22)
+#define COM_CRC_ERROR           (1 << 23)
+#define LOCK_UNLOCK_FAILED      (1 << 24)
+#define CARD_IS_LOCKED          (1 << 25)
+#define WP_VIOLATION            (1 << 26)
+#define ERASE_PARAM             (1 << 27)
+#define ERASE_SEQ_ERROR         (1 << 28)
+#define BLOCK_LEN_ERROR         (1 << 29)
+#define ADDRESS_ERROR           (1 << 30)
+#define OUT_OF_RANGE            (1 << 31) 
+
+// CARD states
+#define CARD_IDLE           0
+#define CARD_READY          1
+#define CARD_IDENT          2
+#define CARD_STBY           3
+#define CARD_TRAN           4
+#define CARD_DATA           5
+#define CARD_RCB            6
+#define CARD_PRG            7
+#define CARD_DIS            8
+#define CARD_IO             15
 
 // convert little endianess
 static uint32_t byte_swap(unsigned int in){
@@ -1276,7 +1310,7 @@ static int emmc_card_init(struct emmc_dev **dev){
 	return 0;
 }
 
-static int emmc_ensure_data_mode(struct emmc_dev *edev){
+static int emmc_data_mode(struct emmc_dev *edev){
 	if(edev->card_rca == 0){
 		// Try again to initialise the card
 		int ret = emmc_card_init(&edev);
@@ -1291,8 +1325,8 @@ static int emmc_ensure_data_mode(struct emmc_dev *edev){
     }
 
 	uint32_t status = edev->last_r0;
-	uint32_t cur_state = (status >> 9) & 0xf;
-	if(cur_state == 3){
+	uint32_t cur_state = CURRENT_STATE(status);
+	if(cur_state == CARD_IDENT){
 		// Currently in the stand-by state - select it
 		emmc_command(edev, SELECT_CARD, edev->card_rca << 16, 500);
 		if(FAIL(edev)){
@@ -1300,7 +1334,7 @@ static int emmc_ensure_data_mode(struct emmc_dev *edev){
 			edev->card_rca = 0;
 			return -1;
 		}
-	}else if(cur_state == 5){
+	}else if(cur_state == CARD_DATA){
 		// In the data transfer state - cancel the transmission
 		emmc_command(edev, STOP_TRANSMISSION, 0, 500);
 		if(FAIL(edev)){
@@ -1311,14 +1345,14 @@ static int emmc_ensure_data_mode(struct emmc_dev *edev){
 		// Reset the data circuit
 		emmc_reset_dat();
 		
-	}else if(cur_state != 4){
+	}else if(cur_state != CARD_TRAN){
 		// Not in the transfer state - re-initialise
 		int ret = emmc_card_init(&edev);
 		if(ret != 0){   return ret; }
 	}
 
 	// Check again that we're now in the correct mode
-	if(cur_state != 4){
+	if(cur_state != CARD_TRAN){
         emmc_command(edev, SEND_STATUS, edev->card_rca << 16, 500000);
         if(FAIL(edev)){
 			edev->card_rca = 0;
@@ -1327,7 +1361,7 @@ static int emmc_ensure_data_mode(struct emmc_dev *edev){
 		status = edev->last_r0;
 		cur_state = (status >> 9) & 0xf;
 
-		if(cur_state != 4){
+		if(cur_state != CARD_TRAN){
 			edev->card_rca = 0;
 			return -1;
 		}
@@ -1335,7 +1369,7 @@ static int emmc_ensure_data_mode(struct emmc_dev *edev){
 	return 0;
 }
 
-static int emmc_do_data_command(        struct emmc_dev *edev,
+static int emmc_data_command(        struct emmc_dev *edev,
                                         int is_write, uint8_t *buf,
                                         size_t buf_size,
                                         uint32_t block_no){
@@ -1394,15 +1428,15 @@ int emmc_init(void){
 
 int emmc_read(uint8_t *buf, size_t buf_size, uint32_t block_no){
 	// Check the status of the card
-    if(emmc_ensure_data_mode(device) != 0){     return -1; }
-    if(emmc_do_data_command(device, 0, buf, buf_size, block_no) < 0){ return -1;}
+    if(emmc_data_mode(device) != 0){     return -1; }
+    if(emmc_data_command(device, 0, buf, buf_size, block_no) < 0){ return -1;}
 	return buf_size;
 }
 
 int emmc_write(uint8_t *buf, size_t buf_size, uint32_t block_no){
 	// Check the status of the card
-    if(emmc_ensure_data_mode(device) != 0){ return -1; }
-    if(emmc_do_data_command(device, 1, buf, buf_size, block_no) < 0){ return -1;}
+    if(emmc_data_mode(device) != 0){ return -1; }
+    if(emmc_data_command(device, 1, buf, buf_size, block_no) < 0){ return -1;}
 	return buf_size;
 }
 
