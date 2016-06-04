@@ -7,6 +7,8 @@
 #include "drivers.h"
 #include "system_calls.h"
 
+#define NULL_ID     (process_id_t){0}
+
 // ipc receive flag bits
 #define BUF_TOO_SMALL           (1 << 1)
 

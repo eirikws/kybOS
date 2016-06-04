@@ -519,7 +519,10 @@ int fat_load(const char *path, uint8_t *buf, uint32_t buf_size){
         // search for it!
         // delete all the other nodes in the linked list
         node = fat_read_dir( (struct fat_fs*)filesys, current_node);
+        //uart_puts("fat read dir gives:\r\n");
         while(node){
+          //  uart_puts(node->name);
+          //  uart_puts("\r\n");
             if( !strcmp( node->name, path_buf) ){
                 current_node = node;
                 node = node->next;

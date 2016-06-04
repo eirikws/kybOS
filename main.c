@@ -28,20 +28,18 @@ void extern _SYSTEM_CALL(system_call_t arg0, void* arg1, void* arg2, void* arg3)
 void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     
     uart_init();
+    gpio_init();
     _enable_interrupts();
     uart_puts("kernel start!\r\n");
     drivers_init();
-    
+
     uart_puts("enabling jtag\r\n");
     // enable jtag for debugging
     jtag_enable();
     // initiate the OS clock
-    uart_puts("initiating system clock and doing a wait for 1 seconds to check if it works\r\n");
+    uart_puts("initiating system clock\r\n");
     arm_timer_set_freq(1000);
     arm_timer_init();
-    time_delay_microseconds(1000);
-    uart_puts("you should now have waited 1 second\r\n");
-
     uart_puts("starting mmu\r\n");
     mmu_init_table();
     mmu_configure();
@@ -51,9 +49,6 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     _SYSTEM_CALL(DUMMY,0,0,0);
     
 
-    //  enable LED pin as an output 
-    get_gpio()->LED_GPFSEL |= LED_GPFBIT;
-    /* Enable interrupts! */
     
     uart_puts("initiating memory\r\n");
     memory_init();
@@ -61,15 +56,19 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     uart_puts("initiating filesystem emmc\r\n");
     fs_init();
     
+   // gpio_test();
+
     if(fs_get() == NULL){
         uart_puts("filesys is NULL!!!\r\n");
     }
-
         
     uart_puts("loading process 1\r\n");
-    process_load("prog1.elf", 20, CPSR_MODE_USER, (process_id_t){1});
+/*    process_load("prog1.elf", 20, CPSR_MODE_USER, (process_id_t){1});
     uart_puts("loading process 2\r\n");
     process_load("prog2.elf", 20, CPSR_MODE_USER, (process_id_t){2});
+    uart_puts("loading gpio_driver\r\n");
+*/    process_load("gpio.elf", 22, CPSR_MODE_USER, (process_id_t){4});
+    process_load("prog3.elf", 1, CPSR_MODE_USER, (process_id_t){5});
   //  uart_puts("loading process 3\r\n");
    // process_load("prog3.elf",  0, CPSR_MODE_USER, (process_id_t){3});
 
@@ -78,8 +77,10 @@ void kernel_main( unsigned int r0, unsigned int r1, unsigned int atags ){
     uart_puts("starting processes\r\n");
     pcb_print();
     //  starting them
-    process_start( (process_id_t){2});
+/*    process_start( (process_id_t){2});
     process_start( (process_id_t){1});
+  */  process_start( (process_id_t){4});
+    process_start((process_id_t){5});
  //   process_start( (process_id_t){3});
     
 

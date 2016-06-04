@@ -63,7 +63,7 @@ static int ipc_msg_enqueue_priority(ipc_msg_t* node, process_id_t coid, process_
     PCB_t* coid_pcb = pcb_get(coid);
     int priority;
     if( pcb_id_compare(sender, NULL_ID) ){ 
-        priority = NUM_PRIORITIES;
+        priority = NUM_PRIORITIES - 1;
     }else{
         priority = pcb_get(sender)->priority;
     }

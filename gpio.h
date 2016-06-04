@@ -1,9 +1,8 @@
-
 #ifndef GPIO_H
 #define GPIO_H
 
 #include "base.h"
-
+#include "scheduler.h"
 #define LED_GPFSEL      GPFSEL4
 #define LED_GPFBIT      21
 #define LED_GPSET       GPSET1
@@ -40,7 +39,6 @@
 
 #define GPIO_FSEL0_09_INPUT     ( 0 << 27 )
 #define GPIO_FSEL0_09_OUTPUT    ( 1 << 27 )
-
 
 typedef struct {
     volatile uint32_t           GPFSEL0;
@@ -90,5 +88,7 @@ typedef struct {
 gpio_t* get_gpio(void);
 void gpio_init(void);
 void gpio_jtag_enable(void);
+scheduling_type_t gpio_handler();
+void gpio_test(void);
 
 #endif

@@ -219,7 +219,6 @@ pop_return_stack_user:
     mov r1, #(CPSR_MODE_IRQ | CPSR_IRQ_INHIBIT | CPSR_FIQ_INHIBIT )
     msr cpsr_c, r1
     push {r0}
-    
     ldm sp!, {r0-r12, pc}^
     
 pop_return_stack_svr:

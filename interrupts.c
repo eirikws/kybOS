@@ -129,11 +129,13 @@ void undefined_instruction_vector_c(uint32_t origin, uint32_t stack){
 /*
     IRQ handler
 */
-uint32_t interrupt_vector_c(void){
+scheduling_type_t interrupt_vector_c(void){
 //  find irq source
     irq_controller_t *irq_flags = irq_controller_get();
     //  timer
-    if( irq_flags->IRQ_basic_pending & ARM_TIMER_IRQ ){
+ /*   uart_put_uint32_t( uart_get()->MIS, 16);
+    uart_puts("\r\n");
+  */  if( irq_flags->IRQ_basic_pending & ARM_TIMER_IRQ ){
         // Do all timer things
         // message timer irq driver
         ipc_kernel_send(NULL, 0, driver_irq_get(DRIVER_TIMER));
@@ -144,6 +146,9 @@ uint32_t interrupt_vector_c(void){
         // Do all uart things
         ipc_kernel_send(NULL, 0, driver_irq_get(DRIVER_UART));
         return uart_handler();
+    }
+    if( irq_flags->IRQ_pending_2 & GPIO_IRQ){
+        return gpio_handler();
     }
     return 0;
 }

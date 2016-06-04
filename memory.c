@@ -207,7 +207,7 @@ scheduling_type_t memory_map(void* retval, uint32_t address, process_id_t id){
     // adjust for the rest!
     ret += address % MMU_PAGE_SIZE;
     *(uint32_t*)retval = ret;
-    return NO_RESCHEDULE;
+    return RESCHEDULE;
 }
 
 

@@ -5,7 +5,7 @@
 #include "interrupts.h"
 
 #define ARMTIMER_BASE               ( PERIPHERAL_BASE + 0xB400 )
-#define SYSTEM_CLOCK                (2000000)
+#define SYSTEM_CLOCK                (1000000)
 
 
 static int arm_timer_freq;

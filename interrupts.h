@@ -16,7 +16,7 @@
 #define ACCESS_ERROR_1_IRQ    (1 << 6)
 #define ACCESS_ERROR_0_IRQ    (1 << 7)
 #define UART_IRQ              (1 << 25)
-
+#define GPIO_IRQ              (0xf << 17)  
 
 /*
     The interrupt controller memory mapped register set

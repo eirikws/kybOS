@@ -59,6 +59,9 @@ scheduling_type_t driver_register(process_id_t id, char* name, int* errors){
         *errors = 1;
         return NO_RESCHEDULE;
     }
+    uart_puts("driver register: ");
+    uart_puts(name);
+    uart_puts("\r\n");
     node->next = os_drivers;
     os_drivers = node;
     
@@ -91,10 +94,13 @@ int driver_remove(process_id_t id){
 process_id_t driver_get(char* name){
     driver_t *node = os_drivers;
     while(node){
+        uart_puts(node->name);
+        uart_puts("\r\n");
         if( strncmp(node->name, name, DRIVER_NAME_SIZE) == 0){
             // has found driver
             return node->id;
         }
+        node = node->next;
     }
     // did not find driver
     return NULL_ID;

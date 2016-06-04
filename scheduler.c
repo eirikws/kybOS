@@ -5,6 +5,8 @@
 #include "pcb.h"
 #include "memory.h"
 #include "scheduler.h"
+#include "time.h"
+
 
 typedef struct priority_node{
     process_id_t id;
@@ -89,7 +91,6 @@ static process_id_t priority_pop(int priority){
     // iterate through list. return -1 if empty
 static process_id_t pop_highest_priority(void){
     process_id_t retval;
-    
     int i;
     for (i = NUM_PRIORITIES-1; i>-1; i--){
         retval = priority_pop(i);

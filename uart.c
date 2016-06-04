@@ -60,6 +60,7 @@ void uart_init( void ){
 
     //  set receive interrupt fifo level to 1/8 FIFO level
     uart_get()->IFLS |= RECEIVE_IRQ_FIFO_18;
+
     
     //  mask interrupts
     uart_get()->IMSC   |= RECEIVE_MASK_BIT;
@@ -67,6 +68,9 @@ void uart_init( void ){
     //  restart uart again
     irq_controller_get()->Enable_IRQs_2 |= UART_IRQ;
     uart_get()->CR = UART_ENABLE | TRANSMIT_ENABLE | RECEIVE_ENABLE;
+    uart_puts("IFLS: ");
+    uart_put_uint32_t( uart_get()->IFLS , 16);
+    uart_puts("\r\n");
 }
 
 uart_controller_t* uart_get( void ){
@@ -138,6 +142,7 @@ void uart_put_uint32_t(uint32_t in, int base){
 
 uint32_t uart_handler(void){
     static int lit = 0;
+    uart_puts("uart handler!\r\n");
     if( lit ){
         get_gpio()->LED_GPSET = (1 << LED_GPIO_BIT);
         lit = 0;
