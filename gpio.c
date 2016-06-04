@@ -63,8 +63,8 @@ scheduling_type_t gpio_handler(void){
     irpts[0] = get_gpio()->GPEDS0;
     irpts[1] = get_gpio()->GPEDS1;
     gpio_ack();
-    ipc_kernel_send(irpts, 8, driver_irq_get(DRIVER_GPIO));
-    return 1;
+   // ipc_kernel_send(irpts, 8, driver_irq_get(DRIVER_GPIO));
+    return RESCHEDULE;
 }
 
 void gpio_test(void){

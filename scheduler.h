@@ -19,4 +19,5 @@ typedef enum{
 void reschedule(void);
 int scheduler_enqueue(process_id_t id);
 process_id_t get_current_running_process(void);
+void test_begin(void);
 #endif

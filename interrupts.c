@@ -147,7 +147,12 @@ scheduling_type_t interrupt_vector_c(void){
         ipc_kernel_send(NULL, 0, driver_irq_get(DRIVER_UART));
         return uart_handler();
     }
+    static int i = 0;
     if( irq_flags->IRQ_pending_2 & GPIO_IRQ){
+        if( i == 0){
+            i++;
+            test_begin();
+        }
         return gpio_handler();
     }
     return 0;

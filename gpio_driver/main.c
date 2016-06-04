@@ -69,6 +69,8 @@ int main(void){
     volatile uint32_t *gpclr1  = mmap(GPCLR1);
     volatile uint32_t *gpren0  = mmap(GPREN0);
     volatile uint32_t *gpfen0  = mmap(GPFEN0);
+    
+    volatile uint32_t *gphen0   = mmap(GPHEN0);
     _SYSTEM_CALL(4, (void*)"gpio remap done\r\n", NULL, NULL);
     //  enable LED pin as an output 
     *gpfsel4 |= 21;
@@ -92,13 +94,13 @@ int main(void){
     *gppud = 0;
     *gppudclk0 = 0;
     // enable rising edge interrupts
+    /*
     *gpren0 |= (1 << 26);
-
     *gpren0 |= (1 << 19);
-
     *gpren0 |= (1 << 13);
-
     *gpren0 |= (1 << 6);
+*/
+    *gphen0 |= (1 << 26);
 
     // output
 
@@ -120,10 +122,14 @@ int main(void){
     *gpclr0 = ( 1 << 12);   // pin  12
     
     
+    *gpset0 = ( 1 << 21);   // pin  21
+    
     // buf to receive interupts
     uint32_t recv_buf[2];
     _SYSTEM_CALL(4, (void*)"gpio init done, calling recv\r\n", NULL, NULL);
-
+    while(1){
+        /*nothing*/
+    }
     while(1){
         sender = ipc_receive(recv_buf, 8, &flags);
  /*       

@@ -151,8 +151,37 @@ void reschedule(void){
     current_running_process = retval;
 }
 
+static int test = 0;
+void test_begin(void){
+    uart_puts("test begin\r\n");
+    test = 1;
+}
+
 // save old sp, return new sp, do MMU things
 uint32_t context_switch_c(uint32_t old_sp){
+    static time_unit_t time2;
+    time_unit_t time1;
+    static int count = 0;
+    if( test == 1){
+        if( count == 0){
+            uart_puts("starting test\r\n");
+            time2 = time_get();
+            time_add_microseconds(&time2, 1000);
+        }
+        count++;
+        time1 = time_get();
+        if( time_compare(time1, time2) == 1){
+            uart_puts("test done\r\n");
+            uart_puts("count: ");
+            uart_put_uint32_t(count, 10);
+            while(1){
+                /* nothing */
+            }
+        }
+
+    }
+
+
     // save old id
     process_id_t previous_running_process = get_current_running_process();
     // reschedule for new id
